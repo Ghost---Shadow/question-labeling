@@ -5,6 +5,12 @@ from tqdm import tqdm
 from models.t5_model import T5ModelForQuestionGeneration
 from torch.utils.data import DataLoader, IterableDataset
 from dataloaders import hotpot_qa_loader
+from functools import lru_cache
+
+
+@lru_cache(maxsize=1024)
+def cached_generate_question(model, sentence):
+    return model.generate_question(sentence)
 
 
 def add_question_to_row(model, row):
@@ -12,7 +18,7 @@ def add_question_to_row(model, row):
     for paragraph in row["context"]["sentences"]:
         paragraph_questions = []
         for sentence in paragraph:
-            question = model.generate_question(sentence)
+            question = cached_generate_question(model, sentence)
             paragraph_questions.append(question)
         all_questions.append(paragraph_questions)
 
@@ -49,7 +55,7 @@ def convert_to_question_for_split(dataset, model, split, debug):
 def convert_to_question_dataset(model, debug=False):
     dataset = load_dataset("hotpot_qa", "distractor")
 
-    # convert_to_question_for_split(dataset, model, "train", debug)
+    convert_to_question_for_split(dataset, model, "train", debug)
     convert_to_question_for_split(dataset, model, "validation", debug)
 
 
