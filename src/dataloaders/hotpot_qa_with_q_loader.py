@@ -3,6 +3,8 @@ import os
 from datasets import load_dataset
 from tqdm import tqdm
 from models.t5_model import T5ModelForQuestionGeneration
+from torch.utils.data import DataLoader, IterableDataset
+from dataloaders import hotpot_qa_loader
 
 
 def add_question_to_row(model, row):
@@ -47,8 +49,62 @@ def convert_to_question_for_split(dataset, model, split, debug):
 def convert_to_question_dataset(model, debug=False):
     dataset = load_dataset("hotpot_qa", "distractor")
 
-    convert_to_question_for_split(dataset, model, "train", debug)
+    # convert_to_question_for_split(dataset, model, "train", debug)
     convert_to_question_for_split(dataset, model, "validation", debug)
+
+
+def collate_fn(batch):
+    batch_flat_questions = []
+    for item in batch:
+        flat_questions = []
+        for paragraph_questions in item["context"]["questions"]:
+            for question in paragraph_questions:
+                flat_questions.append(question)
+
+        batch_flat_questions.append(flat_questions)
+
+    return {
+        **hotpot_qa_loader.collate_fn(batch),
+        "flat_questions": batch_flat_questions,
+    }
+
+
+class CustomIterableDataset(IterableDataset):
+    def __init__(self, file_path):
+        self.file_path = file_path
+
+    def parse_file(self):
+        with open(self.file_path, "r") as f:
+            for line in f:
+                yield json.loads(line)
+
+    def __iter__(self):
+        return iter(self.parse_file())
+
+
+def get_loader(batch_size):
+    assert batch_size == 1, "TODO"
+
+    train_file_path = "./data/train.jsonl"
+    validation_file_path = "./data/validation.jsonl"
+    train_dataset = CustomIterableDataset(train_file_path)
+    validation_dataset = CustomIterableDataset(validation_file_path)
+
+    train_loader = DataLoader(
+        train_dataset,
+        batch_size=batch_size,
+        shuffle=False,  # TODO
+        collate_fn=collate_fn,
+    )
+
+    val_loader = DataLoader(
+        validation_dataset,
+        batch_size=batch_size,
+        shuffle=False,
+        collate_fn=collate_fn,
+    )
+
+    return train_loader, val_loader
 
 
 if __name__ == "__main__":
