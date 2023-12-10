@@ -8,7 +8,6 @@ from torch.cuda.amp import autocast, GradScaler
 
 
 # python -m unittest models.wrapped_sentence_transformer_test.TestWrappedSentenceTransformerModel -v
-@unittest.skip("needs GPU")
 class TestWrappedSentenceTransformerModel(unittest.TestCase):
     # python -m unittest models.wrapped_sentence_transformer_test.TestWrappedSentenceTransformerModel.test_get_inner_products -v
     def test_get_inner_products(self):
@@ -16,7 +15,8 @@ class TestWrappedSentenceTransformerModel(unittest.TestCase):
             "architecture": {
                 "semantic_search_model": {
                     "checkpoint": "all-mpnet-base-v2",
-                    "device": "cuda:0",
+                    # "device": "cuda:0",
+                    "device": "cpu",
                 }
             }
         }

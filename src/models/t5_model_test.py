@@ -4,7 +4,6 @@ from models.t5_model import T5ModelForQuestionGeneration
 
 
 # python -m unittest models.t5_model_test.TestT5Model -v
-@unittest.skip("needs GPU")
 class TestT5Model(unittest.TestCase):
     # python -m unittest models.t5_model_test.TestT5Model.test_generate_question -v
     def test_generate_question(self):
@@ -13,7 +12,8 @@ class TestT5Model(unittest.TestCase):
                 "question_generator_model": {
                     "name": "t5",
                     "size": "base",
-                    "device": "cuda:0",
+                    # "device": "cuda:0",
+                    "device": "cpu",
                 }
             }
         }
@@ -36,7 +36,8 @@ class TestT5Model(unittest.TestCase):
                 "question_generator_model": {
                     "name": "t5",
                     "size": "base",
-                    "device": "cuda:0",
+                    # "device": "cuda:0",
+                    "device": "cpu",
                 }
             }
         }
