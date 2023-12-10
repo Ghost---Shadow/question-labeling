@@ -10,7 +10,8 @@ architecture:
     device: "cuda:0"
   
   semantic_search_model:
-    name: 'all-mpnet-base-v2'
+    name: 'sentence_transformer'
+    variant: 'all-mpnet-base-v2'
     device: "cuda:0"
 
   aggregation_loss:

@@ -8,7 +8,9 @@ architecture:
     name: 'gpt-3.5-turbo'
   
   semantic_search_model:
-    name: 'all-mpnet-base-v2'
+    name: 'sentence_transformer'
+    checkpoint: 'all-mpnet-base-v2'
+    device: "cuda:0"
 
   aggregation_loss:
     name: 'average'
@@ -19,4 +21,3 @@ training:
   learning_rate: 1e-6
   seeds: [42]
   # seeds: [42, 43, 44, 45, 46]
-  device: "cuda:0"
