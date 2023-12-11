@@ -1,9 +1,6 @@
 import torch
 from torch.cuda.amp import autocast, GradScaler
 
-import torch
-from torch.cuda.amp import autocast, GradScaler
-
 
 def train_step(wrapped_model, optimizer, batch, aggregation_fn, loss_fn):
     scaler = GradScaler()
@@ -18,13 +15,20 @@ def train_step(wrapped_model, optimizer, batch, aggregation_fn, loss_fn):
         for _ in relevant_sentence_indexes:
             total_gradient_accumulation_steps += 1
 
-    for question, flat_questions, selection_vector, relevant_sentence_indexes in zip(
+    # If synthetic questions exist, use them.
+    # Otherwise fallback to original dataset
+    if "flat_questions" in batch:
+        batch_documents = batch["flat_questions"]
+    else:
+        batch_documents = batch["flat_sentences"]
+
+    for question, documents, selection_vector, relevant_sentence_indexes in zip(
         batch["questions"],
-        batch["flat_questions"],
+        batch_documents,
         batch["selection_vector"],
         batch["relevant_sentence_indexes"],
     ):
-        picked_so_far = torch.zeros((len(flat_questions)), dtype=torch.bool)
+        picked_so_far = torch.zeros((len(documents)), dtype=torch.bool)
 
         labels = torch.tensor(
             selection_vector, device=wrapped_model.device, dtype=torch.float32
@@ -38,9 +42,7 @@ def train_step(wrapped_model, optimizer, batch, aggregation_fn, loss_fn):
                 (
                     question_embedding,
                     document_embeddings,
-                ) = wrapped_model.get_query_and_document_embeddings(
-                    question, flat_questions
-                )
+                ) = wrapped_model.get_query_and_document_embeddings(question, documents)
 
                 aggregated_query_embedding = aggregation_fn(
                     question_embedding, document_embeddings, picked_so_far
@@ -88,19 +90,26 @@ def eval_step(wrapped_model, batch, aggregation_fn, loss_fn):
     total_loss = 0.0
     total_recall_at_k = 0.0
 
+    # If synthetic questions exist, use them.
+    # Otherwise fallback to original dataset
+    if "flat_questions" in batch:
+        batch_documents = batch["flat_questions"]
+    else:
+        batch_documents = batch["flat_sentences"]
+
     with torch.no_grad():
         for (
             question,
-            flat_questions,
+            documents,
             selection_vector,
             relevant_sentence_indexes,
         ) in zip(
             batch["questions"],
-            batch["flat_questions"],
+            batch_documents,
             batch["selection_vector"],
             batch["relevant_sentence_indexes"],
         ):
-            picked_so_far = torch.zeros((len(flat_questions)), dtype=torch.bool)
+            picked_so_far = torch.zeros((len(documents)), dtype=torch.bool)
             labels = torch.tensor(
                 selection_vector, device=wrapped_model.device, dtype=torch.float32
             )
@@ -112,9 +121,7 @@ def eval_step(wrapped_model, batch, aggregation_fn, loss_fn):
                 (
                     question_embedding,
                     document_embeddings,
-                ) = wrapped_model.get_query_and_document_embeddings(
-                    question, flat_questions
-                )
+                ) = wrapped_model.get_query_and_document_embeddings(question, documents)
 
                 aggregated_query_embedding = aggregation_fn(
                     question_embedding, document_embeddings, picked_so_far
@@ -162,13 +169,20 @@ def train_step_full_precision(wrapped_model, optimizer, batch, aggregation_fn, l
         for _ in relevant_sentence_indexes:
             total_gradient_accumulation_steps += 1
 
-    for question, flat_questions, selection_vector, relevant_sentence_indexes in zip(
+    # If synthetic questions exist, use them.
+    # Otherwise fallback to original dataset
+    if "flat_questions" in batch:
+        batch_documents = batch["flat_questions"]
+    else:
+        batch_documents = batch["flat_sentences"]
+
+    for question, documents, selection_vector, relevant_sentence_indexes in zip(
         batch["questions"],
-        batch["flat_questions"],
+        batch_documents,
         batch["selection_vector"],
         batch["relevant_sentence_indexes"],
     ):
-        picked_so_far = torch.zeros((len(flat_questions)), dtype=torch.bool)
+        picked_so_far = torch.zeros((len(documents)), dtype=torch.bool)
 
         labels = torch.tensor(
             selection_vector, device=wrapped_model.device, dtype=torch.float32
@@ -178,9 +192,7 @@ def train_step_full_precision(wrapped_model, optimizer, batch, aggregation_fn, l
             (
                 question_embedding,
                 document_embeddings,
-            ) = wrapped_model.get_query_and_document_embeddings(
-                question, flat_questions
-            )
+            ) = wrapped_model.get_query_and_document_embeddings(question, documents)
 
             aggregated_query_embedding = aggregation_fn(
                 question_embedding, document_embeddings, picked_so_far

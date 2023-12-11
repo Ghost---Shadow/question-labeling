@@ -50,8 +50,6 @@ def collate_fn(batch):
 def get_loader(batch_size):
     dataset = load_dataset("hotpot_qa", "distractor")
 
-    assert batch_size == 1, "TODO"
-
     train_loader = DataLoader(
         dataset["train"],
         batch_size=batch_size,
