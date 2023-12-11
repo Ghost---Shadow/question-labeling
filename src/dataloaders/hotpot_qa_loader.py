@@ -6,6 +6,7 @@ def collate_fn(batch):
     batch_questions = []
     batch_flat_sentences = []
     batch_relevant_sentence_indexes = []
+    batch_selection_vector = []
 
     for item in batch:
         question = item["question"]
@@ -29,14 +30,20 @@ def collate_fn(batch):
             flat_index = index_lut[(title, sent_id)]
             relevant_sentence_indexes.append(flat_index)
 
+        selection_vector = [0] * len(flat_sentences)
+        for index in relevant_sentence_indexes:
+            selection_vector[index] = 1
+
         batch_questions.append(question)
         batch_flat_sentences.append(flat_sentences)
         batch_relevant_sentence_indexes.append(relevant_sentence_indexes)
+        batch_selection_vector.append(selection_vector)
 
     return {
         "questions": batch_questions,
         "flat_sentences": batch_flat_sentences,
         "relevant_sentence_indexes": batch_relevant_sentence_indexes,
+        "selection_vector": batch_selection_vector,
     }
 
 
