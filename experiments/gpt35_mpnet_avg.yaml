@@ -12,12 +12,20 @@ architecture:
     checkpoint: 'all-mpnet-base-v2'
     device: "cuda:0"
 
-  aggregation_loss:
+  aggregation_strategy:
     name: 'average'
 
+  loss:
+    name: 'mse'
+
+dataset:
+  name: 'hotpot_qa_with_q'
+
 training:
-  epochs: 5
-  batch_size: 64
-  learning_rate: 1e-6
+  strategy:
+    name: 'iterative_strategy'
+  epochs: 2
+  batch_size: 2
+  learning_rate: 1e-5
   seeds: [42]
   # seeds: [42, 43, 44, 45, 46]
