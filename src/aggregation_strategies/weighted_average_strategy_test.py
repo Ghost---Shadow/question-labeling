@@ -17,18 +17,17 @@ class TestWeightedEmbeddingAverage(unittest.TestCase):
         weight = 1
 
         # Expected result
-        expected_weighted_average = torch.tensor([2.5000, 3.5000, 4.5000])
+        expected_weighted_average = torch.tensor([0.4016, 0.5623, 0.7229])
 
         # Run the function
-        average_embedding, returned_mask = weighted_embedding_average(
+        average_embedding = weighted_embedding_average(
             question_embedding, document_embeddings, mask, weight
         )
 
         # Check if the results are as expected
         self.assertTrue(
-            torch.allclose(average_embedding, expected_weighted_average, atol=1e-6)
+            torch.allclose(average_embedding, expected_weighted_average, atol=1e-3)
         )
-        self.assertTrue(torch.equal(returned_mask, mask))
 
         # Compute the loss
         loss_function = torch.nn.MSELoss()
@@ -55,7 +54,7 @@ class TestWeightedEmbeddingAverage(unittest.TestCase):
         expected_weighted_average = question_embedding
 
         # Run the function
-        average_embedding, returned_mask = weighted_embedding_average(
+        average_embedding = weighted_embedding_average(
             question_embedding, document_embeddings, mask, weight
         )
 
@@ -63,7 +62,6 @@ class TestWeightedEmbeddingAverage(unittest.TestCase):
         self.assertTrue(
             torch.allclose(average_embedding, expected_weighted_average, atol=1e-6)
         )
-        self.assertTrue(torch.equal(returned_mask, mask))
 
         # Compute the loss
         loss_function = torch.nn.MSELoss()

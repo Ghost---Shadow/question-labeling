@@ -60,8 +60,8 @@ class TestHotpotQaWithQaLoader(unittest.TestCase):
         assert expected == actual, actual
 
         expected = [
-            "What year was Arthur's Magazine published?",
-            "What company published First for Women?",
+            "What was the significance of Arthur's Magazine in the American literary landscape of the 19th century?",
+            "What is the name of the magazine published by Bauer Media Group in the USA that specifically targets women?",
         ]
         actual = list(
             np.array(batch["flat_questions"][0])[batch["relevant_sentence_indexes"][0]]
@@ -84,8 +84,8 @@ class TestHotpotQaWithQaLoader(unittest.TestCase):
         assert expected == actual, actual
 
         expected = [
-            "What is Scott Derrickson's occupation?",
-            "What was Edward Davis Wood Jr.'s occupation?",
+            "What is Scott Derrickson known for in the entertainment industry?",
+            "What were some of the notable contributions and achievements of Edward Davis Wood Jr. in the field of filmmaking?",
         ]
         actual = list(
             np.array(batch["flat_questions"][0])[batch["relevant_sentence_indexes"][0]]

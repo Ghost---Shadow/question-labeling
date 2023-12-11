@@ -18,7 +18,7 @@ def weighted_embedding_average(question_embedding, document_embeddings, mask, we
 
     # If nothing is selected, then return question_embedding alone
     if mask.sum() == 0:
-        return question_embedding, mask
+        return question_embedding
 
     # Filter the document embeddings based on the mask
     filtered_docs = document_embeddings[mask]
@@ -29,7 +29,7 @@ def weighted_embedding_average(question_embedding, document_embeddings, mask, we
     # Calculate the weighted average with the question embedding
     weighted_average = (weight * question_embedding + mean_doc_embedding) / (1 + weight)
 
-    # No operation
-    new_mask = mask
+    # Make sure the vector is normalized
+    weighted_average = torch.nn.functional.normalize(weighted_average, dim=-1)
 
-    return weighted_average, new_mask
+    return weighted_average

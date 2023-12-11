@@ -10,7 +10,7 @@ class WrappedSentenceTransformerModel:
         self.device = device
         self.model = SentenceTransformer(checkpoint).to(device)
 
-    def get_inner_products(self, query, documents):
+    def get_query_and_document_embeddings(self, query, documents):
         all_sentences = [query] + documents
         # Convert sentences to input format expected by the model (e.g., tokenization)
         # This depends on how SentenceTransformer expects its inputs
@@ -25,5 +25,8 @@ class WrappedSentenceTransformerModel:
         query_embedding = all_embeddings[0].unsqueeze(0)
         document_embeddings = all_embeddings[1:]
 
-        # Compute inner products
-        return torch.matmul(query_embedding, document_embeddings.T).squeeze()
+        # normalize the vectors
+        query_embedding = torch.nn.functional.normalize(query_embedding, dim=-1)
+        document_embeddings = torch.nn.functional.normalize(document_embeddings, dim=-1)
+
+        return query_embedding, document_embeddings

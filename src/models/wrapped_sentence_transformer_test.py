@@ -29,7 +29,12 @@ class TestWrappedSentenceTransformerModel(unittest.TestCase):
             "How heavy is an apple?",
         ]
 
-        inner_products = model.get_inner_products(query, documents)
+        (
+            question_embedding,
+            document_embeddings,
+        ) = model.get_query_and_document_embeddings(query, documents)
+        inner_products = (question_embedding @ document_embeddings.T).squeeze()
+
         order = torch.argsort(inner_products, descending=True).cpu().numpy()
         actual = list(np.array(documents)[order])
 
@@ -75,7 +80,11 @@ class TestOverfit(unittest.TestCase):
             # zero grad
             optimizer.zero_grad()
 
-            inner_product = wrapped_model.get_inner_products(query, documents)
+            (
+                question_embedding,
+                document_embeddings,
+            ) = wrapped_model.get_query_and_document_embeddings(query, documents)
+            inner_product = (question_embedding @ document_embeddings.T).squeeze()
 
             loss = loss_fn(inner_product.unsqueeze(0), target)
             print(loss.item())
@@ -114,7 +123,12 @@ class TestOverfit(unittest.TestCase):
             optimizer.zero_grad()
 
             with autocast(dtype=torch.float16):
-                inner_product = wrapped_model.get_inner_products(query, documents)
+                (
+                    question_embedding,
+                    document_embeddings,
+                ) = wrapped_model.get_query_and_document_embeddings(query, documents)
+                inner_product = (question_embedding @ document_embeddings.T).squeeze()
+
                 loss = loss_fn(inner_product.unsqueeze(0), target)
                 print(loss.item())
 

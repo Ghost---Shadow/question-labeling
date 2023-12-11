@@ -90,8 +90,6 @@ class CustomIterableDataset(IterableDataset):
 
 
 def get_loader(batch_size):
-    assert batch_size == 1, "TODO"
-
     train_file_path = "./data/train.jsonl"
     validation_file_path = "./data/validation.jsonl"
     train_dataset = CustomIterableDataset(train_file_path)
