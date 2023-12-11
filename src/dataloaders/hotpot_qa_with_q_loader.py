@@ -1,6 +1,7 @@
 import json
 import os
 from datasets import load_dataset
+from models.openai_chat_model import OpenAIChatModel
 from tqdm import tqdm
 from models.t5_model import T5ModelForQuestionGeneration
 from torch.utils.data import DataLoader, IterableDataset
@@ -117,11 +118,13 @@ if __name__ == "__main__":
     config = {
         "architecture": {
             "question_generator_model": {
-                "name": "t5",
-                "size": "base",
-                "device": "cuda:0",
+                "name": "gpt-3.5-turbo",
+                # "name": "t5",
+                # "size": "base",
+                # "device": "cuda:0",
             }
         }
     }
-    model = T5ModelForQuestionGeneration(config)
+    # model = T5ModelForQuestionGeneration(config)
+    model = OpenAIChatModel(config)
     convert_to_question_dataset(model, debug=True)
