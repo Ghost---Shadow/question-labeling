@@ -1,11 +1,11 @@
 import unittest
 import torch
-from losses.masked_mse_loss import MaskedMSELoss
+from losses.mse_loss import MSELoss
 
 
-# python -m unittest losses.masked_mse_loss_test.TestMaskedMSELoss -v
-class TestMaskedMSELoss(unittest.TestCase):
-    # python -m unittest losses.masked_mse_loss_test.TestMaskedMSELoss.test_loss_computation -v
+# python -m unittest losses._mse_loss_test.TestMSELoss -v
+class TestMSELoss(unittest.TestCase):
+    # python -m unittest losses.mse_loss_test.TestMSELoss.test_loss_computation -v
     def test_loss_computation(self):
         input_tensor = torch.tensor(
             [[1.0, 2.0, 3.0], [1.0, 2.0, 3.0]], requires_grad=True
@@ -13,7 +13,7 @@ class TestMaskedMSELoss(unittest.TestCase):
         target_tensor = torch.tensor([[1.1, 2.2, 3.3], [1.1, 2.2, 3.3]])
 
         expected_loss = torch.tensor([0.04666666314005852])
-        loss_fn = MaskedMSELoss()
+        loss_fn = MSELoss()
 
         loss = loss_fn(input_tensor, target_tensor)
 

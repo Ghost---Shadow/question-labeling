@@ -1,6 +1,6 @@
-from losses.masked_mse_loss import MaskedMSELoss
+from losses.mse_loss import MSELoss
 
 
 LOSS_LUT = {
-    "mse": MaskedMSELoss,
+    "mse": MSELoss,
 }

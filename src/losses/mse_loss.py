@@ -1,9 +1,9 @@
 import torch.nn as nn
 
 
-class MaskedMSELoss(nn.Module):
+class MSELoss(nn.Module):
     def __init__(self, config=None):
-        super(MaskedMSELoss, self).__init__()
+        super(MSELoss, self).__init__()
         self.config = config
 
     def forward(self, input, target):
