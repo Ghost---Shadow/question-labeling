@@ -1,6 +1,6 @@
 import unittest
 from dataloaders.hotpot_qa_with_q_loader import get_loader
-from losses.masked_mse_loss import MaskedMSELoss
+from losses.mse_loss import MSELoss
 import torch.optim as optim
 from models.wrapped_sentence_transformer import WrappedSentenceTransformerModel
 from training_loop_strategies.iterative_strategy import (
@@ -33,7 +33,7 @@ class TestTrainStep(unittest.TestCase):
 
         batch = next(iter(train_loader))
         aggregation_fn = weighted_embedding_average
-        loss_fn = MaskedMSELoss()
+        loss_fn = MSELoss()
 
         for _ in range(10):
             loss = train_step_full_precision(
@@ -63,7 +63,7 @@ class TestEvalStep(unittest.TestCase):
 
         batch = next(iter(eval_loader))
         aggregation_fn = weighted_embedding_average
-        loss_fn = MaskedMSELoss()
+        loss_fn = MSELoss()
 
         avg_loss, avg_recall_at_k = eval_step(
             wrapped_model, batch, aggregation_fn, loss_fn
@@ -94,7 +94,7 @@ class TestTrainStep(unittest.TestCase):
 
         batch = next(iter(train_loader))
         aggregation_fn = weighted_embedding_average
-        loss_fn = MaskedMSELoss()
+        loss_fn = MSELoss()
 
         for _ in range(10):
             loss = train_step(wrapped_model, optimizer, batch, aggregation_fn, loss_fn)
