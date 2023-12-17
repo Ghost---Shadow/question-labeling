@@ -57,4 +57,7 @@ def submodular_mutual_information(question_embedding, document_embeddings, mask)
     # Compute the weighted average of the selected document embeddings
     weighted_average = torch.sum(filtered_docs * scores.unsqueeze(1), dim=0)
 
+    # Make sure the vector is normalized
+    weighted_average = torch.nn.functional.normalize(weighted_average, dim=-1)
+
     return weighted_average
