@@ -22,7 +22,7 @@ class WrappedSentenceTransformerModel:
         all_embeddings = out_features["sentence_embedding"]
 
         # Extract query and document embeddings
-        query_embedding = all_embeddings[0].unsqueeze(0)
+        query_embedding = all_embeddings[0]
         document_embeddings = all_embeddings[1:]
 
         # normalize the vectors

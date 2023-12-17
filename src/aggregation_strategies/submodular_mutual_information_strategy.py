@@ -23,7 +23,7 @@ def submodular_mutual_information(question_embedding, document_embeddings, mask)
     filtered_docs = document_embeddings[mask]
 
     # Initialize scores for weighted average
-    scores = torch.zeros(num_docs)
+    scores = torch.zeros(num_docs, device=question_embedding.device)
 
     # Compute scores for each document
     for i in range(num_docs):

@@ -28,6 +28,9 @@ Make sure `./.env` is populated with correct keys
 python ./src/train.py --config=experiments/gpt35_mpnet_avg.yaml --debug
 python ./src/train.py --config=experiments/gpt35_mpnet_avg.yaml
 
+python ./src/train.py --config=experiments/gpt35_mpnet_smi.yaml --debug
+python ./src/train.py --config=experiments/gpt35_mpnet_smi.yaml
+
 python ./src/train.py --config=experiments/mpnet_avg.yaml --debug
 python ./src/train.py --config=experiments/mpnet_avg.yaml
 ```
