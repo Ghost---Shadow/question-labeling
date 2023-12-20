@@ -51,7 +51,7 @@ def plot_similarity_graph(model_name, data_loader, output_dir):
     plt.figure(figsize=(10, 8))
     plt.hist(perfect_alignment_counts, bins=20, edgecolor="black")
     plt.title(
-        "Histogram of Perfect Alignment Fraction with GPT-3.5 turbo (PLACEHOLDER)"
+        "Histogram of Perfect Alignment Fraction with GPT-3.5 turbo (Validation set)"
     )
     plt.xlabel("Perfect Alignment Fraction")
     plt.ylabel("Frequency")
@@ -87,4 +87,4 @@ if __name__ == "__main__":
     batch_size = args.batch_size
     train_loader, val_loader = get_loader(batch_size)
 
-    plot_similarity_graph(args.model_name, train_loader, args.output_dir)
+    plot_similarity_graph(args.model_name, val_loader, args.output_dir)
