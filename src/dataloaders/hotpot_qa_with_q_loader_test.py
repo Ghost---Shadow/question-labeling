@@ -17,22 +17,25 @@ class TestHotpotQaWithQaLoader(unittest.TestCase):
 
         # Train loader
         batch = next(iter(train_loader))
-        expected = "Maurice Hines and his brother were famous for what?"
+        expected = "The  Atlantic Islands of Galicia National Park and the Timanfaya National Park are the properties of what country?"
         actual = batch["questions"][0]
         assert actual == expected, actual
 
         expected = [
-            "Hot Feet is a jukebox musical featuring the music of Earth, Wind & Fire, a book by Heru Ptah and was conceived, directed, and choreographed by Maurice Hines.",
-            " He is the brother of dancer Gregory Hines.",
+            'The Atlantic Islands of Galicia National Park (Galician: "Parque Nacional das Illas Atlánticas de Galicia" , Spanish: "Parque Nacional de las Islas Atlánticas de Galicia" ) is the only national park located in the autonomous community of Galicia, Spain.',
+            'Timanfaya National Park (Spanish: "Parque Nacional de Timanfaya" ) is a Spanish national park in the southwestern part of the island of Lanzarote, Canary Islands.',
         ]
         actual = list(
             np.array(batch["flat_sentences"][0])[batch["relevant_sentence_indexes"][0]]
         )
         assert expected == actual, actual
+        assert sum(batch["selection_vector"][0]) == len(
+            batch["relevant_sentence_indexes"][0]
+        )
 
         expected = [
-            "What is the premise of the jukebox musical Hot Feet and who were the key contributors to its creation?",
-            "Who is the brother of dancer Gregory Hines?",
+            'The Atlantic Islands of Galicia National Park (Galician: "Parque Nacional das Illas Atlánticas de Galicia" , Spanish: "Parque Nacional de las Islas Atlánticas de Galicia" ) is the only national park located in the autonomous community of Galicia, Spain.',
+            'Timanfaya National Park (Spanish: "Parque Nacional de Timanfaya" ) is a Spanish national park in the southwestern part of the island of Lanzarote, Canary Islands.',
         ]
         actual = list(
             np.array(batch["flat_questions"][0])[batch["relevant_sentence_indexes"][0]]
