@@ -1,5 +1,6 @@
 import unittest
 from dataloaders.hotpot_qa_loader import get_loader
+from tqdm import tqdm
 from train_utils import set_seed
 import numpy as np
 
@@ -50,6 +51,17 @@ class TestHotpotQaLoader(unittest.TestCase):
         assert sum(batch["selection_vector"][0]) == len(
             batch["relevant_sentence_indexes"][0]
         )
+
+    # python -m unittest dataloaders.hotpot_qa_loader_test.TestHotpotQaLoader.test_no_bad_rows -v
+    def test_no_bad_rows(self):
+        # https://github.com/hotpotqa/hotpot/issues/47
+
+        train_loader, val_loader = get_loader(batch_size=2)
+        for _ in tqdm(train_loader):
+            ...
+
+        for _ in tqdm(val_loader):
+            ...
 
 
 if __name__ == "__main__":
