@@ -1,3 +1,4 @@
+import time
 from openai import OpenAI
 from dotenv import load_dotenv
 import os
@@ -10,20 +11,30 @@ class OpenAIChatModel:
         self.client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
         self.config = config
 
-    def generate_question(self, passage):
-        completion = self.client.chat.completions.create(
-            model=self.config["architecture"]["question_generator_model"]["name"],
-            temperature=0,
-            messages=[
-                {
-                    "role": "system",
-                    "content": "Generate a question for the given passage.",
-                },
-                {"role": "user", "content": passage},
-            ],
-        )
+    def generate_question(self, passage, max_retries=100):
+        retry_count = 0
+        while retry_count < max_retries:
+            try:
+                completion = self.client.chat.completions.create(
+                    model=self.config["architecture"]["question_generator_model"][
+                        "name"
+                    ],
+                    temperature=0,
+                    messages=[
+                        {
+                            "role": "system",
+                            "content": "Generate a question for the given passage.",
+                        },
+                        {"role": "user", "content": passage},
+                    ],
+                )
+                return completion.choices[0].message.content
+            except Exception as e:
+                print(f"Attempt {retry_count + 1} failed: {e}. Backoff for 5 seconds.")
+                retry_count += 1
+                time.sleep(5)
 
-        return completion.choices[0].message.content
+        raise Exception("Max retries reached, unable to generate question")
 
     def generate_question_batch_lossy(self, passages):
         """
