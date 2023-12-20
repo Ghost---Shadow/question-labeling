@@ -1,72 +1,6 @@
-import json
-import os
 from datasets import load_dataset
-from models.openai_chat_model import OpenAIChatModel
-from tqdm import tqdm
-from models.t5_model import T5ModelForQuestionGeneration
-from torch.utils.data import DataLoader, IterableDataset
+from torch.utils.data import DataLoader
 from dataloaders import hotpot_qa_loader
-from concurrent.futures import ThreadPoolExecutor
-
-
-def add_question_to_row(model, row):
-    def generate_question(sentence):
-        return model.generate_question(sentence)
-
-    all_questions = []
-
-    # Create a single ThreadPoolExecutor
-    with ThreadPoolExecutor(max_workers=15) as executor:
-        # Store futures for each sentence in a dictionary to maintain order
-        futures_dict = {}
-        for paragraph_index, paragraph in enumerate(row["context"]["sentences"]):
-            for sentence_index, sentence in enumerate(paragraph):
-                future = executor.submit(generate_question, sentence)
-                futures_dict[(paragraph_index, sentence_index)] = future
-
-        # Organize the results into the structure of paragraphs and sentences
-        for paragraph_index, paragraph in enumerate(row["context"]["sentences"]):
-            paragraph_questions = []
-            for sentence_index, _ in enumerate(paragraph):
-                future = futures_dict[(paragraph_index, sentence_index)]
-                paragraph_questions.append(future.result())
-            all_questions.append(paragraph_questions)
-
-    row["context"]["questions"] = all_questions
-    return row
-
-
-def convert_to_question_for_split(dataset, model, split, debug):
-    split_path = f"./data/{split}.jsonl"
-
-    # How many rows has been computed so far
-    done_so_far = 0
-    if os.path.exists(split_path):
-        with open(split_path) as f:
-            for _ in f:
-                done_so_far += 1
-
-    current_row = -1
-    for row in tqdm(dataset[split]):
-        current_row += 1
-
-        # Autoresume logic
-        if current_row < done_so_far:
-            continue
-
-        if debug is True and current_row >= 100:
-            break
-
-        with open(split_path, "a") as f:
-            modified_row = add_question_to_row(model, row)
-            f.write(json.dumps(modified_row) + "\n")
-
-
-def convert_to_question_dataset(model, debug=False):
-    dataset = load_dataset("hotpot_qa", "distractor")
-
-    # convert_to_question_for_split(dataset, model, "train", debug)
-    convert_to_question_for_split(dataset, model, "validation", debug)
 
 
 def collate_fn(batch):
@@ -85,53 +19,21 @@ def collate_fn(batch):
     }
 
 
-class CustomIterableDataset(IterableDataset):
-    def __init__(self, file_path):
-        self.file_path = file_path
-
-    def parse_file(self):
-        with open(self.file_path, "r") as f:
-            for line in f:
-                yield json.loads(line)
-
-    def __iter__(self):
-        return iter(self.parse_file())
-
-
 def get_loader(batch_size):
-    train_file_path = "./data/train.jsonl"
-    validation_file_path = "./data/validation.jsonl"
-    train_dataset = CustomIterableDataset(train_file_path)
-    validation_dataset = CustomIterableDataset(validation_file_path)
+    dataset = load_dataset("somebody-had-to-do-it/hotpotqa_with_qa_gpt35")
 
     train_loader = DataLoader(
-        train_dataset,
+        dataset["train"],
         batch_size=batch_size,
-        shuffle=False,  # TODO
+        shuffle=True,
         collate_fn=collate_fn,
     )
 
     val_loader = DataLoader(
-        validation_dataset,
+        dataset["validation"],
         batch_size=batch_size,
         shuffle=False,
         collate_fn=collate_fn,
     )
 
     return train_loader, val_loader
-
-
-if __name__ == "__main__":
-    config = {
-        "architecture": {
-            "question_generator_model": {
-                "name": "gpt-3.5-turbo",
-                # "name": "t5",
-                # "size": "base",
-                # "device": "cuda:0",
-            }
-        }
-    }
-    # model = T5ModelForQuestionGeneration(config)
-    model = OpenAIChatModel(config)
-    convert_to_question_dataset(model, debug=False)

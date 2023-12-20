@@ -1,34 +1,7 @@
 import unittest
-from dataloaders.hotpot_qa_with_q_loader import add_question_to_row
-from datasets import load_dataset
-from models.t5_model import T5ModelForQuestionGeneration
 from dataloaders.hotpot_qa_with_q_loader import get_loader
 from train_utils import set_seed
 import numpy as np
-
-
-# python -m unittest dataloaders.hotpot_qa_with_q_loader_test.TestAddQuestionToRow -v
-@unittest.skip("needs gpu")
-class TestAddQuestionToRow(unittest.TestCase):
-    # python -m unittest dataloaders.hotpot_qa_with_q_loader_test.TestAddQuestionToRow.test_with_t5 -v
-    def test_with_t5(self):
-        dataset = load_dataset("hotpot_qa", "distractor")
-        row = dataset["train"][0]
-
-        config = {
-            "architecture": {
-                "question_generator_model": {
-                    "name": "t5",
-                    "size": "base",
-                    "device": "cuda:0",
-                }
-            }
-        }
-        model = T5ModelForQuestionGeneration(config)
-
-        modified_row = add_question_to_row(model, row)
-
-        assert modified_row["questions"] is not None
 
 
 # python -m unittest dataloaders.hotpot_qa_with_q_loader_test.TestHotpotQaWithQaLoader -v
@@ -36,7 +9,7 @@ class TestHotpotQaWithQaLoader(unittest.TestCase):
     # python -m unittest dataloaders.hotpot_qa_with_q_loader_test.TestHotpotQaWithQaLoader.test_happy_path -v
     def test_happy_path(self):
         # Set seed for deterministic testing
-        set_seed(42)  # TODO: shuffle with seed
+        set_seed(42)
 
         batch_size = 1
 
@@ -44,15 +17,13 @@ class TestHotpotQaWithQaLoader(unittest.TestCase):
 
         # Train loader
         batch = next(iter(train_loader))
-        expected = (
-            "Which magazine was started first Arthur's Magazine or First for Women?"
-        )
+        expected = "Maurice Hines and his brother were famous for what?"
         actual = batch["questions"][0]
         assert actual == expected, actual
 
         expected = [
-            "Arthur's Magazine (1844–1846) was an American literary periodical published in Philadelphia in the 19th century.",
-            "First for Women is a woman's magazine published by Bauer Media Group in the USA.",
+            "Hot Feet is a jukebox musical featuring the music of Earth, Wind & Fire, a book by Heru Ptah and was conceived, directed, and choreographed by Maurice Hines.",
+            " He is the brother of dancer Gregory Hines.",
         ]
         actual = list(
             np.array(batch["flat_sentences"][0])[batch["relevant_sentence_indexes"][0]]
@@ -60,8 +31,8 @@ class TestHotpotQaWithQaLoader(unittest.TestCase):
         assert expected == actual, actual
 
         expected = [
-            "What was the significance of Arthur's Magazine in the American literary landscape of the 19th century?",
-            "What is the name of the magazine published by Bauer Media Group in the USA that specifically targets women?",
+            "What is the premise of the jukebox musical Hot Feet and who were the key contributors to its creation?",
+            "Who is the brother of dancer Gregory Hines?",
         ]
         actual = list(
             np.array(batch["flat_questions"][0])[batch["relevant_sentence_indexes"][0]]
