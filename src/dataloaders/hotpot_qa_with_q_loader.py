@@ -16,7 +16,7 @@ def add_question_to_row(model, row):
     all_questions = []
 
     # Create a single ThreadPoolExecutor
-    with ThreadPoolExecutor(max_workers=10) as executor:
+    with ThreadPoolExecutor(max_workers=15) as executor:
         # Store futures for each sentence in a dictionary to maintain order
         futures_dict = {}
         for paragraph_index, paragraph in enumerate(row["context"]["sentences"]):
