@@ -1,6 +1,6 @@
 wandb:
   project: "question_labeling"
-  name: "gpt35_mpnet_smi"
+  name: "gpt35_mpnet_smi_dnn"
   # entity: "carml"
 
 architecture:
@@ -14,6 +14,9 @@ architecture:
 
   aggregation_strategy:
     name: 'smi'
+    merge_strategy:
+      name: 'dnn_merger'
+      num_layers: 2
 
   loss:
     name: 'kl_div'
