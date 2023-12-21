@@ -7,6 +7,8 @@ from pydash import get
 
 class WrappedSentenceTransformerModel:
     def __init__(self, config):
+        self.config = config
+
         checkpoint = config["architecture"]["semantic_search_model"]["checkpoint"]
         device = config["architecture"]["semantic_search_model"]["device"]
         merge_strategy_name = get(
@@ -25,7 +27,24 @@ class WrappedSentenceTransformerModel:
         self.merge_model = MergeModelClass(config)
 
     def get_all_trainable_parameters(self):
-        return [*list(self.model.parameters()), *list(self.merge_model.parameters())]
+        self.is_model_trainable = get(
+            self.config, "architecture.semantic_search_model.trainable", True
+        )
+        self.is_merge_fn_trainable = get(
+            self.config,
+            "architecture.semantic_search_model.aggregation_strategy.merge_strategy.trainable",
+            True,
+        )
+
+        all_parameters = []
+
+        if self.is_model_trainable:
+            all_parameters.extend(list(self.model.parameters()))
+
+        if self.is_merge_fn_trainable:
+            all_parameters.extend(list(self.merge_model.parameters()))
+
+        return all_parameters
 
     def get_query_and_document_embeddings(self, query, documents):
         all_sentences = [query] + documents

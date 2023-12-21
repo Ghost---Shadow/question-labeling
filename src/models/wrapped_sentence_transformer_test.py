@@ -138,3 +138,20 @@ class TestOverfit(unittest.TestCase):
             scaler.update()
 
         print(inner_product)
+
+    # python -m unittest models.wrapped_sentence_transformer_test.TestOverfit.test_frozen -v
+    def test_frozen(self):
+        config = {
+            "architecture": {
+                "semantic_search_model": {
+                    "checkpoint": "all-mpnet-base-v2",
+                    "device": "cuda:0",
+                    "trainable": False,
+                }
+            }
+        }
+        wrapped_model = WrappedSentenceTransformerModel(config)
+        wrapped_model.model.train()
+
+        with self.assertRaises(ValueError):
+            optim.AdamW(wrapped_model.get_all_trainable_parameters(), lr=1e-6)
