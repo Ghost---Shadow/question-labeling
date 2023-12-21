@@ -10,6 +10,39 @@ class SubmodularMutualInformation(nn.Module):
         self.model_ref = model_ref
         self.merge = self.model_ref.merge_model
 
+    def _quality_gain_sequential(
+        self, question_embedding, filtered_document_embeddings
+    ):
+        # Alias
+        q = question_embedding
+        d = filtered_document_embeddings
+        merge = self.merge
+
+        # Number of documents in the batch
+        n = d.size(0)
+
+        # Preparing an empty matrix to store the results
+        quality_gain_matrix = torch.zeros(n, n, device=d.device)
+
+        for i in range(n):
+            for j in range(n):
+                d_i = d[i]
+                d_j = d[j]
+
+                q_di = merge(q, d_i)
+                q_dj = merge(q, d_j)
+
+                q_di_dj = merge(q_di, d_j)
+                q_dj_di = merge(q_dj, d_i)
+
+                sim_q_di_dj = q @ q_di_dj.T
+                sim_q_dj_di = q @ q_dj_di.T
+
+                q_gain = sim_q_di_dj - sim_q_dj_di
+                quality_gain_matrix[i, j] = q_gain
+
+        return quality_gain_matrix
+
     def forward(self, question_embedding, document_embeddings, mask):
         """
         Compute a weighted average embedding based on submodular mutual information scores.
