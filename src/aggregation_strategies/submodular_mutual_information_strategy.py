@@ -172,7 +172,9 @@ class SubmodularMutualInformation(nn.Module):
         scores = F.softmax(scores, dim=0)
 
         # Compute the weighted average of the selected document embeddings
-        weighted_average = torch.sum(filtered_document_embeddings * scores)
+        weighted_average = torch.sum(
+            filtered_document_embeddings * scores.unsqueeze(1), dim=0
+        )
 
         # Add the question back
         weighted_average = weighted_average + question_embedding

@@ -8,7 +8,7 @@ import unittest
 
 # python -m unittest aggregation_strategies.submodular_mutual_information_strategy_test.TestSubmodularMutualInformation -v
 class TestSubmodularMutualInformation(unittest.TestCase):
-    # python -m unittest aggregation_strategies.submodular_mutual_information_strategy_test.TestSubmodularMutualInformation -v
+    # python -m unittest aggregation_strategies.submodular_mutual_information_strategy_test.TestSubmodularMutualInformation.test_document_selection -v
     def test_document_selection(self):
         # Create controlled embeddings
         query_embedding = torch.tensor([1.0, 0.0, 0.0, 0.0])
@@ -47,6 +47,35 @@ class TestSubmodularMutualInformation(unittest.TestCase):
             torch.norm(good_weighted_avg - query_embedding)
             < torch.norm(bad_weighted_avg - query_embedding)
         )
+
+    # python -m unittest aggregation_strategies.submodular_mutual_information_strategy_test.TestSubmodularMutualInformation.test_document_selection_error_case -v
+    def test_document_selection_error_case(self):
+        # Create controlled embeddings
+        query_embedding = torch.rand(768)  # Random embedding of size 768
+        document_embeddings = torch.rand(42, 768)  # 42 random document embeddings
+
+        # Create a mask that selects some documents, leading to the error
+        # Selects 2 documents, leading to size mismatch
+        mask = torch.tensor([True] * 2 + [False] * 40)
+
+        # Create an instance of SubmodularMutualInformation
+        config = {
+            "architecture": {
+                "semantic_search_model": {
+                    "checkpoint": "all-mpnet-base-v2",
+                    # "device": "cuda:0",
+                    "device": "cpu",
+                },
+                "aggregation_strategy": {
+                    "merge_strategy": {"name": "weighted_average_merger"}
+                },
+            }
+        }
+        model_ref = WrappedSentenceTransformerModel(config)
+        smi_module = SubmodularMutualInformation(config, model_ref)
+
+        # Should not crash
+        smi_module(query_embedding, document_embeddings, mask)
 
 
 # python -m unittest aggregation_strategies.submodular_mutual_information_strategy_test.TestQualityGainSequential -v
