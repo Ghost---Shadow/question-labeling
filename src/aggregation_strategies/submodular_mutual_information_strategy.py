@@ -79,6 +79,35 @@ class SubmodularMutualInformation(nn.Module):
 
         return quality_gain_matrix
 
+    def _diversity_gain_sequential(
+        self, question_embedding, filtered_document_embeddings
+    ):
+        # Aliases
+        q = question_embedding
+        d = filtered_document_embeddings
+        merge = self.merge
+
+        num_documents = d.shape[0]
+        diversity_gain_matrix = torch.zeros((num_documents, num_documents))
+
+        def diversity(document, document_set):
+            diversity_sum = 0
+            for d_prime in document_set:
+                diversity_sum += 1 - F.cosine_similarity(document, d_prime)
+            return diversity_sum
+
+        for i in range(num_documents):
+            for j in range(num_documents):
+                q_di = merge(q, d[i])
+                q_dj = merge(q, d[j])
+
+                diversity_d_i = diversity(q_di, d)
+                diversity_d_j = diversity(q_dj, d)
+
+                diversity_gain_matrix[i][j] = diversity_d_i - diversity_d_j
+
+        return diversity_gain_matrix
+
     def forward(self, question_embedding, document_embeddings, mask):
         """
         Compute a weighted average embedding based on submodular mutual information scores.

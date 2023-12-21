@@ -156,5 +156,57 @@ class TestQualityGain(unittest.TestCase):
         self.assertTrue(torch.allclose(result, expected_output, atol=1e-6))
 
 
+# python -m unittest aggregation_strategies.submodular_mutual_information_strategy_test.TestDiversityGainSequential -v
+class TestDiversityGainSequential(unittest.TestCase):
+    def setUp(self):
+        config = {
+            "architecture": {
+                "semantic_search_model": {
+                    "checkpoint": "all-mpnet-base-v2",
+                    # "device": "cuda:0",
+                    "device": "cpu",
+                }
+            }
+        }
+
+        class MockMerger:
+            def __init__(self):
+                self.merge_model = lambda x, y: x * y
+
+        model_ref = MockMerger()
+        self.instance = SubmodularMutualInformation(config, model_ref)
+
+    # python -m unittest aggregation_strategies.submodular_mutual_information_strategy_test.TestDiversityGainSequential.test_basic_functionality -v
+    def test_basic_functionality(self):
+        # Mock input data
+        question_embedding = torch.randn(1, 10)
+        filtered_document_embeddings = torch.randn(5, 10)
+
+        # Call your function
+        result = self.instance._diversity_gain_sequential(
+            question_embedding, filtered_document_embeddings
+        )
+
+        # Check the shape of the result
+        self.assertEqual(result.shape, (5, 5))
+
+    # python -m unittest aggregation_strategies.submodular_mutual_information_strategy_test.TestDiversityGainSequential.test_small_interpretable_input -v
+    def test_small_interpretable_input(self):
+        # Small, fixed input data
+        question_embedding = torch.tensor([[1.0, 2.0]])
+        filtered_document_embeddings = torch.tensor([[1.0, 0.0], [0.0, 1.0]])
+
+        # Expected output (gain is symetric)
+        expected_output = torch.tensor([[0.0, 0.0], [0.0, 0.0]])
+
+        # Call your function
+        result = self.instance._diversity_gain_sequential(
+            question_embedding, filtered_document_embeddings
+        )
+
+        # Check if the output matches the expected output
+        self.assertTrue(torch.allclose(result, expected_output, atol=1e-6))
+
+
 if __name__ == "__main__":
     unittest.main()
