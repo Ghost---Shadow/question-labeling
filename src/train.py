@@ -31,7 +31,9 @@ def main(config, debug):
     loss_fn = LOSS_LUT[loss_name](config)
 
     # aggegration function
-    aggregation_fn = AGGREGATION_STRATEGY_LUT[aggregation_strategy_name]
+    aggregation_model = AGGREGATION_STRATEGY_LUT[aggregation_strategy_name](
+        config, wrapped_search_model
+    )
 
     # train step function
     train_step_fn, eval_step_fn = TRAINING_LOOP_STRATEGY_LUT[training_strategy_name]
@@ -69,7 +71,7 @@ def main(config, debug):
                 validation_loader,
                 wrapped_search_model,
                 eval_step_fn,
-                aggregation_fn,
+                aggregation_model,
                 loss_fn,
                 debug,
             )
@@ -82,7 +84,7 @@ def main(config, debug):
                 optimizer,
                 train_step_fn,
                 loss_fn,
-                aggregation_fn,
+                aggregation_model,
                 debug,
             )
             print("Starting validation")
@@ -90,7 +92,7 @@ def main(config, debug):
                 validation_loader,
                 wrapped_search_model,
                 eval_step_fn,
-                aggregation_fn,
+                aggregation_model,
                 loss_fn,
                 debug,
             )

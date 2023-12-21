@@ -1,6 +1,7 @@
 from aggregation_strategies.submodular_mutual_information_strategy import (
-    submodular_mutual_information,
+    SubmodularMutualInformation,
 )
+from models.wrapped_sentence_transformer import WrappedSentenceTransformerModel
 import torch
 import unittest
 
@@ -22,12 +23,21 @@ class TestSubmodularMutualInformation(unittest.TestCase):
         good_mask = torch.tensor([True, False, False])
         bad_mask = torch.tensor([False, True, False])
 
-        good_weighted_avg = submodular_mutual_information(
-            query_embedding, document_embeddings, good_mask
-        )
-        bad_weighted_avg = submodular_mutual_information(
-            query_embedding, document_embeddings, bad_mask
-        )
+        # Create an instance of SubmodularMutualInformation
+        config = config = {
+            "architecture": {
+                "semantic_search_model": {
+                    "checkpoint": "all-mpnet-base-v2",
+                    # "device": "cuda:0",
+                    "device": "cpu",
+                }
+            }
+        }
+        model_ref = WrappedSentenceTransformerModel(config)
+        smi_module = SubmodularMutualInformation(config, model_ref)
+
+        good_weighted_avg = smi_module(query_embedding, document_embeddings, good_mask)
+        bad_weighted_avg = smi_module(query_embedding, document_embeddings, bad_mask)
 
         # Assertions
         self.assertTrue(

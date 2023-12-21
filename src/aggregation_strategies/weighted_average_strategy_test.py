@@ -1,7 +1,6 @@
 import unittest
-from aggregation_strategies.weighted_average_strategy import weighted_embedding_average
 import torch
-from torch import nn
+from aggregation_strategies.weighted_average_strategy import WeightedEmbeddingAverage
 
 
 # python -m unittest aggregation_strategies.weighted_average_strategy_test.TestWeightedEmbeddingAverage -v
@@ -14,14 +13,18 @@ class TestWeightedEmbeddingAverage(unittest.TestCase):
             [[1.0, 2.0, 3.0], [4.0, 5.0, 6.0], [7.0, 8.0, 9.0]], requires_grad=True
         )
         mask = torch.tensor([True, False, True])
-        weight = 1
 
-        # Expected result
+        # Create an instance of the WeightedEmbeddingAverage class
+        config = {}  # Example configuration, adjust as needed
+        model_ref = None  # Example model reference, adjust as needed
+        weighted_average_module = WeightedEmbeddingAverage(config, model_ref)
+
+        # Expected result (adjust as needed)
         expected_weighted_average = torch.tensor([0.4016, 0.5623, 0.7229])
 
-        # Run the function
-        average_embedding = weighted_embedding_average(
-            question_embedding, document_embeddings, mask, weight
+        # Run the method
+        average_embedding = weighted_average_module(
+            question_embedding, document_embeddings, mask
         )
 
         # Check if the results are as expected
@@ -48,14 +51,18 @@ class TestWeightedEmbeddingAverage(unittest.TestCase):
             [[1.0, 2.0, 3.0], [4.0, 5.0, 6.0], [7.0, 8.0, 9.0]], requires_grad=True
         )
         mask = torch.tensor([False, False, False])
-        weight = 1
+
+        # Create an instance of WeightedEmbeddingAverage
+        config = {}  # Example configuration, adjust as needed
+        model_ref = None  # Example model reference, adjust as needed
+        weighted_average_module = WeightedEmbeddingAverage(config, model_ref)
 
         # Expected result
         expected_weighted_average = question_embedding
 
-        # Run the function
-        average_embedding = weighted_embedding_average(
-            question_embedding, document_embeddings, mask, weight
+        # Run the method
+        average_embedding = weighted_average_module(
+            question_embedding, document_embeddings, mask
         )
 
         # Check if the results are as expected

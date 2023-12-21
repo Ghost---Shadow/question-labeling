@@ -1,35 +1,44 @@
 import torch
+import torch.nn as nn
+import torch.nn.functional as F
 
 
-def weighted_embedding_average(question_embedding, document_embeddings, mask, weight=1):
-    """
-    Averages the embeddings of documents where mask is true and then averages it with the question embedding.
+class WeightedEmbeddingAverage(nn.Module):
+    def __init__(self, config, model_ref):
+        super(WeightedEmbeddingAverage, self).__init__()
+        self.config = config
+        self.model_ref = model_ref
+        self.weight = 1  # TODO
 
-    Args:
-    - question_embedding (torch.Tensor): The embedding of the question.
-    - document_embeddings (torch.Tensor): A 2D tensor of document embeddings.
-    - mask (torch.Tensor): A boolean mask indicating which document embeddings to consider.
-    - weight (float): A weighing hyperparameter for averaging with the question embedding.
+    def forward(self, question_embedding, document_embeddings, mask):
+        """
+        Averages the embeddings of documents where mask is true and then averages it with the question embedding.
 
-    Returns:
-    - torch.Tensor: The weighted average embedding.
-    - torch.Tensor: The mask
-    """
+        Args:
+        - question_embedding (torch.Tensor): The embedding of the question.
+        - document_embeddings (torch.Tensor): A 2D tensor of document embeddings.
+        - mask (torch.Tensor): A boolean mask indicating which document embeddings to consider.
 
-    # If nothing is selected, then return question_embedding alone
-    if mask.sum() == 0:
-        return question_embedding
+        Returns:
+        - torch.Tensor: The weighted average embedding.
+        """
 
-    # Filter the document embeddings based on the mask
-    filtered_docs = document_embeddings[mask]
+        # If nothing is selected, then return question_embedding alone
+        if mask.sum() == 0:
+            return question_embedding
 
-    # Compute the mean of the filtered document embeddings
-    mean_doc_embedding = torch.mean(filtered_docs, dim=0)
+        # Filter the document embeddings based on the mask
+        filtered_docs = document_embeddings[mask]
 
-    # Calculate the weighted average with the question embedding
-    weighted_average = (weight * question_embedding + mean_doc_embedding) / (1 + weight)
+        # Compute the mean of the filtered document embeddings
+        mean_doc_embedding = torch.mean(filtered_docs, dim=0)
 
-    # Make sure the vector is normalized
-    weighted_average = torch.nn.functional.normalize(weighted_average, dim=-1)
+        # Calculate the weighted average with the question embedding
+        weighted_average = (self.weight * question_embedding + mean_doc_embedding) / (
+            1 + self.weight
+        )
 
-    return weighted_average
+        # Normalize the vector
+        weighted_average = F.normalize(weighted_average, dim=-1)
+
+        return weighted_average

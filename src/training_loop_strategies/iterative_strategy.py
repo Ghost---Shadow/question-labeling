@@ -2,7 +2,7 @@ import torch
 from torch.cuda.amp import autocast, GradScaler
 
 
-def train_step(wrapped_model, optimizer, batch, aggregation_fn, loss_fn):
+def train_step(wrapped_model, optimizer, batch, aggregation_model, loss_fn):
     scaler = GradScaler()
 
     optimizer.zero_grad()
@@ -44,7 +44,7 @@ def train_step(wrapped_model, optimizer, batch, aggregation_fn, loss_fn):
                     document_embeddings,
                 ) = wrapped_model.get_query_and_document_embeddings(question, documents)
 
-                aggregated_query_embedding = aggregation_fn(
+                aggregated_query_embedding = aggregation_model(
                     question_embedding, document_embeddings, picked_so_far
                 )
 
@@ -86,7 +86,7 @@ def train_step(wrapped_model, optimizer, batch, aggregation_fn, loss_fn):
     return avg_loss, avg_recall_at_k
 
 
-def eval_step(wrapped_model, batch, aggregation_fn, loss_fn):
+def eval_step(wrapped_model, batch, aggregation_model, loss_fn):
     total_loss = 0.0
     total_recall_at_k = 0.0
 
@@ -123,7 +123,7 @@ def eval_step(wrapped_model, batch, aggregation_fn, loss_fn):
                     document_embeddings,
                 ) = wrapped_model.get_query_and_document_embeddings(question, documents)
 
-                aggregated_query_embedding = aggregation_fn(
+                aggregated_query_embedding = aggregation_model(
                     question_embedding, document_embeddings, picked_so_far
                 )
 
@@ -157,7 +157,9 @@ def eval_step(wrapped_model, batch, aggregation_fn, loss_fn):
     return avg_loss, avg_recall_at_k
 
 
-def train_step_full_precision(wrapped_model, optimizer, batch, aggregation_fn, loss_fn):
+def train_step_full_precision(
+    wrapped_model, optimizer, batch, aggregation_model, loss_fn
+):
     optimizer.zero_grad()
 
     total_loss = 0.0
@@ -194,7 +196,7 @@ def train_step_full_precision(wrapped_model, optimizer, batch, aggregation_fn, l
                 document_embeddings,
             ) = wrapped_model.get_query_and_document_embeddings(question, documents)
 
-            aggregated_query_embedding = aggregation_fn(
+            aggregated_query_embedding = aggregation_model(
                 question_embedding, document_embeddings, picked_so_far
             )
 
