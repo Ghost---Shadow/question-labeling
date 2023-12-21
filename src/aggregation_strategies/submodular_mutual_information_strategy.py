@@ -43,6 +43,42 @@ class SubmodularMutualInformation(nn.Module):
 
         return quality_gain_matrix
 
+    def _quality_gain(self, question_embedding, filtered_document_embeddings):
+        q = question_embedding
+        d = filtered_document_embeddings
+        merge = self.merge
+
+        # Number of documents
+        n = d.size(0)
+
+        # Expand and repeat embeddings
+        d_expanded = d.unsqueeze(1).expand(-1, n, -1)
+        d_repeated = d.repeat(n, 1).view(n, n, -1)
+
+        # Batch merge operations
+        q_d = merge(q.expand(n, -1), d)
+        q_di_dj = merge(
+            q_d.unsqueeze(1).expand(-1, n, -1).reshape(n * n, -1),
+            d_repeated.reshape(n * n, -1),
+        ).view(n, n, -1)
+        q_dj_di = merge(
+            q_d.unsqueeze(0).expand(n, -1, -1).reshape(n * n, -1),
+            d_expanded.reshape(n * n, -1),
+        ).view(n, n, -1)
+
+        # Compute similarities and quality gains
+        sim_q_di_dj = torch.bmm(
+            q.expand(n, -1).unsqueeze(1), q_di_dj.transpose(1, 2)
+        ).squeeze(1)
+        sim_q_dj_di = torch.bmm(
+            q.expand(n, -1).unsqueeze(1), q_dj_di.transpose(1, 2)
+        ).squeeze(1)
+
+        # Quality gain matrix
+        quality_gain_matrix = sim_q_di_dj - sim_q_dj_di
+
+        return quality_gain_matrix
+
     def forward(self, question_embedding, document_embeddings, mask):
         """
         Compute a weighted average embedding based on submodular mutual information scores.
