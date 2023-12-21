@@ -16,7 +16,7 @@ from aggregation_strategies.submodular_mutual_information_strategy import (
 
 
 # python -m unittest training_loop_strategies.iterative_strategy_test.TestTrainStep -v
-@unittest.skip("needs gpu")
+# @unittest.skip("needs gpu")
 class TestTrainStep(unittest.TestCase):
     # python -m unittest training_loop_strategies.iterative_strategy_test.TestTrainStep.test_full_precision -v
     def test_full_precision(self):
@@ -25,7 +25,10 @@ class TestTrainStep(unittest.TestCase):
                 "semantic_search_model": {
                     "checkpoint": "all-mpnet-base-v2",
                     "device": "cuda:0",
-                }
+                },
+                "aggregation_strategy": {
+                    "name": "weighted_average",
+                },
             }
         }
         wrapped_model = WrappedSentenceTransformerModel(config)
@@ -52,7 +55,11 @@ class TestTrainStep(unittest.TestCase):
                 "semantic_search_model": {
                     "checkpoint": "all-mpnet-base-v2",
                     "device": "cuda:0",
-                }
+                },
+                "aggregation_strategy": {
+                    "name": "smi",
+                    "merge_strategy": {"name": "weighted_average_merger"},
+                },
             }
         }
         wrapped_model = WrappedSentenceTransformerModel(config)
@@ -83,7 +90,11 @@ class TestEvalStep(unittest.TestCase):
                 "semantic_search_model": {
                     "checkpoint": "all-mpnet-base-v2",
                     "device": "cuda:0",
-                }
+                },
+                "aggregation_strategy": {
+                    "name": "smi",
+                    "merge_strategy": {"name": "weighted_average_merger"},
+                },
             }
         }
         wrapped_model = WrappedSentenceTransformerModel(config)
@@ -109,7 +120,11 @@ class TestEvalStep(unittest.TestCase):
                 "semantic_search_model": {
                     "checkpoint": "all-mpnet-base-v2",
                     "device": "cuda:0",
-                }
+                },
+                "aggregation_strategy": {
+                    "name": "smi",
+                    "merge_strategy": {"name": "weighted_average_merger"},
+                },
             }
         }
         wrapped_model = WrappedSentenceTransformerModel(config)
@@ -139,7 +154,11 @@ class TestTrainStepMixedPrecision(unittest.TestCase):
                 "semantic_search_model": {
                     "checkpoint": "all-mpnet-base-v2",
                     "device": "cuda:0",
-                }
+                },
+                "aggregation_strategy": {
+                    "name": "smi",
+                    "merge_strategy": {"name": "weighted_average_merger"},
+                },
             }
         }
         wrapped_model = WrappedSentenceTransformerModel(config)
@@ -164,7 +183,11 @@ class TestTrainStepMixedPrecision(unittest.TestCase):
                 "semantic_search_model": {
                     "checkpoint": "all-mpnet-base-v2",
                     "device": "cuda:0",
-                }
+                },
+                "aggregation_strategy": {
+                    "name": "smi",
+                    "merge_strategy": {"name": "weighted_average_merger"},
+                },
             }
         }
         wrapped_model = WrappedSentenceTransformerModel(config)

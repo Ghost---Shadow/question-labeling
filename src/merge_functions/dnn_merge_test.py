@@ -12,13 +12,14 @@ class TestDnnMerger(unittest.TestCase):
         # Configuration for the network
         config = {
             "architecture": {
-                "aggregation_strategy": {"merge_strategy": {"num_layers": 4}}
+                "aggregation_strategy": {"merge_strategy": {"num_layers": 4}},
+                "semantic_search_model": {"device": "cpu", "output_dim": 768},
             }
         }
 
         # Initialize the model
         input_size = 768  # Example input size for each of a and b
-        model = DnnMerger(input_size, config)
+        model = DnnMerger(config)
 
         # Create example input tensors
         a = torch.randn(1, input_size)
@@ -35,17 +36,19 @@ class TestDnnMerger(unittest.TestCase):
     def test_overfit(self):
         # Configuration and model setup
         input_size = 768
+        device = "cuda:0"
         config = {
             "architecture": {
-                "aggregation_strategy": {"merge_strategy": {"num_layers": 4}}
+                "aggregation_strategy": {"merge_strategy": {"num_layers": 4}},
+                "semantic_search_model": {"device": device, "output_dim": 768},
             }
         }
-        model = DnnMerger(input_size, config)
+        model = DnnMerger(config)
 
         # Small dataset (single batch)
-        a = torch.randn(10, input_size)
-        b = torch.randn(10, input_size)
-        targets = torch.randn(10, input_size)  # Random targets
+        a = torch.randn(10, input_size, device=device)
+        b = torch.randn(10, input_size, device=device)
+        targets = torch.randn(10, input_size, device=device)
 
         # Loss function and optimizer
         criterion = nn.MSELoss()

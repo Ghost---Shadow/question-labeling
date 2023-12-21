@@ -5,7 +5,8 @@ import torch.nn as nn
 class WeightedAverageMerger(nn.Module):
     def __init__(self, config):
         super(WeightedAverageMerger, self).__init__()
-        self.lambda_param = nn.Parameter(torch.rand(1))
+        device = config["architecture"]["semantic_search_model"]["device"]
+        self.lambda_param = nn.Parameter(torch.rand(1, device=device))
         self.config = config
 
     def forward(self, a, b):

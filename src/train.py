@@ -45,7 +45,7 @@ def main(config, debug):
         train_loader, validation_loader = get_loader(batch_size=BATCH_SIZE)
 
         optimizer = optim.AdamW(
-            wrapped_search_model.model.parameters(), lr=learning_rate
+            wrapped_search_model.get_all_trainable_parameters(), lr=learning_rate
         )
 
         wandb.init(
@@ -55,7 +55,8 @@ def main(config, debug):
                 **config,
                 "seed": seed,
                 "total_parameters": sum(
-                    p.numel() for p in wrapped_search_model.model.parameters()
+                    p.numel()
+                    for p in wrapped_search_model.get_all_trainable_parameters()
                 ),
             },
             mode="disabled" if debug else None,

@@ -49,7 +49,7 @@ class TestWrappedSentenceTransformerModel(unittest.TestCase):
 
 
 # python -m unittest models.wrapped_sentence_transformer_test.TestOverfit -v
-@unittest.skip("needs GPU")
+# @unittest.skip("needs GPU")
 class TestOverfit(unittest.TestCase):
     # python -m unittest models.wrapped_sentence_transformer_test.TestOverfit.test_overfit -v
     def test_overfit(self):
@@ -72,7 +72,7 @@ class TestOverfit(unittest.TestCase):
         wrapped_model.model.train()
         target = torch.tensor([[1.0, 0.0, 1.0, 0.0]], device="cuda:0")
 
-        optimizer = optim.AdamW(wrapped_model.model.parameters(), lr=1e-6)
+        optimizer = optim.AdamW(wrapped_model.get_all_trainable_parameters(), lr=1e-6)
         loss_fn = nn.MSELoss()
 
         # loss goes down
@@ -115,7 +115,7 @@ class TestOverfit(unittest.TestCase):
         wrapped_model.model.train()
         target = torch.tensor([[1.0, 0.0, 1.0, 0.0]], device="cuda:0")
 
-        optimizer = optim.AdamW(wrapped_model.model.parameters(), lr=1e-6)
+        optimizer = optim.AdamW(wrapped_model.get_all_trainable_parameters(), lr=1e-6)
         loss_fn = nn.MSELoss()
         scaler = GradScaler()
 

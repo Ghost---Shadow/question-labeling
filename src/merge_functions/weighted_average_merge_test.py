@@ -9,7 +9,7 @@ import torch.optim as optim
 class TestWeightedAverageMerger(unittest.TestCase):
     # python -m unittest merge_functions.weighted_average_merge_test.TestWeightedAverageMerger.test_forward -v
     def test_forward(self):
-        config = {}
+        config = {"architecture": {"semantic_search_model": {"device": "cpu"}}}
 
         # Initialize the module
         model = WeightedAverageMerger(config)
@@ -34,7 +34,7 @@ class TestWeightedAverageMerger(unittest.TestCase):
     # python -m unittest merge_functions.weighted_average_merge_test.TestWeightedAverageMerger.test_overfit -v
     def test_overfit(self):
         # Configuration and model setup
-        config = {}  # Any necessary configuration
+        config = {"architecture": {"semantic_search_model": {"device": "cpu"}}}
         model = WeightedAverageMerger(config)
 
         # Small dataset (single batch)
@@ -48,7 +48,7 @@ class TestWeightedAverageMerger(unittest.TestCase):
         optimizer = optim.Adam(model.parameters(), lr=0.01)
 
         # Training loop
-        for _ in range(1000):  # Number of iterations might need to be adjusted
+        for _ in range(100):
             optimizer.zero_grad()
             outputs = model(a, b)
             loss = criterion(outputs, targets)

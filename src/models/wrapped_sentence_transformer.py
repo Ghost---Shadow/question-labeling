@@ -1,14 +1,31 @@
 from sentence_transformers import SentenceTransformer
 from sentence_transformers.util import batch_to_device
 import torch
+from merge_functions import MERGE_STRATEGY_LUT
+from pydash import get
 
 
 class WrappedSentenceTransformerModel:
     def __init__(self, config):
         checkpoint = config["architecture"]["semantic_search_model"]["checkpoint"]
         device = config["architecture"]["semantic_search_model"]["device"]
+        merge_strategy_name = get(
+            config, "architecture.aggregation_strategy.merge_strategy.name", None
+        )
+
+        MergeModelClass = MERGE_STRATEGY_LUT[merge_strategy_name]
+
         self.device = device
         self.model = SentenceTransformer(checkpoint).to(device)
+
+        # Set output dim
+        output_dim = self.model.get_sentence_embedding_dimension()
+        config["architecture"]["semantic_search_model"]["output_dim"] = output_dim
+
+        self.merge_model = MergeModelClass(config)
+
+    def get_all_trainable_parameters(self):
+        return [*list(self.model.parameters()), *list(self.merge_model.parameters())]
 
     def get_query_and_document_embeddings(self, query, documents):
         all_sentences = [query] + documents
