@@ -11,9 +11,9 @@ class TestSubmodularMutualInformation(unittest.TestCase):
     # python -m unittest aggregation_strategies.submodular_mutual_information_strategy_test.TestSubmodularMutualInformation -v
     def test_document_selection(self):
         # Create controlled embeddings
-        query_embedding = torch.tensor([1, 0, 0, 0])  # Simplified example embedding
+        query_embedding = torch.tensor([1.0, 0.0, 0.0, 0.0])
         good_doc_embedding = torch.tensor([0.9, 0.1, 0, 0])  # Similar to query
-        bad_doc_embedding = torch.tensor([0, 1, 1, 0])  # Dissimilar to query
+        bad_doc_embedding = torch.tensor([0.0, 1.0, 1.0, 0.0])  # Dissimilar to query
         other_doc_embedding = torch.tensor([0.5, 0.5, 0, 0])  # Moderately similar
         document_embeddings = torch.stack(
             [good_doc_embedding, bad_doc_embedding, other_doc_embedding]
@@ -30,7 +30,10 @@ class TestSubmodularMutualInformation(unittest.TestCase):
                     "checkpoint": "all-mpnet-base-v2",
                     # "device": "cuda:0",
                     "device": "cpu",
-                }
+                },
+                "aggregation_strategy": {
+                    "merge_strategy": {"name": "weighted_average_merger"}
+                },
             }
         }
         model_ref = WrappedSentenceTransformerModel(config)

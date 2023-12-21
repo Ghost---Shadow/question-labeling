@@ -7,7 +7,10 @@ class NoOpModel:
         ...
 
     def forward(self, *args, **kwargs):
-        raise NotImplemented()
+        raise NotImplementedError("Specify a merge function in config")
+
+    def __call__(self, *args, **kwargs):
+        raise NotImplementedError("Specify a merge function in config")
 
     def get_metrics(self):
         return {}
