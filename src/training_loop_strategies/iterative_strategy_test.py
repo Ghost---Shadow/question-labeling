@@ -9,9 +9,9 @@ from training_loop_strategies.iterative_strategy import (
     train_step,
     train_step_full_precision,
 )
-from aggregation_strategies.weighted_average_strategy import weighted_embedding_average
+from aggregation_strategies.weighted_average_strategy import WeightedEmbeddingAverage
 from aggregation_strategies.submodular_mutual_information_strategy import (
-    submodular_mutual_information,
+    SubmodularMutualInformation,
 )
 
 
@@ -156,7 +156,7 @@ class TestTrainStepMixedPrecision(unittest.TestCase):
                     "device": "cuda:0",
                 },
                 "aggregation_strategy": {
-                    "name": "smi",
+                    "name": "average",
                     "merge_strategy": {"name": "weighted_average_merger"},
                 },
             }
@@ -169,11 +169,13 @@ class TestTrainStepMixedPrecision(unittest.TestCase):
         train_loader, _ = get_loader(batch_size)
 
         batch = next(iter(train_loader))
-        aggregation_fn = weighted_embedding_average
+        aggregation_model = WeightedEmbeddingAverage(config, wrapped_model)
         loss_fn = MSELoss()
 
         for _ in range(10):
-            loss = train_step(wrapped_model, optimizer, batch, aggregation_fn, loss_fn)
+            loss = train_step(
+                wrapped_model, optimizer, batch, aggregation_model, loss_fn
+            )
             print(loss)
 
     # python -m unittest training_loop_strategies.iterative_strategy_test.TestTrainStepMixedPrecision.test_mixed_precision_smi_kl_div -v
@@ -198,9 +200,11 @@ class TestTrainStepMixedPrecision(unittest.TestCase):
         train_loader, _ = get_loader(batch_size)
 
         batch = next(iter(train_loader))
-        aggregation_fn = submodular_mutual_information
+        aggregation_model = SubmodularMutualInformation(config, wrapped_model)
         loss_fn = KLDivLoss()
 
         for _ in range(10):
-            loss = train_step(wrapped_model, optimizer, batch, aggregation_fn, loss_fn)
+            loss = train_step(
+                wrapped_model, optimizer, batch, aggregation_model, loss_fn
+            )
             print(loss)

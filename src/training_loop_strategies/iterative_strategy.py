@@ -2,25 +2,65 @@ import torch
 from torch.cuda.amp import autocast, GradScaler
 
 
-def train_step(wrapped_model, optimizer, batch, aggregation_model, loss_fn):
-    scaler = GradScaler()
+def compute_loss_and_similarity(
+    wrapped_model,
+    aggregation_model,
+    loss_fn,
+    question,
+    documents,
+    picked_so_far,
+    labels,
+):
+    (
+        question_embedding,
+        document_embeddings,
+    ) = wrapped_model.get_query_and_document_embeddings(question, documents)
 
-    optimizer.zero_grad()
+    aggregated_query_embedding = aggregation_model(
+        question_embedding, document_embeddings, picked_so_far
+    )
 
-    total_loss = 0.0
-    total_recall_at_k = 0.0
-    total_gradient_accumulation_steps = 0
+    # Already normalized
+    similarity = (aggregated_query_embedding @ document_embeddings.T).squeeze()
 
-    for relevant_sentence_indexes in batch["relevant_sentence_indexes"]:
-        for _ in relevant_sentence_indexes:
-            total_gradient_accumulation_steps += 1
+    # Dont compute loss on items that are already picked
+    relevant_similarity = similarity[~picked_so_far]
+    relevant_labels = labels[~picked_so_far]
 
+    loss = loss_fn(relevant_similarity, relevant_labels)
+    return similarity, loss
+
+
+def get_batch_documents(batch):
     # If synthetic questions exist, use them.
     # Otherwise fallback to original dataset
     if "flat_questions" in batch:
         batch_documents = batch["flat_questions"]
     else:
         batch_documents = batch["flat_sentences"]
+
+    return batch_documents
+
+
+def compute_total_gradient_accumulation_steps(batch):
+    # We want to scale the loss by number of accumulation steps to
+    # prevent gradient explosion
+    total_gradient_accumulation_steps = 0
+    for relevant_sentence_indexes in batch["relevant_sentence_indexes"]:
+        for _ in relevant_sentence_indexes:
+            total_gradient_accumulation_steps += 1
+
+    return total_gradient_accumulation_steps
+
+
+def train_step(wrapped_model, optimizer, batch, aggregation_model, loss_fn):
+    scaler = GradScaler()
+
+    optimizer.zero_grad()
+
+    total_loss = 0.0
+    total_gradient_accumulation_steps = compute_total_gradient_accumulation_steps(batch)
+    batch_documents = get_batch_documents(batch)
 
     for question, documents, selection_vector, relevant_sentence_indexes in zip(
         batch["questions"],
@@ -34,68 +74,44 @@ def train_step(wrapped_model, optimizer, batch, aggregation_model, loss_fn):
             selection_vector, device=wrapped_model.device, dtype=torch.float32
         )
 
-        correct_picks = 0
-        k = len(relevant_sentence_indexes)
-
         for next_pick_index in relevant_sentence_indexes:
             with autocast(dtype=torch.float16):
-                (
-                    question_embedding,
-                    document_embeddings,
-                ) = wrapped_model.get_query_and_document_embeddings(question, documents)
-
-                aggregated_query_embedding = aggregation_model(
-                    question_embedding, document_embeddings, picked_so_far
+                similarity, loss = compute_loss_and_similarity(
+                    wrapped_model,
+                    aggregation_model,
+                    loss_fn,
+                    question,
+                    documents,
+                    picked_so_far,
+                    labels,
                 )
-
-                # Already normalized
-                similarity = (
-                    aggregated_query_embedding @ document_embeddings.T
-                ).squeeze()
-
-                # Dont compute loss on items that are already picked
-                relevant_similarity = similarity[~picked_so_far]
-                relevant_labels = labels[~picked_so_far]
-
-                loss = loss_fn(relevant_similarity, relevant_labels)
                 loss = loss / total_gradient_accumulation_steps
 
             scaler.scale(loss).backward()
 
             total_loss += loss.item()
 
-            # Calculate recall@k
+            # Disable the similarities things picked so far
             similarity[picked_so_far] = 0
-            max_sim_index = torch.argmax(similarity).item()
-            if max_sim_index in relevant_sentence_indexes:
-                correct_picks += 1
 
             # Pick one of the correct answers
             picked_so_far[next_pick_index] = True
 
-        recall_at_k = correct_picks / k
-        total_recall_at_k += recall_at_k
+            # TODO: Calculate recall@k, precision@k, F1@k
 
     scaler.step(optimizer)
     scaler.update()
 
     batch_size = len(batch["questions"])
     avg_loss = total_loss / batch_size
-    avg_recall_at_k = total_recall_at_k / batch_size
 
-    return avg_loss, avg_recall_at_k
+    return avg_loss, 0
 
 
 def eval_step(wrapped_model, batch, aggregation_model, loss_fn):
     total_loss = 0.0
-    total_recall_at_k = 0.0
 
-    # If synthetic questions exist, use them.
-    # Otherwise fallback to original dataset
-    if "flat_questions" in batch:
-        batch_documents = batch["flat_questions"]
-    else:
-        batch_documents = batch["flat_sentences"]
+    batch_documents = get_batch_documents(batch)
 
     with torch.no_grad():
         for (
@@ -114,47 +130,31 @@ def eval_step(wrapped_model, batch, aggregation_model, loss_fn):
                 selection_vector, device=wrapped_model.device, dtype=torch.float32
             )
 
-            correct_picks = 0
-            k = len(relevant_sentence_indexes)
-
-            for _ in range(k):
-                (
-                    question_embedding,
-                    document_embeddings,
-                ) = wrapped_model.get_query_and_document_embeddings(question, documents)
-
-                aggregated_query_embedding = aggregation_model(
-                    question_embedding, document_embeddings, picked_so_far
+            for next_pick_index in relevant_sentence_indexes:
+                similarity, loss = compute_loss_and_similarity(
+                    wrapped_model,
+                    aggregation_model,
+                    loss_fn,
+                    question,
+                    documents,
+                    picked_so_far,
+                    labels,
                 )
 
-                similarity = (
-                    aggregated_query_embedding @ document_embeddings.T
-                ).squeeze()
-
-                # Dont compute loss on items that are already picked
-                relevant_similarity = similarity[~picked_so_far]
-                relevant_labels = labels[~picked_so_far]
-
-                loss = loss_fn(relevant_similarity, relevant_labels)
                 total_loss += loss.item()
 
-                # Check if the max similarity index is in relevant_sentence_indexes
+                # Disable the similarities things picked so far
                 similarity[picked_so_far] = 0
-                max_sim_index = torch.argmax(similarity).item()
-                if max_sim_index in relevant_sentence_indexes:
-                    correct_picks += 1
 
                 # Update picked_so_far for iterative approach
-                picked_so_far[max_sim_index] = True
+                picked_so_far[next_pick_index] = True
 
-            recall_at_k = correct_picks / k
-            total_recall_at_k += recall_at_k
+                # TODO: Calculate recall@k, precision@k, F1@k
 
     batch_size = len(batch["questions"])
     avg_loss = total_loss / batch_size
-    avg_recall_at_k = total_recall_at_k / batch_size
 
-    return avg_loss, avg_recall_at_k
+    return avg_loss, 0
 
 
 def train_step_full_precision(
@@ -164,19 +164,8 @@ def train_step_full_precision(
 
     total_loss = 0.0
 
-    # We want to scale the loss by number of accumulation steps to
-    # prevent gradient explosion
-    total_gradient_accumulation_steps = 0
-    for relevant_sentence_indexes in batch["relevant_sentence_indexes"]:
-        for _ in relevant_sentence_indexes:
-            total_gradient_accumulation_steps += 1
-
-    # If synthetic questions exist, use them.
-    # Otherwise fallback to original dataset
-    if "flat_questions" in batch:
-        batch_documents = batch["flat_questions"]
-    else:
-        batch_documents = batch["flat_sentences"]
+    batch_documents = get_batch_documents(batch)
+    total_gradient_accumulation_steps = compute_total_gradient_accumulation_steps(batch)
 
     for question, documents, selection_vector, relevant_sentence_indexes in zip(
         batch["questions"],
@@ -191,23 +180,15 @@ def train_step_full_precision(
         )
 
         for next_pick_index in relevant_sentence_indexes:
-            (
-                question_embedding,
-                document_embeddings,
-            ) = wrapped_model.get_query_and_document_embeddings(question, documents)
-
-            aggregated_query_embedding = aggregation_model(
-                question_embedding, document_embeddings, picked_so_far
+            similarity, loss = compute_loss_and_similarity(
+                wrapped_model,
+                aggregation_model,
+                loss_fn,
+                question,
+                documents,
+                picked_so_far,
+                labels,
             )
-
-            # Already normalized
-            similarity = (aggregated_query_embedding @ document_embeddings.T).squeeze()
-
-            # Dont compute loss on items that are already picked
-            relevant_similarity = similarity[~picked_so_far]
-            relevant_labels = labels[~picked_so_far]
-
-            loss = loss_fn(relevant_similarity, relevant_labels)
             loss = loss / total_gradient_accumulation_steps
             loss.backward()
 
@@ -215,6 +196,14 @@ def train_step_full_precision(
 
             # Pick one of the correct answers
             picked_so_far[next_pick_index] = True
+
+            # Disable the similarities things picked so far
+            similarity[picked_so_far] = 0
+
+            # Update picked_so_far for iterative approach
+            picked_so_far[next_pick_index] = True
+
+            # TODO: Calculate recall@k, precision@k, F1@k
 
     optimizer.step()
 
