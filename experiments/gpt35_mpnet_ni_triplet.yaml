@@ -1,13 +1,11 @@
 wandb:
   project: "question_labeling"
-  name: "gpt35_mpnet_avg"
+  name: "gpt35_mpnet_ni_triplet"
   # entity: "carml"
 
 architecture:
   question_generator_model:
-    name: 't5'
-    size: 'base'
-    device: "cuda:0"
+    name: 'gpt-3.5-turbo'
   
   semantic_search_model:
     name: 'sentence_transformer'
@@ -15,20 +13,20 @@ architecture:
     device: "cuda:0"
 
   aggregation_strategy:
-    name: 'average'
+    name: 'noop'
 
   loss:
-    name: 'mse'
+    name: 'triplet'
 
 dataset:
   name: 'hotpot_qa_with_q'
 
 training:
   strategy:
-    name: 'iterative_strategy'
-  epochs: 2
+    name: 'non_iterative_strategy'
+  epochs: 10
   batch_size: 2
-  learning_rate: 1e-5
+  learning_rate: 1e-6
   seeds: [42]
   # seeds: [42, 43, 44, 45, 46]
 

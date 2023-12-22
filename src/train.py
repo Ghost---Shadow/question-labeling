@@ -1,4 +1,5 @@
 import argparse
+from pathlib import Path
 from dataloaders import DATA_LOADER_LUT
 from losses import LOSS_LUT
 from models import MODEL_LUT
@@ -116,5 +117,9 @@ if __name__ == "__main__":
 
     with open(args.config, "r") as f:
         config = yaml.safe_load(f)
+
+    assert (
+        Path(args.config).stem == config["wandb"]["name"]
+    ), "Filename and config.wandb.name does not match"
 
     main(config, debug)

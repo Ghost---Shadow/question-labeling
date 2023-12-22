@@ -33,4 +33,7 @@ python ./src/train.py --config=experiments/gpt35_mpnet_smi_avg.yaml
 
 python ./src/train.py --config=experiments/mpnet_avg.yaml --debug
 python ./src/train.py --config=experiments/mpnet_avg.yaml
+
+python ./src/train.py --config=experiments/gpt35_mpnet_ni_triplet.yaml --debug
+python ./src/train.py --config=experiments/gpt35_mpnet_ni_triplet.yaml
 ```

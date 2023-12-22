@@ -15,11 +15,11 @@ from aggregation_strategies.submodular_mutual_information_strategy import (
 )
 
 
-# python -m unittest training_loop_strategies.iterative_strategy_test.TestTrainStep -v
+# python -m unittest training_loop_strategies.iterative_strategy_test.TestTrainStepMixedPrecision -v
 # @unittest.skip("needs gpu")
-class TestTrainStep(unittest.TestCase):
-    # python -m unittest training_loop_strategies.iterative_strategy_test.TestTrainStep.test_full_precision -v
-    def test_full_precision(self):
+class TestTrainStepMixedPrecision(unittest.TestCase):
+    # python -m unittest training_loop_strategies.iterative_strategy_test.TestTrainStepMixedPrecision.test_mixed_precision -v
+    def test_mixed_precision(self):
         config = {
             "architecture": {
                 "semantic_search_model": {
@@ -27,7 +27,8 @@ class TestTrainStep(unittest.TestCase):
                     "device": "cuda:0",
                 },
                 "aggregation_strategy": {
-                    "name": "weighted_average",
+                    "name": "average",
+                    "merge_strategy": {"name": "weighted_average_merger"},
                 },
             },
             "eval": {"k": [1, 2]},
@@ -40,17 +41,17 @@ class TestTrainStep(unittest.TestCase):
         train_loader, _ = get_loader(batch_size)
 
         batch = next(iter(train_loader))
-        aggregation_fn = WeightedEmbeddingAverage(config, wrapped_model)
+        aggregation_model = WeightedEmbeddingAverage(config, wrapped_model)
         loss_fn = MSELoss()
 
         for _ in range(10):
-            loss = train_step_full_precision(
-                config, wrapped_model, optimizer, batch, aggregation_fn, loss_fn
+            loss = train_step(
+                config, wrapped_model, optimizer, batch, aggregation_model, loss_fn
             )
             print(loss)
 
-    # python -m unittest training_loop_strategies.iterative_strategy_test.TestTrainStep.test_full_precision_smi_kl_div -v
-    def test_full_precision_smi_kl_div(self):
+    # python -m unittest training_loop_strategies.iterative_strategy_test.TestTrainStepMixedPrecision.test_mixed_precision_smi_kl_div -v
+    def test_mixed_precision_smi_kl_div(self):
         config = {
             "architecture": {
                 "semantic_search_model": {
@@ -72,12 +73,12 @@ class TestTrainStep(unittest.TestCase):
         train_loader, _ = get_loader(batch_size)
 
         batch = next(iter(train_loader))
-        aggregation_fn = SubmodularMutualInformation(config, wrapped_model)
+        aggregation_model = SubmodularMutualInformation(config, wrapped_model)
         loss_fn = KLDivLoss()
 
         for _ in range(10):
-            loss = train_step_full_precision(
-                config, wrapped_model, optimizer, batch, aggregation_fn, loss_fn
+            loss = train_step(
+                config, wrapped_model, optimizer, batch, aggregation_model, loss_fn
             )
             print(loss)
 
@@ -144,11 +145,11 @@ class TestEvalStep(unittest.TestCase):
         print(loss)
 
 
-# python -m unittest training_loop_strategies.iterative_strategy_test.TestTrainStepMixedPrecision -v
+# python -m unittest training_loop_strategies.iterative_strategy_test.TestTrainStep -v
 # @unittest.skip("needs gpu")
-class TestTrainStepMixedPrecision(unittest.TestCase):
-    # python -m unittest training_loop_strategies.iterative_strategy_test.TestTrainStepMixedPrecision.test_mixed_precision -v
-    def test_mixed_precision(self):
+class TestTrainStep(unittest.TestCase):
+    # python -m unittest training_loop_strategies.iterative_strategy_test.TestTrainStep.test_full_precision -v
+    def test_full_precision(self):
         config = {
             "architecture": {
                 "semantic_search_model": {
@@ -156,8 +157,7 @@ class TestTrainStepMixedPrecision(unittest.TestCase):
                     "device": "cuda:0",
                 },
                 "aggregation_strategy": {
-                    "name": "average",
-                    "merge_strategy": {"name": "weighted_average_merger"},
+                    "name": "weighted_average",
                 },
             },
             "eval": {"k": [1, 2]},
@@ -170,17 +170,17 @@ class TestTrainStepMixedPrecision(unittest.TestCase):
         train_loader, _ = get_loader(batch_size)
 
         batch = next(iter(train_loader))
-        aggregation_model = WeightedEmbeddingAverage(config, wrapped_model)
+        aggregation_fn = WeightedEmbeddingAverage(config, wrapped_model)
         loss_fn = MSELoss()
 
         for _ in range(10):
-            loss = train_step(
-                config, wrapped_model, optimizer, batch, aggregation_model, loss_fn
+            loss = train_step_full_precision(
+                config, wrapped_model, optimizer, batch, aggregation_fn, loss_fn
             )
             print(loss)
 
-    # python -m unittest training_loop_strategies.iterative_strategy_test.TestTrainStepMixedPrecision.test_mixed_precision_smi_kl_div -v
-    def test_mixed_precision_smi_kl_div(self):
+    # python -m unittest training_loop_strategies.iterative_strategy_test.TestTrainStep.test_full_precision_smi_kl_div -v
+    def test_full_precision_smi_kl_div(self):
         config = {
             "architecture": {
                 "semantic_search_model": {
@@ -202,11 +202,11 @@ class TestTrainStepMixedPrecision(unittest.TestCase):
         train_loader, _ = get_loader(batch_size)
 
         batch = next(iter(train_loader))
-        aggregation_model = SubmodularMutualInformation(config, wrapped_model)
+        aggregation_fn = SubmodularMutualInformation(config, wrapped_model)
         loss_fn = KLDivLoss()
 
         for _ in range(10):
-            loss = train_step(
-                config, wrapped_model, optimizer, batch, aggregation_model, loss_fn
+            loss = train_step_full_precision(
+                config, wrapped_model, optimizer, batch, aggregation_fn, loss_fn
             )
             print(loss)
