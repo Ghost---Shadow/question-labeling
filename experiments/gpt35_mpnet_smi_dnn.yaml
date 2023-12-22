@@ -32,3 +32,6 @@ training:
   learning_rate: 1e-6
   seeds: [42]
   # seeds: [42, 43, 44, 45, 46]
+
+eval:
+  k: [5, 10, 15]

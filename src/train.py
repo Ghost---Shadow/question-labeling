@@ -67,7 +67,8 @@ def main(config, debug):
 
         if not debug:
             print("Starting warmup validation")
-            val_loss, val_recall, _ = validate_one_epoch(
+            val_loss, _ = validate_one_epoch(
+                config,
                 validation_loader,
                 wrapped_search_model,
                 eval_step_fn,
@@ -78,7 +79,8 @@ def main(config, debug):
 
         for epoch in range(EPOCHS):
             print(f"Start training for epoch {epoch}")
-            train_loss, train_recall = train_one_epoch(
+            train_loss = train_one_epoch(
+                config,
                 train_loader,
                 wrapped_search_model,
                 optimizer,
@@ -88,7 +90,8 @@ def main(config, debug):
                 debug,
             )
             print("Starting validation")
-            val_loss, val_recall, _ = validate_one_epoch(
+            val_loss, _ = validate_one_epoch(
+                config,
                 validation_loader,
                 wrapped_search_model,
                 eval_step_fn,
@@ -97,9 +100,7 @@ def main(config, debug):
                 debug,
             )
 
-            print(
-                f"Epoch {epoch} Train Loss: {train_loss} Train recall: {train_recall} Validation Loss {val_loss} Validation recall {val_recall}"
-            )
+            print(f"Epoch {epoch} Train Loss: {train_loss} Validation Loss {val_loss}")
 
         wandb.finish()
 

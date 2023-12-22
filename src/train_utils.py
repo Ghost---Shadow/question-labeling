@@ -1,7 +1,7 @@
 import time
 import torch
 from tqdm import tqdm
-from torch.cuda.amp import autocast
+from training_loop_strategies.iterative_strategy import average_metrics
 import wandb
 
 
@@ -12,6 +12,7 @@ def set_seed(seed):
 
 
 def validate_one_epoch(
+    config,
     validation_loader,
     wrapped_search_model,
     eval_step_fn,
@@ -21,52 +22,47 @@ def validate_one_epoch(
 ):
     wrapped_search_model.model.eval()
 
-    total_val_loss = 0
-    total_recall_at_k = 0
-    num_samples_seen = 0
     total_inference_time = 0
     steps = 0
+    all_metrics = []
 
     with torch.no_grad():
         for batch in tqdm(validation_loader, desc="Validation"):
             start_time = time.time()
 
             # Call eval_step function
-            loss, recall_at_k = eval_step_fn(
-                wrapped_search_model, batch, aggregation_fn, loss_fn
+            metrics = eval_step_fn(
+                config, wrapped_search_model, batch, aggregation_fn, loss_fn
             )
+            all_metrics.append(metrics)
 
             inference_time = time.time() - start_time
             total_inference_time += inference_time
 
-            total_val_loss += loss
-            total_recall_at_k += recall_at_k
-            num_samples_seen += len(batch["questions"])
             steps += 1
 
             if debug and steps == 5:
                 break
 
-    val_loss = total_val_loss / steps
-    val_recall_at_k = total_recall_at_k / steps
     average_inference_time = total_inference_time / steps
+    avg_metrics = average_metrics(all_metrics)
 
     # Log metrics if not in debug mode
     if not debug:
         wandb.log(
             {
                 "validation": {
-                    "loss": val_loss,
-                    "recall_at_k": val_recall_at_k,
+                    **avg_metrics,
                     "inference_time": average_inference_time,
                 }
             }
         )
 
-    return val_loss, val_recall_at_k, average_inference_time
+    return avg_metrics["loss"], average_inference_time
 
 
 def train_one_epoch(
+    config,
     train_loader,
     wrapped_search_model,
     optimizer,
@@ -78,18 +74,17 @@ def train_one_epoch(
     wrapped_search_model.model.train()
 
     total_loss = 0
-    total_recall = 0
     num_samples_seen = 0
 
     pbar = tqdm(train_loader)
     for batch in pbar:
         # Call to train_step function
-        step_loss, step_recall = train_step_fn(
-            wrapped_search_model, optimizer, batch, aggregation_fn, loss_fn
+        metrics = train_step_fn(
+            config, wrapped_search_model, optimizer, batch, aggregation_fn, loss_fn
         )
 
-        total_loss += step_loss
-        total_recall += step_recall
+        step_loss = metrics["loss"]
+        total_loss += metrics["loss"]
 
         num_samples_seen += sum(
             len(relevant) for relevant in batch["relevant_sentence_indexes"]
@@ -99,19 +94,11 @@ def train_one_epoch(
 
         if not debug:
             # Log to wandb
-            wandb.log(
-                {
-                    "train": {
-                        "loss": step_loss,
-                        "recall": step_recall,
-                    },
-                }
-            )
+            wandb.log({"train": metrics})
 
         if debug and num_samples_seen >= 5:
             break
 
     average_loss = total_loss / num_samples_seen if num_samples_seen > 0 else 0
-    average_recall = total_recall / num_samples_seen if num_samples_seen > 0 else 0
 
-    return average_loss, average_recall
+    return average_loss

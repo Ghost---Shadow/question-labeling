@@ -29,7 +29,8 @@ class TestTrainStep(unittest.TestCase):
                 "aggregation_strategy": {
                     "name": "weighted_average",
                 },
-            }
+            },
+            "eval": {"k": [1, 2]},
         }
         wrapped_model = WrappedSentenceTransformerModel(config)
         optimizer = optim.AdamW(wrapped_model.model.parameters(), lr=1e-5)
@@ -39,12 +40,12 @@ class TestTrainStep(unittest.TestCase):
         train_loader, _ = get_loader(batch_size)
 
         batch = next(iter(train_loader))
-        aggregation_fn = weighted_embedding_average
+        aggregation_fn = WeightedEmbeddingAverage(config, wrapped_model)
         loss_fn = MSELoss()
 
         for _ in range(10):
             loss = train_step_full_precision(
-                wrapped_model, optimizer, batch, aggregation_fn, loss_fn
+                config, wrapped_model, optimizer, batch, aggregation_fn, loss_fn
             )
             print(loss)
 
@@ -60,7 +61,8 @@ class TestTrainStep(unittest.TestCase):
                     "name": "smi",
                     "merge_strategy": {"name": "weighted_average_merger"},
                 },
-            }
+            },
+            "eval": {"k": [1, 2]},
         }
         wrapped_model = WrappedSentenceTransformerModel(config)
         optimizer = optim.AdamW(wrapped_model.model.parameters(), lr=1e-5)
@@ -70,12 +72,12 @@ class TestTrainStep(unittest.TestCase):
         train_loader, _ = get_loader(batch_size)
 
         batch = next(iter(train_loader))
-        aggregation_fn = submodular_mutual_information
+        aggregation_fn = SubmodularMutualInformation(config, wrapped_model)
         loss_fn = KLDivLoss()
 
         for _ in range(10):
             loss = train_step_full_precision(
-                wrapped_model, optimizer, batch, aggregation_fn, loss_fn
+                config, wrapped_model, optimizer, batch, aggregation_fn, loss_fn
             )
             print(loss)
 
@@ -95,7 +97,8 @@ class TestEvalStep(unittest.TestCase):
                     "name": "smi",
                     "merge_strategy": {"name": "weighted_average_merger"},
                 },
-            }
+            },
+            "eval": {"k": [1, 2]},
         }
         wrapped_model = WrappedSentenceTransformerModel(config)
 
@@ -104,14 +107,12 @@ class TestEvalStep(unittest.TestCase):
         _, eval_loader = get_loader(batch_size)
 
         batch = next(iter(eval_loader))
-        aggregation_fn = weighted_embedding_average
+        aggregation_fn = WeightedEmbeddingAverage(config, wrapped_model)
         loss_fn = MSELoss()
 
-        avg_loss, avg_recall_at_k = eval_step(
-            wrapped_model, batch, aggregation_fn, loss_fn
-        )
+        loss = eval_step(config, wrapped_model, batch, aggregation_fn, loss_fn)
 
-        print(f"Avg Loss: {avg_loss}, Avg Recall@K: {avg_recall_at_k}")
+        print(loss)
 
     # python -m unittest training_loop_strategies.iterative_strategy_test.TestEvalStep.test_eval_step_kl_div_smi -v
     def test_eval_step_kl_div_smi(self):
@@ -125,7 +126,8 @@ class TestEvalStep(unittest.TestCase):
                     "name": "smi",
                     "merge_strategy": {"name": "weighted_average_merger"},
                 },
-            }
+            },
+            "eval": {"k": [1, 2]},
         }
         wrapped_model = WrappedSentenceTransformerModel(config)
 
@@ -134,14 +136,12 @@ class TestEvalStep(unittest.TestCase):
         _, eval_loader = get_loader(batch_size)
 
         batch = next(iter(eval_loader))
-        aggregation_fn = submodular_mutual_information
+        aggregation_fn = SubmodularMutualInformation(config, wrapped_model)
         loss_fn = KLDivLoss()
 
-        avg_loss, avg_recall_at_k = eval_step(
-            wrapped_model, batch, aggregation_fn, loss_fn
-        )
+        loss = eval_step(config, wrapped_model, batch, aggregation_fn, loss_fn)
 
-        print(f"Avg Loss: {avg_loss}, Avg Recall@K: {avg_recall_at_k}")
+        print(loss)
 
 
 # python -m unittest training_loop_strategies.iterative_strategy_test.TestTrainStepMixedPrecision -v
@@ -159,7 +159,8 @@ class TestTrainStepMixedPrecision(unittest.TestCase):
                     "name": "average",
                     "merge_strategy": {"name": "weighted_average_merger"},
                 },
-            }
+            },
+            "eval": {"k": [1, 2]},
         }
         wrapped_model = WrappedSentenceTransformerModel(config)
         optimizer = optim.AdamW(wrapped_model.model.parameters(), lr=1e-5)
@@ -174,7 +175,7 @@ class TestTrainStepMixedPrecision(unittest.TestCase):
 
         for _ in range(10):
             loss = train_step(
-                wrapped_model, optimizer, batch, aggregation_model, loss_fn
+                config, wrapped_model, optimizer, batch, aggregation_model, loss_fn
             )
             print(loss)
 
@@ -190,7 +191,8 @@ class TestTrainStepMixedPrecision(unittest.TestCase):
                     "name": "smi",
                     "merge_strategy": {"name": "weighted_average_merger"},
                 },
-            }
+            },
+            "eval": {"k": [1, 2]},
         }
         wrapped_model = WrappedSentenceTransformerModel(config)
         optimizer = optim.AdamW(wrapped_model.model.parameters(), lr=1e-5)
@@ -205,6 +207,6 @@ class TestTrainStepMixedPrecision(unittest.TestCase):
 
         for _ in range(10):
             loss = train_step(
-                wrapped_model, optimizer, batch, aggregation_model, loss_fn
+                config, wrapped_model, optimizer, batch, aggregation_model, loss_fn
             )
             print(loss)
