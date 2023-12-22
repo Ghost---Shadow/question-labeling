@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from pydash import get
 
 
 class SubmodularMutualInformation(nn.Module):
@@ -9,6 +10,16 @@ class SubmodularMutualInformation(nn.Module):
         self.config = config
         self.model_ref = model_ref
         self.merge = self.model_ref.merge_model
+
+        self.quality_enabled = not get(
+            config, "architecture.aggregation_strategy.quality_gain.disabled", False
+        )
+        self.diversity_enabled = not get(
+            config, "architecture.aggregation_strategy.diversity_gain.disabled", False
+        )
+
+        if not (self.quality_enabled or self.diversity_enabled):
+            raise ValueError("Both quality and diversity disabled")
 
     def _quality_gain_sequential(
         self, question_embedding, filtered_document_embeddings
@@ -165,7 +176,12 @@ class SubmodularMutualInformation(nn.Module):
             question_embedding, filtered_document_embeddings
         )
 
-        gain_matrix = quality_gain_matrix * diversity_gain_matrix
+        gain_matrix = torch.ones_like(quality_gain_matrix)
+        if self.quality_enabled:
+            gain_matrix = gain_matrix * quality_gain_matrix
+        if self.diversity_enabled:
+            gain_matrix = gain_matrix * diversity_gain_matrix
+
         scores = gain_matrix.sum(dim=-1)
 
         # Normalize the scores

@@ -48,6 +48,111 @@ class TestSubmodularMutualInformation(unittest.TestCase):
             < torch.norm(bad_weighted_avg - query_embedding)
         )
 
+    # python -m unittest aggregation_strategies.submodular_mutual_information_strategy_test.TestSubmodularMutualInformation.test_disable_q -v
+    def test_disable_q(self):
+        # Create controlled embeddings
+        query_embedding = torch.tensor([1.0, 0.0, 0.0, 0.0])
+        good_doc_embedding = torch.tensor([0.9, 0.1, 0, 0])  # Similar to query
+        bad_doc_embedding = torch.tensor([0.0, 1.0, 1.0, 0.0])  # Dissimilar to query
+        other_doc_embedding = torch.tensor([0.5, 0.5, 0, 0])  # Moderately similar
+        document_embeddings = torch.stack(
+            [good_doc_embedding, bad_doc_embedding, other_doc_embedding]
+        )
+
+        # Apply the function with masks
+        mask = torch.tensor([True, False, False])
+
+        # Create an instance of SubmodularMutualInformation
+        config = {
+            "architecture": {
+                "semantic_search_model": {
+                    "checkpoint": "all-mpnet-base-v2",
+                    # "device": "cuda:0",
+                    "device": "cpu",
+                },
+                "aggregation_strategy": {
+                    "quality_gain": {"disabled": True},
+                    "merge_strategy": {"name": "weighted_average_merger"},
+                },
+            }
+        }
+        model_ref = WrappedSentenceTransformerModel(config)
+        smi_module = SubmodularMutualInformation(config, model_ref)
+
+        # Should not crash
+        smi_module(query_embedding, document_embeddings, mask)
+
+        # TODO: Test for disabling
+
+    # python -m unittest aggregation_strategies.submodular_mutual_information_strategy_test.TestSubmodularMutualInformation.test_disable_d -v
+    def test_disable_d(self):
+        # Create controlled embeddings
+        query_embedding = torch.tensor([1.0, 0.0, 0.0, 0.0])
+        good_doc_embedding = torch.tensor([0.9, 0.1, 0, 0])  # Similar to query
+        bad_doc_embedding = torch.tensor([0.0, 1.0, 1.0, 0.0])  # Dissimilar to query
+        other_doc_embedding = torch.tensor([0.5, 0.5, 0, 0])  # Moderately similar
+        document_embeddings = torch.stack(
+            [good_doc_embedding, bad_doc_embedding, other_doc_embedding]
+        )
+
+        # Apply the function with masks
+        mask = torch.tensor([True, False, False])
+
+        # Create an instance of SubmodularMutualInformation
+        config = {
+            "architecture": {
+                "semantic_search_model": {
+                    "checkpoint": "all-mpnet-base-v2",
+                    # "device": "cuda:0",
+                    "device": "cpu",
+                },
+                "aggregation_strategy": {
+                    "diversity_gain": {"disabled": True},
+                    "merge_strategy": {"name": "weighted_average_merger"},
+                },
+            }
+        }
+        model_ref = WrappedSentenceTransformerModel(config)
+        smi_module = SubmodularMutualInformation(config, model_ref)
+
+        # Should not crash
+        smi_module(query_embedding, document_embeddings, mask)
+
+        # TODO: Test for disabling
+
+    # python -m unittest aggregation_strategies.submodular_mutual_information_strategy_test.TestSubmodularMutualInformation.test_disable_q_and_d -v
+    def test_disable_q_and_d(self):
+        # Create controlled embeddings
+        query_embedding = torch.tensor([1.0, 0.0, 0.0, 0.0])
+        good_doc_embedding = torch.tensor([0.9, 0.1, 0, 0])  # Similar to query
+        bad_doc_embedding = torch.tensor([0.0, 1.0, 1.0, 0.0])  # Dissimilar to query
+        other_doc_embedding = torch.tensor([0.5, 0.5, 0, 0])  # Moderately similar
+        document_embeddings = torch.stack(
+            [good_doc_embedding, bad_doc_embedding, other_doc_embedding]
+        )
+
+        # Apply the function with masks
+        mask = torch.tensor([True, False, False])
+
+        # Create an instance of SubmodularMutualInformation
+        config = {
+            "architecture": {
+                "semantic_search_model": {
+                    "checkpoint": "all-mpnet-base-v2",
+                    # "device": "cuda:0",
+                    "device": "cpu",
+                },
+                "aggregation_strategy": {
+                    "quality_gain": {"disabled": True},
+                    "diversity_gain": {"disabled": True},
+                    "merge_strategy": {"name": "weighted_average_merger"},
+                },
+            }
+        }
+        model_ref = WrappedSentenceTransformerModel(config)
+        with self.assertRaises(ValueError):
+            SubmodularMutualInformation(config, model_ref)
+
     # python -m unittest aggregation_strategies.submodular_mutual_information_strategy_test.TestSubmodularMutualInformation.test_document_selection_error_case -v
     def test_document_selection_error_case(self):
         # Create controlled embeddings
