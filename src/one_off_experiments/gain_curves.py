@@ -82,7 +82,7 @@ cosine_dissimilarities = np.load(cosine_dissimilarities_path)
 
 # Plot Cosine Similarities
 plt.figure(figsize=(10, 6))
-for i, value in enumerate(cosine_similarities):
+for i, value in zip(selected_indices_sim, cosine_similarities):
     color = "green" if i in correct_answers else "red"
     plt.plot(i, value, "o", color=color)
 plt.title("Cosine Similarities Over Iterations")
@@ -93,7 +93,7 @@ plt.savefig(BASE_PATH / "cosine_similarities_plot.png")
 
 # Plot Cosine Dissimilarities
 plt.figure(figsize=(10, 6))
-for i, value in enumerate(cosine_dissimilarities):
+for i, value in zip(selected_indices_dissim, cosine_dissimilarities):
     color = "green" if i in correct_answers else "red"
     plt.plot(i, value, "o", color=color)
 plt.title("Cosine Dissimilarities Over Iterations")
