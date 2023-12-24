@@ -1,3 +1,4 @@
+import hashlib
 import time
 import torch
 from tqdm import tqdm
@@ -9,6 +10,14 @@ def set_seed(seed):
     torch.manual_seed(seed)
     torch.cuda.manual_seed_all(seed)
     torch.backends.cudnn.deterministic = True
+
+
+def generate_md5_hash(file_path):
+    hasher = hashlib.md5()
+    with open(file_path, "rb") as f:
+        buf = f.read()
+        hasher.update(buf)
+    return hasher.hexdigest()
 
 
 def validate_one_epoch(

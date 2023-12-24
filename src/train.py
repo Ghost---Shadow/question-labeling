@@ -1,11 +1,12 @@
 import argparse
+import os
 from pathlib import Path
 from dataloaders import DATA_LOADER_LUT
 from losses import LOSS_LUT
 from models import MODEL_LUT
 from dataloaders import DATA_LOADER_LUT
 from aggregation_strategies import AGGREGATION_STRATEGY_LUT
-from train_utils import set_seed, train_one_epoch, validate_one_epoch
+from train_utils import generate_md5_hash, set_seed, train_one_epoch, validate_one_epoch
 from training_loop_strategies import TRAINING_LOOP_STRATEGY_LUT
 import yaml
 import torch.optim as optim
@@ -122,4 +123,16 @@ if __name__ == "__main__":
         Path(args.config).stem == config["wandb"]["name"]
     ), "Filename and config.wandb.name does not match"
 
-    main(config, debug)
+    # Generate MD5 hash of the config file
+    config_file_name = Path(args.config).stem
+    hash_value = generate_md5_hash(args.config)
+    file_path = f"./experiments/completions/{config_file_name}_{hash_value}.done"
+
+    # Check if the file exists
+    if os.path.exists(file_path):
+        print(f"File {file_path} already exists. Skipping main execution.")
+    else:
+        main(config, debug)
+        # After main execution, create the file to indicate completion
+        with open(file_path, "w") as file:
+            file.write("Completed")
