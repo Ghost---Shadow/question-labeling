@@ -16,13 +16,20 @@ cosine_dissimilarities_path = BASE_PATH / "cosine_dissimilarities.npy"
 similarity_file_exists = os.path.isfile(cosine_similarities_path)
 dissimilarity_file_exists = os.path.isfile(cosine_dissimilarities_path)
 
+_, val_loader = get_loader(1)
+i = 0
+for batch in val_loader:
+    if i == 5262:
+        break
+    i += 1
+
+question = batch["questions"][0]
+sentences = batch["flat_sentences"][0]
+correct_answers = batch["relevant_sentence_indexes"][0]
+
+print("Num correct answers", len(correct_answers))
+
 if not similarity_file_exists or not dissimilarity_file_exists:
-    _, val_loader = get_loader(1)
-    batch = next(iter(val_loader))
-
-    question = batch["questions"][0]
-    sentences = batch["flat_sentences"][0]
-
     config = {
         "architecture": {
             "semantic_search_model": {
@@ -75,7 +82,9 @@ cosine_dissimilarities = np.load(cosine_dissimilarities_path)
 
 # Plot Cosine Similarities
 plt.figure(figsize=(10, 6))
-plt.plot(cosine_similarities, marker="o", color="blue")
+for i, value in enumerate(cosine_similarities):
+    color = "green" if i in correct_answers else "red"
+    plt.plot(i, value, "o", color=color)
 plt.title("Cosine Similarities Over Iterations")
 plt.xlabel("Iteration")
 plt.ylabel("Cosine Similarity")
@@ -84,7 +93,9 @@ plt.savefig(BASE_PATH / "cosine_similarities_plot.png")
 
 # Plot Cosine Dissimilarities
 plt.figure(figsize=(10, 6))
-plt.plot(cosine_dissimilarities, marker="o", color="red")
+for i, value in enumerate(cosine_dissimilarities):
+    color = "green" if i in correct_answers else "red"
+    plt.plot(i, value, "o", color=color)
 plt.title("Cosine Dissimilarities Over Iterations")
 plt.xlabel("Iteration")
 plt.ylabel("Cosine Dissimilarity")
