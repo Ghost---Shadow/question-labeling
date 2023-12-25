@@ -110,7 +110,7 @@ def compute_outward_metric(document_embeddings, selection_vectors):
     # Calculate the metric
     metric = (similarities - e) ** 2
 
-    return metric
+    return metric.mean()
 
 
 train_steps = 100
@@ -161,6 +161,7 @@ for step in range(train_steps):
         predictions = similarities * (1 - dissimilarities)
         labels = all_selection_vector.float()
         loss = criterion(predictions, labels)
+        loss = inward + outward
 
         predictions = predictions.detach().cpu()
         predictions[picked_mask] = 0
@@ -184,7 +185,7 @@ for step in range(train_steps):
             can_be_picked_set.remove(next_correct)
 
         if picked_mask.sum() > 0:
-            d_acc = (d_acc + document_embeddings[next_correct]) / 2
+            d_acc = document_embeddings[picked_mask].mean(dim=0)
             d_acc = torch.nn.functional.normalize(d_acc, dim=-1)
 
         offset = len(all_selection_vector) // 2
