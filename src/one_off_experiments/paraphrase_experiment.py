@@ -1,4 +1,5 @@
 import json
+from losses.triplet_loss import TripletLoss
 from models.wrapped_sentence_transformer import WrappedSentenceTransformerModel
 import numpy as np
 import torch
@@ -45,6 +46,8 @@ def load_paraphrased_row():
         paraphrase_lut[left] = right
         paraphrase_lut[right] = left
 
+    print(paraphrase_lut.keys())
+
     all_questions = [*flat_questions, *flat_questions_paraphrased]
     all_selection_vector = [*selection_vector, *paraphrased_vector]
 
@@ -87,13 +90,14 @@ model = WrappedSentenceTransformerModel(config)
 
 
 optimizer = optim.AdamW(model.model.parameters(), lr=1e-5)
-criterion = nn.MSELoss()
+# criterion = nn.MSELoss()
+criterion = TripletLoss({})
 
 
 def compute_inward_metric(similarities, selection_vector):
-    metric = similarities[selection_vector].mean()
+    metric = criterion(similarities, selection_vector)
 
-    return 1 - metric
+    return metric
 
 
 def compute_outward_metric(document_embeddings, selection_vectors):
@@ -107,10 +111,15 @@ def compute_outward_metric(document_embeddings, selection_vectors):
 
     e = torch.eye(similarities.size(0), device=similarities.device)
 
-    # Calculate the metric
-    metric = (similarities - e) ** 2
+    metrics = []
+    for similarity, labels in zip(similarities, e):
+        metric = criterion(similarity, labels)
+        metrics.append(metric)
 
-    return metric.mean()
+    # Calculate the metric
+    metric = torch.stack(metrics).mean()
+
+    return metric
 
 
 train_steps = 100
@@ -160,8 +169,8 @@ for step in range(train_steps):
 
         predictions = similarities * (1 - dissimilarities)
         labels = all_selection_vector.float()
-        loss = criterion(predictions, labels)
-        loss = inward + outward
+        local_inward = criterion(similarities, labels)
+        loss = local_inward + inward + outward
 
         predictions = predictions.detach().cpu()
         predictions[picked_mask] = 0
