@@ -52,12 +52,26 @@ def load_paraphrased_row():
 
     query = item["question"]
 
+    left_selection_vector = all_selection_vector.clone()
+    left_selection_vector[len(selection_vector) :] = 0
+
+    right_selection_vector = all_selection_vector.clone()
+    right_selection_vector[: len(selection_vector)] = 0
+
+    assert left_selection_vector.sum() == right_selection_vector.sum()
+
+    left_selection_vector = left_selection_vector.bool()
+    right_selection_vector = right_selection_vector.bool()
+
+    selection_vectors = (left_selection_vector, right_selection_vector)
+
     return (
         query,
         all_questions,
         all_selection_vector,
         relevant_sentence_indexes,
         paraphrase_lut,
+        selection_vectors,
     )
 
 
@@ -77,8 +91,24 @@ criterion = nn.MSELoss()
 
 
 def compute_inward_metric(similarities, selection_vector):
-    with torch.no_grad():
-        metric = similarities[selection_vector].mean()
+    metric = similarities[selection_vector].mean()
+
+    return 1 - metric
+
+
+def compute_outward_metric(document_embeddings, selection_vectors):
+    left_selection_vector, right_selection_vector = selection_vectors
+
+    # Extract the relevant vectors
+    left_vector = document_embeddings[left_selection_vector]
+    right_vector = document_embeddings[right_selection_vector]
+
+    similarities = torch.matmul(left_vector, right_vector.T)
+
+    e = torch.eye(similarities.size(0), device=similarities.device)
+
+    # Calculate the metric
+    metric = (similarities - e) ** 2
 
     return metric
 
@@ -91,6 +121,7 @@ for step in range(train_steps):
         all_selection_vector,
         relevant_sentence_indexes,
         paraphrase_lut,
+        selection_vectors,
     ) = load_paraphrased_row()
 
     query_embedding, document_embeddings = model.get_query_and_document_embeddings(
@@ -103,6 +134,7 @@ for step in range(train_steps):
     actual_selected_indices = []
     teacher_forcing = []
     all_inwards = []
+    all_outwards = []
 
     recall_at_1 = 0
 
@@ -116,6 +148,9 @@ for step in range(train_steps):
 
         inward = compute_inward_metric(similarities, original_all_selection_vector)
         all_inwards.append(inward)
+
+        outward = compute_outward_metric(document_embeddings, selection_vectors)
+        all_outwards.append(outward)
 
         if picked_mask.sum() > 0:
             dissimilarities = torch.matmul(document_embeddings, d_acc.T).squeeze()
@@ -159,11 +194,12 @@ for step in range(train_steps):
         teacher_forcing.append(next_correct)
 
     inward = torch.stack(all_inwards).mean()
+    outward = torch.stack(all_outwards).mean()
 
     loss.backward()
     optimizer.step()
 
     recall_at_1 = recall_at_1 / len(relevant_sentence_indexes)
     print(
-        f"inward {inward}, Loss: {loss.item()}, Recall@1: {recall_at_1}, actual_selected_indices: {actual_selected_indices}, teacher_forcing: {teacher_forcing}"
+        f"inward: {inward}, outward: {outward} Loss: {loss.item()}, Recall@1: {recall_at_1}, actual_selected_indices: {actual_selected_indices}, teacher_forcing: {teacher_forcing}"
     )
