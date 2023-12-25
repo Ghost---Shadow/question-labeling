@@ -91,43 +91,63 @@ for step in range(train_steps):
 
     d_acc = torch.zeros_like(query_embedding)
 
-    selected_indices = []
+    picked_mask = torch.zeros(len(all_questions), device="cuda:0", dtype=torch.bool)
+    actual_selected_indices = []
+    teacher_forcing = []
 
     recall_at_1 = 0
 
-    for next_correct in relevant_sentence_indexes:
+    num_correct_answers = len(relevant_sentence_indexes)
+    can_be_picked_set = set(relevant_sentence_indexes)
+    for _ in range(num_correct_answers):
         similarities = torch.matmul(document_embeddings, query_embedding.T).squeeze()
         similarities = torch.clamp(similarities, min=0, max=1)
-        similarities[selected_indices] = 0
 
-        if len(selected_indices) > 0:
+        if picked_mask.sum() > 0:
             dissimilarities = torch.matmul(document_embeddings, d_acc.T).squeeze()
+            dissimilarities = torch.clamp(dissimilarities, min=0, max=1)
         else:
             dissimilarities = torch.zeros_like(similarities)
-        dissimilarities[selected_indices] = 1
 
         predictions = similarities * (1 - dissimilarities)
         labels = all_selection_vector.float()
         loss = criterion(predictions, labels)
 
+        predictions = predictions.detach().cpu()
+        predictions[picked_mask] = 0
         selected_index = torch.argmax(predictions).item()
+        actual_selected_indices.append(selected_index)
+
         if (
-            selected_index in relevant_sentence_indexes
-            or paraphrase_lut.get(selected_index) in relevant_sentence_indexes
+            selected_index in can_be_picked_set
+            or paraphrase_lut.get(selected_index) in can_be_picked_set
         ):
             recall_at_1 += 1
 
-        if len(selected_indices) > 0:
+            next_correct = selected_index
+        else:
+            next_correct = list(can_be_picked_set)[0]
+
+        # Remove item from pick
+        if next_correct not in can_be_picked_set:
+            can_be_picked_set.remove(paraphrase_lut[next_correct])
+        else:
+            can_be_picked_set.remove(next_correct)
+
+        if picked_mask.sum() > 0:
             d_acc = (d_acc + document_embeddings[next_correct]) / 2
             d_acc = torch.nn.functional.normalize(d_acc, dim=-1)
 
         offset = len(all_selection_vector) // 2
         all_selection_vector[next_correct] = 0
         all_selection_vector[paraphrase_lut[next_correct]] = 0
-        selected_indices.append(next_correct)
+        picked_mask[next_correct] = 1
+        teacher_forcing.append(next_correct)
 
     loss.backward()
     optimizer.step()
 
     recall_at_1 = recall_at_1 / len(relevant_sentence_indexes)
-    print(f"Step {step+1}, Loss: {loss.item()}, Recall@1: {recall_at_1}")
+    print(
+        f"Step {step+1}, Loss: {loss.item()}, Recall@1: {recall_at_1}, actual_selected_indices: {actual_selected_indices}, teacher_forcing: {teacher_forcing}"
+    )
