@@ -75,6 +75,14 @@ model = WrappedSentenceTransformerModel(config)
 optimizer = optim.AdamW(model.model.parameters(), lr=1e-5)
 criterion = nn.MSELoss()
 
+
+def compute_inward_metric(similarities, selection_vector):
+    with torch.no_grad():
+        metric = similarities[selection_vector].mean()
+
+    return metric
+
+
 train_steps = 100
 for step in range(train_steps):
     (
@@ -94,14 +102,20 @@ for step in range(train_steps):
     picked_mask = torch.zeros(len(all_questions), device="cuda:0", dtype=torch.bool)
     actual_selected_indices = []
     teacher_forcing = []
+    all_inwards = []
 
     recall_at_1 = 0
+
+    original_all_selection_vector = all_selection_vector.clone()
 
     num_correct_answers = len(relevant_sentence_indexes)
     can_be_picked_set = set(relevant_sentence_indexes)
     for _ in range(num_correct_answers):
         similarities = torch.matmul(document_embeddings, query_embedding.T).squeeze()
         similarities = torch.clamp(similarities, min=0, max=1)
+
+        inward = compute_inward_metric(similarities, original_all_selection_vector)
+        all_inwards.append(inward)
 
         if picked_mask.sum() > 0:
             dissimilarities = torch.matmul(document_embeddings, d_acc.T).squeeze()
@@ -144,10 +158,12 @@ for step in range(train_steps):
         picked_mask[next_correct] = 1
         teacher_forcing.append(next_correct)
 
+    inward = torch.stack(all_inwards).mean()
+
     loss.backward()
     optimizer.step()
 
     recall_at_1 = recall_at_1 / len(relevant_sentence_indexes)
     print(
-        f"Step {step+1}, Loss: {loss.item()}, Recall@1: {recall_at_1}, actual_selected_indices: {actual_selected_indices}, teacher_forcing: {teacher_forcing}"
+        f"inward {inward}, Loss: {loss.item()}, Recall@1: {recall_at_1}, actual_selected_indices: {actual_selected_indices}, teacher_forcing: {teacher_forcing}"
     )
