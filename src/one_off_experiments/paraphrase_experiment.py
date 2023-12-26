@@ -116,7 +116,6 @@ def compute_outward_metric(document_embeddings, selection_vectors):
         metric = criterion(similarity, labels)
         metrics.append(metric)
 
-    # Calculate the metric
     metric = torch.stack(metrics).mean()
 
     return metric
@@ -136,8 +135,6 @@ for step in range(train_steps):
     query_embedding, document_embeddings = model.get_query_and_document_embeddings(
         query, all_questions
     )
-
-    d_acc = torch.zeros_like(query_embedding)
 
     picked_mask = torch.zeros(len(all_questions), device="cuda:0", dtype=torch.bool)
     actual_selected_indices = []
@@ -162,10 +159,19 @@ for step in range(train_steps):
         all_outwards.append(outward)
 
         if picked_mask.sum() > 0:
-            dissimilarities = torch.matmul(document_embeddings, d_acc.T).squeeze()
+            dissimilarities = torch.matmul(
+                document_embeddings, document_embeddings[picked_mask].T
+            )
+
             dissimilarities = torch.clamp(dissimilarities, min=0, max=1)
+
+            # Find the maximum similarity for each document to any of the picked documents
+            dissimilarities = torch.max(dissimilarities, dim=1)[0]
         else:
-            dissimilarities = torch.zeros_like(similarities)
+            # If no documents are picked, set the similarity to zero for all documents
+            dissimilarities = torch.zeros(
+                document_embeddings.shape[0], device=similarities.device
+            )
 
         predictions = similarities * (1 - dissimilarities)
         labels = all_selection_vector.float()
@@ -193,14 +199,10 @@ for step in range(train_steps):
         else:
             can_be_picked_set.remove(next_correct)
 
-        if picked_mask.sum() > 0:
-            d_acc = document_embeddings[picked_mask].mean(dim=0)
-            d_acc = torch.nn.functional.normalize(d_acc, dim=-1)
-
         offset = len(all_selection_vector) // 2
         all_selection_vector[next_correct] = 0
         all_selection_vector[paraphrase_lut[next_correct]] = 0
-        picked_mask[next_correct] = 1
+        picked_mask[next_correct] = True
         teacher_forcing.append(next_correct)
 
     inward = torch.stack(all_inwards).mean()
