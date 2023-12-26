@@ -155,16 +155,25 @@ def compute_dissimilarities(document_embeddings, current_picked_mask, similariti
     return dissimilarities
 
 
-def select_next_correct(paraphrase_lut, recall_at_1, can_be_picked_set, selected_index):
+def select_next_correct(
+    similarities, paraphrase_lut, recall_at_1, can_be_picked_set, selected_index
+):
     if (
         selected_index in can_be_picked_set
         or paraphrase_lut.get(selected_index) in can_be_picked_set
     ):
         recall_at_1 += 1
-
         next_correct = selected_index
     else:
-        next_correct = list(can_be_picked_set)[0]
+        cloned_similarities = similarities.clone().detach()
+        mask = torch.full(similarities.shape, False)
+        mask[list(can_be_picked_set)] = True
+        cloned_similarities[~mask] = 0
+        next_correct = torch.argmax(cloned_similarities).item()
+        # assert next_correct in can_be_picked_set, cloned_similarities
+        if next_correct not in can_be_picked_set:
+            next_correct = list(can_be_picked_set)[0]
+
     return next_correct, recall_at_1
 
 
@@ -275,7 +284,11 @@ def train_session(seed, enable_inward, enable_outward, enable_local_inward):
             actual_selected_indices.append(selected_index)
 
             next_correct, recall_at_1 = select_next_correct(
-                paraphrase_lut, recall_at_1, can_be_picked_set, selected_index
+                similarities,
+                paraphrase_lut,
+                recall_at_1,
+                can_be_picked_set,
+                selected_index,
             )
 
             next_picked_mask, _ = record_pick(
