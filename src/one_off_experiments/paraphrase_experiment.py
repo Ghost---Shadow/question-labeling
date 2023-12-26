@@ -5,6 +5,9 @@ import numpy as np
 import torch
 import torch.optim as optim
 import torch.nn as nn
+from tqdm import tqdm
+from train_utils import set_seed
+import wandb
 
 
 def load_paraphrased_row():
@@ -46,8 +49,6 @@ def load_paraphrased_row():
         paraphrase_lut[left] = right
         paraphrase_lut[right] = left
 
-    print(paraphrase_lut.keys())
-
     all_questions = [*flat_questions, *flat_questions_paraphrased]
     all_selection_vector = [*selection_vector, *paraphrased_vector]
 
@@ -78,29 +79,13 @@ def load_paraphrased_row():
     )
 
 
-config = {
-    "architecture": {
-        "semantic_search_model": {
-            "checkpoint": "all-mpnet-base-v2",
-            "device": "cuda:0",
-        }
-    }
-}
-model = WrappedSentenceTransformerModel(config)
-
-
-optimizer = optim.AdamW(model.model.parameters(), lr=1e-5)
-# criterion = nn.MSELoss()
-criterion = TripletLoss({})
-
-
-def compute_inward_metric(similarities, selection_vector):
+def compute_inward_metric(criterion, similarities, selection_vector):
     metric = criterion(similarities, selection_vector)
 
     return metric
 
 
-def compute_outward_metric(document_embeddings, selection_vectors):
+def compute_outward_metric(criterion, document_embeddings, selection_vectors):
     left_selection_vector, right_selection_vector = selection_vectors
 
     # Extract the relevant vectors
@@ -121,97 +106,173 @@ def compute_outward_metric(document_embeddings, selection_vectors):
     return metric
 
 
-train_steps = 100
-for step in range(train_steps):
-    (
-        query,
-        all_questions,
-        all_selection_vector,
-        relevant_sentence_indexes,
-        paraphrase_lut,
-        selection_vectors,
-    ) = load_paraphrased_row()
+def train_session(seed, enable_inward, enable_outward, enable_local_inward):
+    set_seed(seed)
 
-    query_embedding, document_embeddings = model.get_query_and_document_embeddings(
-        query, all_questions
+    s = ""
+    if enable_inward:
+        s += "_i"
+    if enable_outward:
+        s += "_o"
+    if enable_local_inward:
+        s += "_li"
+
+    wandb.init(
+        project="paraphrase_experiment",
+        name="paraphrase_experiment" + s + f"_{seed}",
+        config={
+            "inward": enable_inward,
+            "outward": enable_outward,
+            "local_inward": enable_local_inward,
+            "seed": seed,
+        },
     )
 
-    picked_mask = torch.zeros(len(all_questions), device="cuda:0", dtype=torch.bool)
-    actual_selected_indices = []
-    teacher_forcing = []
-    all_inwards = []
-    all_outwards = []
+    config = {
+        "architecture": {
+            "semantic_search_model": {
+                "checkpoint": "all-mpnet-base-v2",
+                "device": "cuda:0",
+            }
+        }
+    }
+    model = WrappedSentenceTransformerModel(config)
 
-    recall_at_1 = 0
+    optimizer = optim.AdamW(model.model.parameters(), lr=1e-5)
+    criterion = TripletLoss({})
 
-    original_all_selection_vector = all_selection_vector.clone()
+    train_steps = 1000
+    for _ in tqdm(range(train_steps), leave=False):
+        (
+            query,
+            all_questions,
+            all_selection_vector,
+            relevant_sentence_indexes,
+            paraphrase_lut,
+            selection_vectors,
+        ) = load_paraphrased_row()
 
-    num_correct_answers = len(relevant_sentence_indexes)
-    can_be_picked_set = set(relevant_sentence_indexes)
-    for _ in range(num_correct_answers):
-        similarities = torch.matmul(document_embeddings, query_embedding.T).squeeze()
-        similarities = torch.clamp(similarities, min=0, max=1)
+        query_embedding, document_embeddings = model.get_query_and_document_embeddings(
+            query, all_questions
+        )
 
-        inward = compute_inward_metric(similarities, original_all_selection_vector)
-        all_inwards.append(inward)
+        picked_mask = torch.zeros(len(all_questions), device="cuda:0", dtype=torch.bool)
+        actual_selected_indices = []
+        teacher_forcing = []
+        all_inwards = []
+        all_outwards = []
 
-        outward = compute_outward_metric(document_embeddings, selection_vectors)
-        all_outwards.append(outward)
+        recall_at_1 = 0
 
-        if picked_mask.sum() > 0:
-            dissimilarities = torch.matmul(
-                document_embeddings, document_embeddings[picked_mask].T
+        original_all_selection_vector = all_selection_vector.clone()
+
+        num_correct_answers = len(relevant_sentence_indexes)
+        can_be_picked_set = set(relevant_sentence_indexes)
+        for _ in range(num_correct_answers):
+            similarities = torch.matmul(
+                document_embeddings, query_embedding.T
+            ).squeeze()
+            similarities = torch.clamp(similarities, min=0, max=1)
+
+            inward = compute_inward_metric(
+                criterion, similarities, original_all_selection_vector
+            )
+            all_inwards.append(inward)
+
+            outward = compute_outward_metric(
+                criterion, document_embeddings, selection_vectors
+            )
+            all_outwards.append(outward)
+
+            if picked_mask.sum() > 0:
+                dissimilarities = torch.matmul(
+                    document_embeddings, document_embeddings[picked_mask].T
+                )
+
+                dissimilarities = torch.clamp(dissimilarities, min=0, max=1)
+
+                # Find the maximum similarity for each document to any of the picked documents
+                dissimilarities = torch.max(dissimilarities, dim=1)[0]
+            else:
+                # If no documents are picked, set the similarity to zero for all documents
+                dissimilarities = torch.zeros(
+                    document_embeddings.shape[0], device=similarities.device
+                )
+
+            predictions = similarities * (1 - dissimilarities)
+            labels = all_selection_vector.float()
+            local_inward = criterion(similarities, labels)
+
+            loss = torch.zeros([], device=local_inward.device)
+            if enable_local_inward:
+                loss = loss + local_inward
+
+            if enable_inward:
+                loss = loss + inward
+
+            if enable_outward:
+                loss = loss + outward
+
+            wandb.log(
+                {
+                    "loss": loss,
+                    "local_inward": local_inward,
+                    "inward": inward,
+                    "outward": outward,
+                    "recall_at_1": recall_at_1 / (picked_mask.sum().item() + 1),
+                }
             )
 
-            dissimilarities = torch.clamp(dissimilarities, min=0, max=1)
+            predictions = predictions.detach().cpu()
+            predictions[picked_mask] = 0
+            selected_index = torch.argmax(predictions).item()
+            actual_selected_indices.append(selected_index)
 
-            # Find the maximum similarity for each document to any of the picked documents
-            dissimilarities = torch.max(dissimilarities, dim=1)[0]
-        else:
-            # If no documents are picked, set the similarity to zero for all documents
-            dissimilarities = torch.zeros(
-                document_embeddings.shape[0], device=similarities.device
-            )
+            if (
+                selected_index in can_be_picked_set
+                or paraphrase_lut.get(selected_index) in can_be_picked_set
+            ):
+                recall_at_1 += 1
 
-        predictions = similarities * (1 - dissimilarities)
-        labels = all_selection_vector.float()
-        local_inward = criterion(similarities, labels)
-        loss = local_inward + inward + outward
+                next_correct = selected_index
+            else:
+                next_correct = list(can_be_picked_set)[0]
 
-        predictions = predictions.detach().cpu()
-        predictions[picked_mask] = 0
-        selected_index = torch.argmax(predictions).item()
-        actual_selected_indices.append(selected_index)
+            # Remove item from pick
+            if next_correct not in can_be_picked_set:
+                can_be_picked_set.remove(paraphrase_lut[next_correct])
+            else:
+                can_be_picked_set.remove(next_correct)
 
-        if (
-            selected_index in can_be_picked_set
-            or paraphrase_lut.get(selected_index) in can_be_picked_set
+            all_selection_vector[next_correct] = 0
+            all_selection_vector[paraphrase_lut[next_correct]] = 0
+            picked_mask[next_correct] = True
+            teacher_forcing.append(next_correct)
+
+        # inward = torch.stack(all_inwards).mean()
+        # outward = torch.stack(all_outwards).mean()
+
+        loss.backward()
+        optimizer.step()
+
+        # recall_at_1 = recall_at_1 / len(relevant_sentence_indexes)
+
+    wandb.finish()
+
+
+if __name__ == "__main__":
+    permutations = [
+        [True, True, True],
+        [False, True, True],
+        [True, False, True],
+        [False, False, True],
+        [True, True, False],
+        [False, True, False],
+        [True, False, False],
+    ]
+    seeds = [42, 43, 44]
+    for seed in tqdm(seeds):
+        for enable_inward, enable_outward, enable_local_inward in tqdm(
+            permutations, leave=False
         ):
-            recall_at_1 += 1
-
-            next_correct = selected_index
-        else:
-            next_correct = list(can_be_picked_set)[0]
-
-        # Remove item from pick
-        if next_correct not in can_be_picked_set:
-            can_be_picked_set.remove(paraphrase_lut[next_correct])
-        else:
-            can_be_picked_set.remove(next_correct)
-
-        offset = len(all_selection_vector) // 2
-        all_selection_vector[next_correct] = 0
-        all_selection_vector[paraphrase_lut[next_correct]] = 0
-        picked_mask[next_correct] = True
-        teacher_forcing.append(next_correct)
-
-    inward = torch.stack(all_inwards).mean()
-    outward = torch.stack(all_outwards).mean()
-
-    loss.backward()
-    optimizer.step()
-
-    recall_at_1 = recall_at_1 / len(relevant_sentence_indexes)
-    print(
-        f"inward: {inward}, outward: {outward} Loss: {loss.item()}, Recall@1: {recall_at_1}, actual_selected_indices: {actual_selected_indices}, teacher_forcing: {teacher_forcing}"
-    )
+            train_session(seed, enable_inward, enable_outward, enable_local_inward)
