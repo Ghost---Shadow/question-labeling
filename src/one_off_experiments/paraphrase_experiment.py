@@ -201,7 +201,7 @@ def train_session(seed, enable_inward, enable_outward, enable_local_inward):
 
             predictions = similarities * (1 - dissimilarities)
             labels = all_selection_vector.float()
-            local_inward = criterion(similarities, labels)
+            local_inward = criterion(predictions, labels)
 
             loss = torch.zeros([], device=local_inward.device)
             if enable_local_inward:
