@@ -161,14 +161,19 @@ def train_session(seed, enable_inward, enable_outward, enable_local_inward):
         teacher_forcing = []
         all_inwards = []
         all_outwards = []
+        all_selection_vector_list = [all_selection_vector.clone()]
+        picked_mask_list = [picked_mask]
 
         recall_at_1 = 0
 
-        original_all_selection_vector = all_selection_vector.clone()
+        original_all_selection_vector = all_selection_vector_list[0]
 
         num_correct_answers = len(relevant_sentence_indexes)
         can_be_picked_set = set(relevant_sentence_indexes)
         for _ in range(num_correct_answers):
+            current_all_selection_vector = all_selection_vector_list[-1]
+            current_picked_mask = picked_mask_list[-1]
+
             similarities = torch.matmul(
                 document_embeddings, query_embedding.T
             ).squeeze()
@@ -184,9 +189,9 @@ def train_session(seed, enable_inward, enable_outward, enable_local_inward):
             )
             all_outwards.append(outward)
 
-            if picked_mask.sum() > 0:
+            if current_picked_mask.sum() > 0:
                 dissimilarities = torch.matmul(
-                    document_embeddings, document_embeddings[picked_mask].T
+                    document_embeddings, document_embeddings[current_picked_mask].T
                 )
 
                 dissimilarities = torch.clamp(dissimilarities, min=0, max=1)
@@ -200,7 +205,7 @@ def train_session(seed, enable_inward, enable_outward, enable_local_inward):
                 )
 
             predictions = similarities * (1 - dissimilarities)
-            labels = all_selection_vector.float()
+            labels = current_all_selection_vector.float()
             local_inward = criterion(predictions, labels)
 
             loss = torch.zeros([], device=local_inward.device)
@@ -213,19 +218,9 @@ def train_session(seed, enable_inward, enable_outward, enable_local_inward):
             if enable_outward:
                 loss = loss + outward
 
-            wandb.log(
-                {
-                    "loss": loss,
-                    "local_inward": local_inward,
-                    "inward": inward,
-                    "outward": outward,
-                    "recall_at_1": recall_at_1 / (picked_mask.sum().item() + 1),
-                }
-            )
-
-            predictions = predictions.detach().cpu()
-            predictions[picked_mask] = 0
-            selected_index = torch.argmax(predictions).item()
+            cloned_predictions = predictions.clone()
+            cloned_predictions[current_picked_mask] = 0
+            selected_index = torch.argmax(cloned_predictions).item()
             actual_selected_indices.append(selected_index)
 
             if (
@@ -244,16 +239,33 @@ def train_session(seed, enable_inward, enable_outward, enable_local_inward):
             else:
                 can_be_picked_set.remove(next_correct)
 
-            all_selection_vector[next_correct] = 0
-            all_selection_vector[paraphrase_lut[next_correct]] = 0
-            picked_mask[next_correct] = True
+            next_all_selection_vector = current_all_selection_vector.clone()
+            next_all_selection_vector[next_correct] = 0
+            next_all_selection_vector[paraphrase_lut[next_correct]] = 0
+            all_selection_vector_list.append(next_all_selection_vector)
+
+            next_picked_mask = current_picked_mask.clone()
+            next_picked_mask[next_correct] = True
+            picked_mask_list.append(next_picked_mask)
+
             teacher_forcing.append(next_correct)
+
+            wandb.log(
+                {
+                    "loss": loss,
+                    "local_inward": local_inward,
+                    "inward": inward,
+                    "outward": outward,
+                    "recall_at_1": recall_at_1 / (next_picked_mask.sum().item()),
+                }
+            )
 
         # inward = torch.stack(all_inwards).mean()
         # outward = torch.stack(all_outwards).mean()
 
         loss.backward()
         optimizer.step()
+        optimizer.zero_grad()
 
         # recall_at_1 = recall_at_1 / len(relevant_sentence_indexes)
 
