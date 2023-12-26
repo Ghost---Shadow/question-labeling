@@ -13,9 +13,15 @@ import torch
 import wandb
 
 
-def split_sort_merge(similarities, picked):
+def split_sort_merge(similarities, picked, paraphrase_lut):
     # Convert picked list to a tensor for efficient operations
-    picked_tensor = torch.tensor(picked)
+    picked_tensor = torch.tensor(picked, device=similarities.device)
+
+    alt_picked = [paraphrase_lut[p] for p in picked]
+    alt_picked_tensor = torch.tensor(alt_picked, device=similarities.device)
+    zero_mask = torch.ones_like(similarities)
+    zero_mask[alt_picked_tensor] = 0
+    similarities = similarities * zero_mask
 
     # Create masks
     picked_mask = torch.zeros_like(similarities, dtype=torch.bool)
@@ -140,7 +146,9 @@ def train_session(seed, enable_local_inward, enable_knee):
 
         total_triplet_loss = total_triplet_loss / num_correct_answers
 
-        merged_similarities = split_sort_merge(similarities, teacher_forcing)
+        merged_similarities = split_sort_merge(
+            similarities, teacher_forcing, paraphrase_lut
+        )
         knee_loss = knee_loss_fn(merged_similarities, len(teacher_forcing))
 
         recall_at_1 = recall_at_1 / num_correct_answers
@@ -152,9 +160,16 @@ def train_session(seed, enable_local_inward, enable_knee):
         if enable_knee:
             loss = loss + knee_loss
 
-        pick_table = wandb.Table(columns=["teacher_forcing", "actual_selected_indices"])
-        for a, b in zip(teacher_forcing, actual_selected_indices):
-            pick_table.add_data(a, b)
+        merged_similarities_cumsum = (
+            merged_similarities.cumsum(0).detach().cpu().numpy()
+        )
+        plot = wandb.plot.line_series(
+            xs=range(len(merged_similarities_cumsum)),
+            ys=[merged_similarities_cumsum],
+            keys=["Cumulative Sum"],
+            title="Cumulative Sum of Merged Similarities",
+            xname="Index",
+        )
 
         wandb.log(
             {
@@ -162,7 +177,7 @@ def train_session(seed, enable_local_inward, enable_knee):
                 "local_inward": total_triplet_loss.item(),
                 "knee_loss": knee_loss.item(),
                 "recall_at_1": recall_at_1,
-                "pick_table": pick_table,
+                "cumulative_sum": plot,
             }
         )
 
