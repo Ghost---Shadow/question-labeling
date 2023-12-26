@@ -106,6 +106,68 @@ def compute_outward_metric(criterion, document_embeddings, selection_vectors):
     return metric
 
 
+def record_pick(
+    next_correct,
+    can_be_picked_set,
+    paraphrase_lut,
+    current_all_selection_vector,
+    all_selection_vector_list,
+    current_picked_mask,
+    picked_mask_list,
+    teacher_forcing,
+):
+    # Remove item from pick
+    if next_correct not in can_be_picked_set:
+        can_be_picked_set.remove(paraphrase_lut[next_correct])
+    else:
+        can_be_picked_set.remove(next_correct)
+
+    next_all_selection_vector = current_all_selection_vector.clone()
+    next_all_selection_vector[next_correct] = 0
+    next_all_selection_vector[paraphrase_lut[next_correct]] = 0
+    all_selection_vector_list.append(next_all_selection_vector)
+
+    next_picked_mask = current_picked_mask.clone()
+    next_picked_mask[next_correct] = True
+    picked_mask_list.append(next_picked_mask)
+
+    teacher_forcing.append(next_correct)
+
+    return next_picked_mask, next_all_selection_vector
+
+
+def compute_dissimilarities(document_embeddings, current_picked_mask, similarities):
+    if current_picked_mask.sum() > 0:
+        dissimilarities = torch.matmul(
+            document_embeddings, document_embeddings[current_picked_mask].T
+        )
+
+        dissimilarities = torch.clamp(dissimilarities, min=0, max=1)
+
+        # Find the maximum similarity for each document to any of the picked documents
+        dissimilarities = torch.max(dissimilarities, dim=1)[0]
+    else:
+        # If no documents are picked, set the similarity to zero for all documents
+        dissimilarities = torch.zeros(
+            document_embeddings.shape[0], device=similarities.device
+        )
+
+    return dissimilarities
+
+
+def select_next_correct(paraphrase_lut, recall_at_1, can_be_picked_set, selected_index):
+    if (
+        selected_index in can_be_picked_set
+        or paraphrase_lut.get(selected_index) in can_be_picked_set
+    ):
+        recall_at_1 += 1
+
+        next_correct = selected_index
+    else:
+        next_correct = list(can_be_picked_set)[0]
+    return next_correct, recall_at_1
+
+
 def train_session(seed, enable_inward, enable_outward, enable_local_inward):
     set_seed(seed)
 
@@ -189,20 +251,9 @@ def train_session(seed, enable_inward, enable_outward, enable_local_inward):
             )
             all_outwards.append(outward)
 
-            if current_picked_mask.sum() > 0:
-                dissimilarities = torch.matmul(
-                    document_embeddings, document_embeddings[current_picked_mask].T
-                )
-
-                dissimilarities = torch.clamp(dissimilarities, min=0, max=1)
-
-                # Find the maximum similarity for each document to any of the picked documents
-                dissimilarities = torch.max(dissimilarities, dim=1)[0]
-            else:
-                # If no documents are picked, set the similarity to zero for all documents
-                dissimilarities = torch.zeros(
-                    document_embeddings.shape[0], device=similarities.device
-                )
+            dissimilarities = compute_dissimilarities(
+                document_embeddings, current_picked_mask, similarities
+            )
 
             predictions = similarities * (1 - dissimilarities)
             labels = current_all_selection_vector.float()
@@ -223,32 +274,20 @@ def train_session(seed, enable_inward, enable_outward, enable_local_inward):
             selected_index = torch.argmax(cloned_predictions).item()
             actual_selected_indices.append(selected_index)
 
-            if (
-                selected_index in can_be_picked_set
-                or paraphrase_lut.get(selected_index) in can_be_picked_set
-            ):
-                recall_at_1 += 1
+            next_correct, recall_at_1 = select_next_correct(
+                paraphrase_lut, recall_at_1, can_be_picked_set, selected_index
+            )
 
-                next_correct = selected_index
-            else:
-                next_correct = list(can_be_picked_set)[0]
-
-            # Remove item from pick
-            if next_correct not in can_be_picked_set:
-                can_be_picked_set.remove(paraphrase_lut[next_correct])
-            else:
-                can_be_picked_set.remove(next_correct)
-
-            next_all_selection_vector = current_all_selection_vector.clone()
-            next_all_selection_vector[next_correct] = 0
-            next_all_selection_vector[paraphrase_lut[next_correct]] = 0
-            all_selection_vector_list.append(next_all_selection_vector)
-
-            next_picked_mask = current_picked_mask.clone()
-            next_picked_mask[next_correct] = True
-            picked_mask_list.append(next_picked_mask)
-
-            teacher_forcing.append(next_correct)
+            next_picked_mask, _ = record_pick(
+                next_correct,
+                can_be_picked_set,
+                paraphrase_lut,
+                current_all_selection_vector,
+                all_selection_vector_list,
+                current_picked_mask,
+                picked_mask_list,
+                teacher_forcing,
+            )
 
             wandb.log(
                 {
