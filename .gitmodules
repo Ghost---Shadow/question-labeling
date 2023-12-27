@@ -1,3 +1,6 @@
 [submodule "data/hotpotqa_with_qa_gpt35"]
 	path = data/hotpotqa_with_qa_gpt35
-	url = https://huggingface.co/datasets/somebody-had-to-do-it/hotpotqa_with_qa_gpt35
+	url = git@hf.co:datasets/somebody-had-to-do-it/hotpotqa_with_qa_gpt35
+[submodule "data/2wikimultihopqa_with_q"]
+	path = data/2wikimultihopqa_with_q
+	url = git@hf.co:datasets/somebody-had-to-do-it/2wikimultihopqa_with_q
