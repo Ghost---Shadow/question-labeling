@@ -30,7 +30,7 @@ def collate_fn(batch):
 
         # Merge relevant_question_indexes
         downstream_relevant_question_indexes = [
-            len(flat_questions) + i for i in range(len(paragraph_questions))
+            len(flat_questions) + i for i in range(len(paraphrased_questions))
         ]
         relevant_question_indexes = [
             *upstream_relevant_sentence_indexes,

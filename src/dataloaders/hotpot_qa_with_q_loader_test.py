@@ -18,25 +18,30 @@ class TestHotpotQaWithQaLoader(unittest.TestCase):
 
         # Train loader
         batch = next(iter(train_loader))
-        expected = "The  Atlantic Islands of Galicia National Park and the Timanfaya National Park are the properties of what country?"
+        expected = 'Who is the director of the upcoming Candian drama film in which the actress who made her film début as the love interest in Wes Anderson\'s "The Darjeeling Limited" is starring?'
         actual = batch["questions"][0]
         assert actual == expected, actual
 
         expected = [
-            'The Atlantic Islands of Galicia National Park (Galician: "Parque Nacional das Illas Atlánticas de Galicia" , Spanish: "Parque Nacional de las Islas Atlánticas de Galicia" ) is the only national park located in the autonomous community of Galicia, Spain.',
-            'Timanfaya National Park (Spanish: "Parque Nacional de Timanfaya" ) is a Spanish national park in the southwestern part of the island of Lanzarote, Canary Islands.',
+            "The Death and Life of John F. Donovan is an upcoming Canadian drama film, co-written, co-produced and directed by Xavier Dolan in his English-language debut.",
+            " It stars Kit Harington, Natalie Portman, Jessica Chastain, Susan Sarandon, Kathy Bates, Jacob Tremblay, Ben Schnetzer, Thandie Newton, Amara Karan, Chris Zylka, Jared Keeso, Emily Hampshire and Michael Gambon.",
+            'Amara Karan (born 1984) is a Sri Lankan-English actress who made her film début as the love interest in Wes Anderson\'s "The Darjeeling Limited".',
         ]
         actual = list(
             np.array(batch["flat_sentences"][0])[batch["relevant_sentence_indexes"][0]]
         )
         assert expected == actual, actual
         assert sum(batch["selection_vector"][0]) == len(
-            batch["relevant_sentence_indexes"][0]
+            batch["relevant_question_indexes"][0]
         )
 
         expected = [
-            'The Atlantic Islands of Galicia National Park (Galician: "Parque Nacional das Illas Atlánticas de Galicia" , Spanish: "Parque Nacional de las Islas Atlánticas de Galicia" ) is the only national park located in the autonomous community of Galicia, Spain.',
-            'Timanfaya National Park (Spanish: "Parque Nacional de Timanfaya" ) is a Spanish national park in the southwestern part of the island of Lanzarote, Canary Islands.',
+            "Who is the director of the upcoming Canadian drama film, The Death and Life of John F. Donovan?",
+            "Who are some of the actors starring in the film mentioned in the passage?",
+            "What was Amara Karan's first film role and in which movie did she make her debut?",
+            "Who will be directing the Canadian drama film, The Death and Life of John F. Donovan?",
+            "Which actors are mentioned in the passage as starring in the film?",
+            "In which movie did Amara Karan make her first film appearance and what was her initial role?",
         ]
         actual = list(
             np.array(batch["flat_questions"][0])[batch["relevant_question_indexes"][0]]
@@ -46,11 +51,21 @@ class TestHotpotQaWithQaLoader(unittest.TestCase):
         paraphrase_lut = batch["paraphrase_lut"][0]
         flat_questions = batch["flat_questions"][0]
         expected = [
-            ["a", "b"],
-            ["a", "b"],
+            [
+                "Who is the director of the upcoming Canadian drama film, The Death and Life of John F. Donovan?",
+                "Who will be directing the Canadian drama film, The Death and Life of John F. Donovan?",
+            ],
+            [
+                "Who are some of the actors starring in the film mentioned in the passage?",
+                "Which actors are mentioned in the passage as starring in the film?",
+            ],
+            [
+                "What was Amara Karan's first film role and in which movie did she make her debut?",
+                "In which movie did Amara Karan make her first film appearance and what was her initial role?",
+            ],
         ]
         for (expected_left, expected_right), (key_left, key_right) in zip(
-            expected, paraphrase_lut.items()
+            expected, list(paraphrase_lut.items())[::2]
         ):
             assert expected_left == flat_questions[key_left], flat_questions[key_left]
             assert expected_right == flat_questions[key_right], flat_questions[
@@ -75,6 +90,8 @@ class TestHotpotQaWithQaLoader(unittest.TestCase):
         expected = [
             "What is Scott Derrickson known for in the entertainment industry?",
             "What were some of the notable contributions and achievements of Edward Davis Wood Jr. in the field of filmmaking?",
+            "What is Scott Derrickson's claim to fame in the entertainment industry?",
+            "What were some of the significant accomplishments and contributions made by Edward Davis Wood Jr. in the realm of film production?",
         ]
         actual = list(
             np.array(batch["flat_questions"][0])[batch["relevant_question_indexes"][0]]
@@ -84,11 +101,17 @@ class TestHotpotQaWithQaLoader(unittest.TestCase):
         paraphrase_lut = batch["paraphrase_lut"][0]
         flat_questions = batch["flat_questions"][0]
         expected = [
-            ["a", "b"],
-            ["a", "b"],
+            [
+                "What is Scott Derrickson known for in the entertainment industry?",
+                "What is Scott Derrickson's claim to fame in the entertainment industry?",
+            ],
+            [
+                "What were some of the notable contributions and achievements of Edward Davis Wood Jr. in the field of filmmaking?",
+                "What were some of the significant accomplishments and contributions made by Edward Davis Wood Jr. in the realm of film production?",
+            ],
         ]
         for (expected_left, expected_right), (key_left, key_right) in zip(
-            expected, paraphrase_lut.items()
+            expected, list(paraphrase_lut.items())[::2]
         ):
             assert expected_left == flat_questions[key_left], flat_questions[key_left]
             assert expected_right == flat_questions[key_right], flat_questions[
