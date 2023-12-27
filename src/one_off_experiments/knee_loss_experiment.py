@@ -1,15 +1,15 @@
 from losses.knee_loss import KneeLoss
 from losses.triplet_loss import TripletLoss
 from models.wrapped_sentence_transformer import WrappedSentenceTransformerModel
-from one_off_experiments.paraphrase_experiment import (
-    compute_dissimilarities,
-    load_paraphrased_row,
-    record_pick,
-    select_next_correct,
-)
+from one_off_experiments.paraphrase_experiment import load_paraphrased_row
 from tqdm import tqdm
 from train_utils import set_seed
 import torch
+from training_loop_strategies.utils import (
+    compute_dissimilarities,
+    record_pick,
+    select_next_correct,
+)
 import wandb
 
 

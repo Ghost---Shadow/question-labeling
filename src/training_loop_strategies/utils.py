@@ -1,3 +1,6 @@
+import torch
+
+
 def compute_loss_and_similarity(
     wrapped_model,
     aggregation_model,
@@ -47,6 +50,78 @@ def compute_total_gradient_accumulation_steps(batch):
             total_gradient_accumulation_steps += 1
 
     return total_gradient_accumulation_steps
+
+
+def compute_dissimilarities(document_embeddings, current_picked_mask, similarities):
+    if current_picked_mask.sum() > 0:
+        dissimilarities = torch.matmul(
+            document_embeddings, document_embeddings[current_picked_mask].T
+        )
+
+        dissimilarities = torch.clamp(dissimilarities, min=0, max=1)
+
+        # Find the maximum similarity for each document to any of the picked documents
+        dissimilarities = torch.max(dissimilarities, dim=1)[0]
+    else:
+        # If no documents are picked, set the similarity to zero for all documents
+        dissimilarities = torch.zeros(
+            document_embeddings.shape[0], device=similarities.device
+        )
+
+    return dissimilarities
+
+
+def select_next_correct(
+    similarities, paraphrase_lut, recall_at_1, can_be_picked_set, selected_index
+):
+    if (
+        selected_index in can_be_picked_set
+        or paraphrase_lut.get(selected_index) in can_be_picked_set
+    ):
+        recall_at_1 += 1
+        next_correct = selected_index
+    else:
+        cloned_similarities = similarities.clone().detach()
+        mask = torch.full(similarities.shape, False)
+        mask[list(can_be_picked_set)] = True
+        cloned_similarities[~mask] = 0
+        next_correct = torch.argmax(cloned_similarities).item()
+        # Sometimes the probability collapses and argmax returns 0
+        if next_correct not in can_be_picked_set:
+            next_correct = list(can_be_picked_set)[0]
+
+    return next_correct, recall_at_1
+
+
+def record_pick(
+    next_correct,
+    can_be_picked_set,
+    paraphrase_lut,
+    current_all_selection_vector,
+    all_selection_vector_list,
+    current_picked_mask,
+    picked_mask_list,
+    teacher_forcing,
+):
+    # Remove item from pick
+    if next_correct not in can_be_picked_set:
+        # If model picked a paraphrase, then pick the normal version
+        can_be_picked_set.remove(paraphrase_lut[next_correct])
+    else:
+        can_be_picked_set.remove(next_correct)
+
+    next_all_selection_vector = current_all_selection_vector.clone()
+    next_all_selection_vector[next_correct] = 0
+    next_all_selection_vector[paraphrase_lut[next_correct]] = 0
+    all_selection_vector_list.append(next_all_selection_vector)
+
+    next_picked_mask = current_picked_mask.clone()
+    next_picked_mask[next_correct] = True
+    picked_mask_list.append(next_picked_mask)
+
+    teacher_forcing.append(next_correct)
+
+    return next_picked_mask, next_all_selection_vector
 
 
 def compute_metrics_non_iterative(similarity, relevant_sentence_indexes, k):

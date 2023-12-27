@@ -2,6 +2,7 @@ import unittest
 from dataloaders.hotpot_qa_with_q_loader import get_loader
 from losses.mse_loss import MSELoss
 from losses.kl_div_loss import KLDivLoss
+from losses.triplet_loss import TripletLoss
 import torch.optim as optim
 from models.wrapped_sentence_transformer import WrappedSentenceTransformerModel
 from training_loop_strategies.iterative_strategy import (
@@ -13,6 +14,7 @@ from aggregation_strategies.weighted_average_strategy import WeightedEmbeddingAv
 from aggregation_strategies.submodular_mutual_information_strategy import (
     SubmodularMutualInformation,
 )
+from torch.cuda.amp import GradScaler
 
 
 # python -m unittest training_loop_strategies.iterative_strategy_test.TestTrainStepMixedPrecision -v
@@ -26,12 +28,7 @@ class TestTrainStepMixedPrecision(unittest.TestCase):
                     "checkpoint": "all-mpnet-base-v2",
                     "device": "cuda:0",
                 },
-                "aggregation_strategy": {
-                    "name": "average",
-                    "merge_strategy": {"name": "weighted_average_merger"},
-                },
             },
-            "eval": {"k": [1, 2]},
         }
         wrapped_model = WrappedSentenceTransformerModel(config)
         optimizer = optim.AdamW(wrapped_model.model.parameters(), lr=1e-5)
@@ -41,46 +38,14 @@ class TestTrainStepMixedPrecision(unittest.TestCase):
         train_loader, _ = get_loader(batch_size)
 
         batch = next(iter(train_loader))
-        aggregation_model = WeightedEmbeddingAverage(config, wrapped_model)
-        loss_fn = MSELoss()
+        loss_fn = TripletLoss(config)
+        scaler = GradScaler()
 
         for _ in range(10):
-            loss = train_step(
-                config, wrapped_model, optimizer, batch, aggregation_model, loss_fn
+            metrics = train_step(
+                config, scaler, wrapped_model, optimizer, batch, loss_fn
             )
-            print(loss)
-
-    # python -m unittest training_loop_strategies.iterative_strategy_test.TestTrainStepMixedPrecision.test_mixed_precision_smi_kl_div -v
-    def test_mixed_precision_smi_kl_div(self):
-        config = {
-            "architecture": {
-                "semantic_search_model": {
-                    "checkpoint": "all-mpnet-base-v2",
-                    "device": "cuda:0",
-                },
-                "aggregation_strategy": {
-                    "name": "smi",
-                    "merge_strategy": {"name": "weighted_average_merger"},
-                },
-            },
-            "eval": {"k": [1, 2]},
-        }
-        wrapped_model = WrappedSentenceTransformerModel(config)
-        optimizer = optim.AdamW(wrapped_model.model.parameters(), lr=1e-5)
-
-        batch_size = 2
-
-        train_loader, _ = get_loader(batch_size)
-
-        batch = next(iter(train_loader))
-        aggregation_model = SubmodularMutualInformation(config, wrapped_model)
-        loss_fn = KLDivLoss()
-
-        for _ in range(10):
-            loss = train_step(
-                config, wrapped_model, optimizer, batch, aggregation_model, loss_fn
-            )
-            print(loss)
+            print(metrics)
 
 
 # python -m unittest training_loop_strategies.iterative_strategy_test.TestEvalStep -v
