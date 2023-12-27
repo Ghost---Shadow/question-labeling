@@ -1,65 +1,68 @@
 import torch
-from torch.cuda.amp import autocast, GradScaler
+from torch.cuda.amp import autocast
 from training_loop_strategies.utils import (
     average_metrics,
     compute_metrics_non_iterative,
-    get_batch_documents,
+    compute_recall_non_iterative,
 )
 
 
-def train_step(config, wrapped_model, optimizer, batch, aggregation_model, loss_fn):
-    scaler = GradScaler()
-
+def train_step(config, scaler, wrapped_model, optimizer, batch, loss_fn):
     optimizer.zero_grad()
-
-    total_loss = 0.0
-    batch_documents = get_batch_documents(batch)
 
     all_metrics = []
 
-    for question, documents, selection_vector, relevant_sentence_indexes in zip(
+    for (
+        question,
+        flat_questions,
+        selection_vector,
+        no_paraphrase_relevant_question_indexes,
+        paraphrase_lut,
+    ) in zip(
         batch["questions"],
-        batch_documents,
+        batch["flat_questions"],
         batch["selection_vector"],
         batch["relevant_sentence_indexes"],
+        batch["paraphrase_lut"],
     ):
-        labels = torch.tensor(
-            selection_vector, device=wrapped_model.device, dtype=torch.float32
-        )
-
         with autocast(dtype=torch.float16):
             (
-                question_embedding,
+                query_embedding,
                 document_embeddings,
-            ) = wrapped_model.get_query_and_document_embeddings(question, documents)
+            ) = wrapped_model.get_query_and_document_embeddings(
+                question, flat_questions
+            )
 
-            similarity = (question_embedding @ document_embeddings.T).squeeze()
-
-            loss = loss_fn(similarity, labels)
+            similarities = torch.matmul(
+                document_embeddings, query_embedding.T
+            ).squeeze()
+            similarities = torch.clamp(similarities, min=0, max=1)
+            predictions = similarities
+            selection_vector = torch.tensor(
+                selection_vector, device=similarities.device
+            )
+            labels = selection_vector.float()
+            loss = loss_fn(predictions, labels)
 
         scaler.scale(loss).backward()
 
-        total_loss += loss.item()
+        recall_at_1 = compute_recall_non_iterative(
+            predictions, no_paraphrase_relevant_question_indexes, paraphrase_lut
+        )
 
-        # Calculate recall@k, precision@k, F1@k
-        for k in config["eval"]["k"]:
-            metrics = compute_metrics_non_iterative(
-                similarity, relevant_sentence_indexes, k
-            )
-            all_metrics.append(metrics)
+        all_metrics.append(
+            {
+                "loss": loss.item(),
+                "recall_at_1": recall_at_1,
+            }
+        )
 
     scaler.step(optimizer)
     scaler.update()
 
-    batch_size = len(batch["questions"])
-    avg_loss = total_loss / batch_size
+    avg_metrics = average_metrics(all_metrics)
 
-    all_metrics = average_metrics(all_metrics)
-
-    return {
-        **all_metrics,
-        "loss": avg_loss,
-    }
+    return avg_metrics
 
 
 def eval_step(config, wrapped_model, batch, aggregation_model, loss_fn):

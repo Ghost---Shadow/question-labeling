@@ -7,6 +7,7 @@ from training_loop_strategies.non_iterative_strategy import (
     eval_step,
     train_step,
 )
+from torch.cuda.amp import GradScaler
 
 
 # python -m unittest training_loop_strategies.non_iterative_strategy_test.TestTrainStep -v
@@ -20,10 +21,6 @@ class TestTrainStep(unittest.TestCase):
                     "checkpoint": "all-mpnet-base-v2",
                     "device": "cuda:0",
                 },
-                "aggregation_strategy": {
-                    "name": "average",
-                    "merge_strategy": {"name": "weighted_average_merger"},
-                },
             },
             "eval": {"k": [1, 2]},
         }
@@ -35,16 +32,16 @@ class TestTrainStep(unittest.TestCase):
         train_loader, _ = get_loader(batch_size)
 
         batch = next(iter(train_loader))
-        aggregation_model = None
+        scaler = GradScaler()
         loss_fn = TripletLoss(config)
 
         wrapped_model.model.train()
 
-        for _ in range(100):
-            loss = train_step(
-                config, wrapped_model, optimizer, batch, aggregation_model, loss_fn
+        for _ in range(10):
+            metrics = train_step(
+                config, scaler, wrapped_model, optimizer, batch, loss_fn
             )
-            print(loss)
+            print(metrics)
 
 
 # python -m unittest training_loop_strategies.non_iterative_strategy_test.TestEvalStep -v

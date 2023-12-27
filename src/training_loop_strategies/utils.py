@@ -201,3 +201,22 @@ def average_metrics(metrics_array):
     avg_dict = {key: value / len(metrics_array) for key, value in sum_dict.items()}
 
     return avg_dict
+
+
+def compute_recall_non_iterative(
+    predictions, no_paraphrase_relevant_question_indexes, paraphrase_lut
+):
+    sorted_indices = torch.argsort(predictions, descending=True)
+
+    top_indices = sorted_indices[
+        : len(no_paraphrase_relevant_question_indexes)
+    ].tolist()
+
+    num_items_found = sum(
+        index in top_indices or paraphrase_lut.get(index) in top_indices
+        for index in no_paraphrase_relevant_question_indexes
+    )
+
+    recall_at_1 = num_items_found / len(no_paraphrase_relevant_question_indexes)
+
+    return recall_at_1
