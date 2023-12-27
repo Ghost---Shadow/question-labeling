@@ -39,9 +39,23 @@ class TestHotpotQaWithQaLoader(unittest.TestCase):
             'Timanfaya National Park (Spanish: "Parque Nacional de Timanfaya" ) is a Spanish national park in the southwestern part of the island of Lanzarote, Canary Islands.',
         ]
         actual = list(
-            np.array(batch["flat_questions"][0])[batch["relevant_sentence_indexes"][0]]
+            np.array(batch["flat_questions"][0])[batch["relevant_question_indexes"][0]]
         )
         assert expected == actual, actual
+
+        paraphrase_lut = batch["paraphrase_lut"][0]
+        flat_questions = batch["flat_questions"][0]
+        expected = [
+            ["a", "b"],
+            ["a", "b"],
+        ]
+        for (expected_left, expected_right), (key_left, key_right) in zip(
+            expected, paraphrase_lut.items()
+        ):
+            assert expected_left == flat_questions[key_left], flat_questions[key_left]
+            assert expected_right == flat_questions[key_right], flat_questions[
+                key_right
+            ]
 
         # Validation loader
         batch = next(iter(val_loader))
@@ -63,9 +77,23 @@ class TestHotpotQaWithQaLoader(unittest.TestCase):
             "What were some of the notable contributions and achievements of Edward Davis Wood Jr. in the field of filmmaking?",
         ]
         actual = list(
-            np.array(batch["flat_questions"][0])[batch["relevant_sentence_indexes"][0]]
+            np.array(batch["flat_questions"][0])[batch["relevant_question_indexes"][0]]
         )
         assert expected == actual, actual
+
+        paraphrase_lut = batch["paraphrase_lut"][0]
+        flat_questions = batch["flat_questions"][0]
+        expected = [
+            ["a", "b"],
+            ["a", "b"],
+        ]
+        for (expected_left, expected_right), (key_left, key_right) in zip(
+            expected, paraphrase_lut.items()
+        ):
+            assert expected_left == flat_questions[key_left], flat_questions[key_left]
+            assert expected_right == flat_questions[key_right], flat_questions[
+                key_right
+            ]
 
     # python -m unittest dataloaders.hotpot_qa_loader_test.TestHotpotQaLoader.test_no_bad_rows -v
     def test_no_bad_rows(self):
