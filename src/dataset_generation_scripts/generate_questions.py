@@ -97,7 +97,7 @@ def convert_to_question_for_split(dataset, model, split, debug):
                 row = json.loads(line)
                 original_data[row["id"]] = row
 
-    TRAIN_LIMIT = 10000
+    TRAIN_LIMIT = 15000
 
     # Process and append new rows
     with open(new_split_path, "a") as new_file:

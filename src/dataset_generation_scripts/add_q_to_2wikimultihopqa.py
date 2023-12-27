@@ -78,7 +78,7 @@ def add_paraphrased_question_to_row(model, row):
 def convert_to_question_for_split(dataset, model, split, debug):
     split_path = f"data/2wikimultihopqa_with_q_gpt35/{split}.jsonl"
 
-    TRAIN_LIMIT = 10000
+    TRAIN_LIMIT = 15000
 
     with open(split_path, "a") as f:
         for current_row, row in enumerate(
