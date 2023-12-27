@@ -55,12 +55,8 @@ class TestEvalStep(unittest.TestCase):
                     "checkpoint": "all-mpnet-base-v2",
                     "device": "cuda:0",
                 },
-                "aggregation_strategy": {
-                    "name": "smi",
-                    "merge_strategy": {"name": "weighted_average_merger"},
-                },
             },
-            "eval": {"k": [1, 2]},
+            # "eval": {"k": [1, 2]},
         }
         wrapped_model = WrappedSentenceTransformerModel(config)
 
@@ -69,9 +65,10 @@ class TestEvalStep(unittest.TestCase):
         _, eval_loader = get_loader(batch_size)
 
         batch = next(iter(eval_loader))
-        aggregation_fn = None
+        scaler = None
+        optimizer = None
         loss_fn = TripletLoss(config)
 
-        loss = eval_step(config, wrapped_model, batch, aggregation_fn, loss_fn)
+        loss = eval_step(config, scaler, wrapped_model, optimizer, batch, loss_fn)
 
         print(loss)
