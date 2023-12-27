@@ -41,17 +41,6 @@ def get_batch_documents(batch):
     return batch_documents
 
 
-def compute_total_gradient_accumulation_steps(batch):
-    # We want to scale the loss by number of accumulation steps to
-    # prevent gradient explosion
-    total_gradient_accumulation_steps = 0
-    for relevant_sentence_indexes in batch["relevant_sentence_indexes"]:
-        for _ in relevant_sentence_indexes:
-            total_gradient_accumulation_steps += 1
-
-    return total_gradient_accumulation_steps
-
-
 def compute_dissimilarities(document_embeddings, current_picked_mask, similarities):
     if current_picked_mask.sum() > 0:
         dissimilarities = torch.matmul(
