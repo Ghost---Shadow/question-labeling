@@ -93,22 +93,29 @@ def convert_to_question_for_split(dataset, model, split, debug):
                 row = json.loads(line)
                 original_data[row["id"]] = row
 
+    TRAIN_LIMIT = 10000
+
     # Process and append new rows
     with open(new_split_path, "a") as new_file:
-        for current_row, row in enumerate(tqdm(dataset[split])):
+        for current_row, row in enumerate(
+            tqdm(dataset[split], total=min(TRAIN_LIMIT, len(dataset[split])))
+        ):
+            # Skip already processed rows
             if row["id"] in processed_ids:
-                continue  # Skip already processed rows
+                continue
 
             if debug and current_row >= 100:
                 break
-            if current_row >= 10000:  # Limit for trainset
+
+            # Limit for trainset for now
+            if current_row >= TRAIN_LIMIT:
                 break
 
             # Check and add missing components
             row = original_data.get(row["id"], row)
-            if not row or "question" not in row:
+            if "question" not in row["context"]:
                 row = add_question_to_row(model, row)
-            if not row or "paraphrased_question" not in row:
+            if "paraphrased_question" not in row["context"]:
                 row = add_paraphrased_question_to_row(model, row)
 
             new_file.write(json.dumps(row) + "\n")
