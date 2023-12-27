@@ -5,16 +5,15 @@ from dataloaders import DATA_LOADER_LUT
 from losses import LOSS_LUT
 from models import MODEL_LUT
 from dataloaders import DATA_LOADER_LUT
-from aggregation_strategies import AGGREGATION_STRATEGY_LUT
 from train_utils import generate_md5_hash, set_seed, train_one_epoch, validate_one_epoch
 from training_loop_strategies import TRAINING_LOOP_STRATEGY_LUT
 import yaml
 import torch.optim as optim
 import wandb
+from torch.cuda.amp import GradScaler
 
 
 def main(config, debug):
-    # TODO: recall is batch size dependent
     BATCH_SIZE = config["training"]["batch_size"]
     EPOCHS = config["training"]["epochs"]
     learning_rate = float(config["training"]["learning_rate"])
@@ -22,20 +21,14 @@ def main(config, debug):
     dataset_name = config["dataset"]["name"]
     semantic_search_model_name = config["architecture"]["semantic_search_model"]["name"]
     loss_name = config["architecture"]["loss"]["name"]
-    aggregation_strategy_name = config["architecture"]["aggregation_strategy"]["name"]
     training_strategy_name = config["training"]["strategy"]["name"]
 
     # Models
     print("Loading model")
-    wrapped_search_model = MODEL_LUT[semantic_search_model_name](config)
+    wrapped_model = MODEL_LUT[semantic_search_model_name](config)
 
     # loss function
     loss_fn = LOSS_LUT[loss_name](config)
-
-    # aggegration function
-    aggregation_model = AGGREGATION_STRATEGY_LUT[aggregation_strategy_name](
-        config, wrapped_search_model
-    )
 
     # train step function
     train_step_fn, eval_step_fn = TRAINING_LOOP_STRATEGY_LUT[training_strategy_name]
@@ -49,32 +42,34 @@ def main(config, debug):
         train_loader, validation_loader = get_loader(batch_size=BATCH_SIZE)
 
         optimizer = optim.AdamW(
-            wrapped_search_model.get_all_trainable_parameters(), lr=learning_rate
+            wrapped_model.get_all_trainable_parameters(), lr=learning_rate
         )
+        scaler = GradScaler()
 
-        wandb.init(
-            project=config["wandb"]["project"],
-            name=config["wandb"]["name"] + f"_{seed}",
-            config={
-                **config,
-                "seed": seed,
-                "total_parameters": sum(
-                    p.numel()
-                    for p in wrapped_search_model.get_all_trainable_parameters()
-                ),
-            },
-            mode="disabled" if debug else None,
-            entity=config["wandb"].get("entity", None),
-        )
+        if not debug:
+            wandb.init(
+                project=config["wandb"]["project"],
+                name=config["wandb"]["name"] + f"_{seed}",
+                config={
+                    **config,
+                    "seed": seed,
+                    "total_parameters": sum(
+                        p.numel() for p in wrapped_model.get_all_trainable_parameters()
+                    ),
+                },
+                mode="disabled" if debug else None,
+                entity=config["wandb"].get("entity", None),
+            )
 
         if not debug:
             print("Starting warmup validation")
             val_loss, _ = validate_one_epoch(
                 config,
                 validation_loader,
-                wrapped_search_model,
+                wrapped_model,
+                scaler,
+                optimizer,
                 eval_step_fn,
-                aggregation_model,
                 loss_fn,
                 debug,
             )
@@ -84,27 +79,29 @@ def main(config, debug):
             train_loss = train_one_epoch(
                 config,
                 train_loader,
-                wrapped_search_model,
+                wrapped_model,
+                scaler,
                 optimizer,
                 train_step_fn,
                 loss_fn,
-                aggregation_model,
                 debug,
             )
             print("Starting validation")
             val_loss, _ = validate_one_epoch(
                 config,
                 validation_loader,
-                wrapped_search_model,
+                wrapped_model,
+                scaler,
+                optimizer,
                 eval_step_fn,
-                aggregation_model,
                 loss_fn,
                 debug,
             )
 
             print(f"Epoch {epoch} Train Loss: {train_loss} Validation Loss {val_loss}")
 
-        wandb.finish()
+        if not debug:
+            wandb.finish()
 
 
 if __name__ == "__main__":

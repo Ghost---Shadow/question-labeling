@@ -12,12 +12,6 @@ architecture:
     checkpoint: 'all-mpnet-base-v2'
     device: "cuda:0"
 
-  aggregation_strategy:
-    name: 'smi'
-    merge_strategy:
-      name: 'dnn_merger'
-      num_layers: 2
-
   loss:
     name: 'kl_div'
 

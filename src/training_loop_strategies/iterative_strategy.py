@@ -3,8 +3,6 @@ from torch.cuda.amp import autocast
 from training_loop_strategies.utils import (
     average_metrics,
     compute_dissimilarities,
-    compute_loss_and_similarity,
-    compute_metrics,
     record_pick,
     select_next_correct,
 )

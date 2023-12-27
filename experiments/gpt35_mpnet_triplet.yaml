@@ -1,13 +1,11 @@
 wandb:
   project: "question_labeling"
-  name: "gpt35_mpnet_avg"
+  name: "gpt35_mpnet_triplet"
   # entity: "carml"
 
 architecture:
   question_generator_model:
-    name: 't5'
-    size: 'base'
-    device: "cuda:0"
+    name: 'gpt-3.5-turbo'
   
   semantic_search_model:
     name: 'sentence_transformer'
@@ -15,7 +13,7 @@ architecture:
     device: "cuda:0"
 
   loss:
-    name: 'mse'
+    name: 'triplet'
 
 dataset:
   name: 'hotpot_qa_with_q'

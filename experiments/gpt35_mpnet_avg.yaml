@@ -12,9 +12,6 @@ architecture:
     checkpoint: 'all-mpnet-base-v2'
     device: "cuda:0"
 
-  aggregation_strategy:
-    name: 'average'
-
   loss:
     name: 'mse'
 
