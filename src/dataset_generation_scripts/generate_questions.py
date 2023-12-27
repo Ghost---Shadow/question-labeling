@@ -55,6 +55,11 @@ def convert_to_question_for_split(dataset, model, split, debug):
         if debug is True and current_row >= 100:
             break
 
+        # Limit generating trainset to 10k rows for now
+        # validation set is less than 10k rows
+        if current_row >= 10000:
+            break
+
         with open(split_path, "a") as f:
             modified_row = add_question_to_row(model, row)
             f.write(json.dumps(modified_row) + "\n")
