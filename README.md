@@ -25,15 +25,6 @@ python -m unittest discover -s src -p "*_test.py"
 Make sure `./.env` is populated with correct keys
 
 ```sh
-python ./src/train.py --config=experiments/gpt35_mpnet_avg.yaml --debug
-python ./src/train.py --config=experiments/gpt35_mpnet_avg.yaml
-
-python ./src/train.py --config=experiments/gpt35_mpnet_smi_avg.yaml --debug
-python ./src/train.py --config=experiments/gpt35_mpnet_smi_avg.yaml
-
-python ./src/train.py --config=experiments/mpnet_avg.yaml --debug
-python ./src/train.py --config=experiments/mpnet_avg.yaml
-
 python ./src/train.py --config=experiments/gpt35_mpnet_ni_triplet.yaml --debug
 python ./src/train.py --config=experiments/gpt35_mpnet_ni_triplet.yaml
 

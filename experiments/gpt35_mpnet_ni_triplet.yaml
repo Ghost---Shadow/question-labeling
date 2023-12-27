@@ -21,9 +21,9 @@ dataset:
 training:
   strategy:
     name: 'non_iterative_strategy'
-  epochs: 10
+  epochs: 2
   batch_size: 2
-  learning_rate: 1e-6
+  learning_rate: 1e-5
   seeds: [42]
   # seeds: [42, 43, 44, 45, 46]
 
