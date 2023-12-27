@@ -26,6 +26,21 @@ class OpenAIChatModel:
         )
         return completion.choices[0].message.content
 
+    @retry(max_retries=100, backoff_time=5)
+    def generate_paraphrase(self, passage):
+        completion = self.client.chat.completions.create(
+            model=self.config["architecture"]["question_generator_model"]["name"],
+            temperature=0,
+            messages=[
+                {
+                    "role": "system",
+                    "content": "Paraphrase the given question.",
+                },
+                {"role": "user", "content": passage},
+            ],
+        )
+        return completion.choices[0].message.content
+
     def generate_question_batch_lossy(self, passages):
         """
         Batch endpoint currently does not exist for chat completion.

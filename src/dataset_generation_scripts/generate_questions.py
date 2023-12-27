@@ -7,14 +7,52 @@ import os
 from tqdm import tqdm
 
 
+def add_paraphrased_question_to_row(model, row):
+    # Already computed
+    if "paraphrased_questions" in row["context"]:
+        return row
+
+    def generate_paraphrase(sentence):
+        return model.generate_paraphrase(sentence)
+
+    question_lut = {}
+    for title, questions in zip(row["context"]["title"], row["context"]["questions"]):
+        sent_counter = 0
+
+        for question in questions:
+            question_lut[(title, sent_counter)] = question
+            sent_counter += 1
+
+    paraphrased_questions = []
+    with ThreadPoolExecutor(max_workers=100) as executor:
+        futures = []
+        for title, sent_id in zip(
+            row["supporting_facts"]["title"], row["supporting_facts"]["sent_id"]
+        ):
+            question = question_lut[(title, sent_id)]
+            future = executor.submit(generate_paraphrase, question)
+            futures.append(future)
+
+        for future in futures:
+            paraphrased_questions.append(future.result())
+
+    row["context"]["paraphrased_questions"] = paraphrased_questions
+
+    return row
+
+
 def add_question_to_row(model, row):
+    # Already computed
+    if "questions" in row["context"]:
+        return row
+
     def generate_question(sentence):
         return model.generate_question(sentence)
 
     all_questions = []
 
     # Create a single ThreadPoolExecutor
-    with ThreadPoolExecutor(max_workers=15) as executor:
+    with ThreadPoolExecutor(max_workers=100) as executor:
         # Store futures for each sentence in a dictionary to maintain order
         futures_dict = {}
         for paragraph_index, paragraph in enumerate(row["context"]["sentences"]):
@@ -31,38 +69,49 @@ def add_question_to_row(model, row):
             all_questions.append(paragraph_questions)
 
     row["context"]["questions"] = all_questions
+
     return row
 
 
 def convert_to_question_for_split(dataset, model, split, debug):
-    split_path = f"./data/hotpotqa_with_qa_gpt35/{split}.jsonl"
+    old_split_path = f"./data/hotpotqa_with_qa_gpt35/{split}_old.jsonl"
+    new_split_path = f"./data/hotpotqa_with_qa_gpt35/{split}.jsonl"
 
-    # How many rows has been computed so far
-    done_so_far = 0
-    if os.path.exists(split_path):
-        with open(split_path) as f:
-            for _ in f:
-                done_so_far += 1
+    # Load existing data from the new file
+    processed_ids = set()
+    if os.path.exists(new_split_path):
+        with open(new_split_path, "r") as f:
+            for line in f:
+                row = json.loads(line)
+                processed_ids.add(row["id"])  # Assuming each row has a unique 'id'
 
-    current_row = -1
-    for row in tqdm(dataset[split]):
-        current_row += 1
+    # Load original data for reference
+    original_data = {}
+    if os.path.exists(old_split_path):
+        with open(old_split_path, "r") as f:
+            for line in f:
+                row = json.loads(line)
+                original_data[row["id"]] = row
 
-        # Autoresume logic
-        if current_row < done_so_far:
-            continue
+    # Process and append new rows
+    with open(new_split_path, "a") as new_file:
+        for current_row, row in enumerate(tqdm(dataset[split])):
+            if row["id"] in processed_ids:
+                continue  # Skip already processed rows
 
-        if debug is True and current_row >= 100:
-            break
+            if debug and current_row >= 100:
+                break
+            if current_row >= 10000:  # Limit for trainset
+                break
 
-        # Limit generating trainset to 10k rows for now
-        # validation set is less than 10k rows
-        if current_row >= 10000:
-            break
+            # Check and add missing components
+            row = original_data.get(row["id"], row)
+            if not row or "question" not in row:
+                row = add_question_to_row(model, row)
+            if not row or "paraphrased_question" not in row:
+                row = add_paraphrased_question_to_row(model, row)
 
-        with open(split_path, "a") as f:
-            modified_row = add_question_to_row(model, row)
-            f.write(json.dumps(modified_row) + "\n")
+            new_file.write(json.dumps(row) + "\n")
 
 
 def convert_to_question_dataset(model, debug=False):
