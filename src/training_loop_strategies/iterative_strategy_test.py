@@ -1,7 +1,5 @@
 import unittest
 from dataloaders.hotpot_qa_with_q_loader import get_loader
-from losses.mse_loss import MSELoss
-from losses.kl_div_loss import KLDivLoss
 from losses.triplet_loss import TripletLoss
 import torch.optim as optim
 from models.wrapped_sentence_transformer import WrappedSentenceTransformerModel
@@ -9,10 +7,6 @@ from training_loop_strategies.iterative_strategy import (
     eval_step,
     train_step,
     train_step_full_precision,
-)
-from aggregation_strategies.weighted_average_strategy import WeightedEmbeddingAverage
-from aggregation_strategies.submodular_mutual_information_strategy import (
-    SubmodularMutualInformation,
 )
 from torch.cuda.amp import GradScaler
 
@@ -58,13 +52,9 @@ class TestEvalStep(unittest.TestCase):
                 "semantic_search_model": {
                     "checkpoint": "all-mpnet-base-v2",
                     "device": "cuda:0",
-                },
-                "aggregation_strategy": {
-                    "name": "smi",
-                    "merge_strategy": {"name": "weighted_average_merger"},
-                },
+                }
             },
-            "eval": {"k": [1, 2]},
+            # "eval": {"k": [1, 2]},
         }
         wrapped_model = WrappedSentenceTransformerModel(config)
 
@@ -73,41 +63,13 @@ class TestEvalStep(unittest.TestCase):
         _, eval_loader = get_loader(batch_size)
 
         batch = next(iter(eval_loader))
-        aggregation_fn = WeightedEmbeddingAverage(config, wrapped_model)
-        loss_fn = MSELoss()
+        loss_fn = TripletLoss(config)
+        scaler = None
+        optimizer = None
 
-        loss = eval_step(config, wrapped_model, batch, aggregation_fn, loss_fn)
+        metrics = eval_step(config, scaler, wrapped_model, optimizer, batch, loss_fn)
 
-        print(loss)
-
-    # python -m unittest training_loop_strategies.iterative_strategy_test.TestEvalStep.test_eval_step_kl_div_smi -v
-    def test_eval_step_kl_div_smi(self):
-        config = {
-            "architecture": {
-                "semantic_search_model": {
-                    "checkpoint": "all-mpnet-base-v2",
-                    "device": "cuda:0",
-                },
-                "aggregation_strategy": {
-                    "name": "smi",
-                    "merge_strategy": {"name": "weighted_average_merger"},
-                },
-            },
-            "eval": {"k": [1, 2]},
-        }
-        wrapped_model = WrappedSentenceTransformerModel(config)
-
-        batch_size = 2
-
-        _, eval_loader = get_loader(batch_size)
-
-        batch = next(iter(eval_loader))
-        aggregation_fn = SubmodularMutualInformation(config, wrapped_model)
-        loss_fn = KLDivLoss()
-
-        loss = eval_step(config, wrapped_model, batch, aggregation_fn, loss_fn)
-
-        print(loss)
+        print(metrics)
 
 
 # python -m unittest training_loop_strategies.iterative_strategy_test.TestTrainStep -v
