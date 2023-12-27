@@ -29,7 +29,11 @@ def add_paraphrased_question_to_row(model, row):
         for title, sent_id in zip(
             row["supporting_facts"]["title"], row["supporting_facts"]["sent_id"]
         ):
-            question = question_lut[(title, sent_id)]
+            key = (title, sent_id)
+            if key not in question_lut:
+                # There are many bad pointers
+                continue
+            question = question_lut[key]
             future = executor.submit(generate_paraphrase, question)
             futures.append(future)
 
