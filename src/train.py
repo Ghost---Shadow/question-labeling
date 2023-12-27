@@ -126,10 +126,12 @@ if __name__ == "__main__":
     file_path = f"./experiments/completions/{config_file_name}_{hash_value}.done"
 
     # Check if the file exists
-    if os.path.exists(file_path):
+    if os.path.exists(file_path) and not debug:
         print(f"File {file_path} already exists. Skipping main execution.")
     else:
         main(config, debug)
-        # After main execution, create the file to indicate completion
-        with open(file_path, "w") as file:
-            file.write("Completed")
+
+        if not debug:
+            # After main execution, create the file to indicate completion
+            with open(file_path, "w") as file:
+                file.write("Completed")
