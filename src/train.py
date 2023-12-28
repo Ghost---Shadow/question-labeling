@@ -1,11 +1,15 @@
 import argparse
 import os
 from pathlib import Path
-from dataloaders import DATA_LOADER_LUT
 from losses import LOSS_LUT
 from models import MODEL_LUT
-from dataloaders import DATA_LOADER_LUT
-from train_utils import generate_md5_hash, set_seed, train_one_epoch, validate_one_epoch
+from train_utils import (
+    generate_md5_hash,
+    get_all_loaders,
+    set_seed,
+    train_one_epoch,
+    validate_one_epoch,
+)
 from training_loop_strategies import TRAINING_LOOP_STRATEGY_LUT
 import yaml
 import torch.optim as optim
@@ -14,11 +18,9 @@ from torch.cuda.amp import GradScaler
 
 
 def main(config, debug):
-    BATCH_SIZE = config["training"]["batch_size"]
     EPOCHS = config["training"]["epochs"]
     learning_rate = float(config["training"]["learning_rate"])
 
-    dataset_name = config["dataset"]["name"]
     semantic_search_model_name = config["architecture"]["semantic_search_model"]["name"]
     loss_name = config["architecture"]["loss"]["name"]
     training_strategy_name = config["training"]["strategy"]["name"]
@@ -38,8 +40,7 @@ def main(config, debug):
 
         # Load data loaders after setting seed
         print("Loading data loader")
-        get_loader = DATA_LOADER_LUT[dataset_name]
-        train_loader, validation_loader = get_loader(batch_size=BATCH_SIZE)
+        train_loader, validation_loaders = get_all_loaders(config)
 
         optimizer = optim.AdamW(
             wrapped_model.get_all_trainable_parameters(), lr=learning_rate
@@ -63,16 +64,17 @@ def main(config, debug):
 
         if not debug:
             print("Starting warmup validation")
-            val_loss, _ = validate_one_epoch(
-                config,
-                validation_loader,
-                wrapped_model,
-                scaler,
-                optimizer,
-                eval_step_fn,
-                loss_fn,
-                debug,
-            )
+            for validation_loader in validation_loaders:
+                validate_one_epoch(
+                    config,
+                    validation_loader,
+                    wrapped_model,
+                    scaler,
+                    optimizer,
+                    eval_step_fn,
+                    loss_fn,
+                    debug,
+                )
 
         for epoch in range(EPOCHS):
             print(f"Start training for epoch {epoch}")
@@ -87,18 +89,24 @@ def main(config, debug):
                 debug,
             )
             print("Starting validation")
-            val_loss, _ = validate_one_epoch(
-                config,
-                validation_loader,
-                wrapped_model,
-                scaler,
-                optimizer,
-                eval_step_fn,
-                loss_fn,
-                debug,
-            )
+            total_val_loss = 0
+            for validation_loader in validation_loaders:
+                val_loss, _ = validate_one_epoch(
+                    config,
+                    validation_loader,
+                    wrapped_model,
+                    scaler,
+                    optimizer,
+                    eval_step_fn,
+                    loss_fn,
+                    debug,
+                )
+                total_val_loss += val_loss
+            avg_val_loss = total_val_loss / len(validation_loaders)
 
-            print(f"Epoch {epoch} Train Loss: {train_loss} Validation Loss {val_loss}")
+            print(
+                f"Epoch {epoch} Train Loss: {train_loss} Validation Loss {avg_val_loss}"
+            )
 
         if not debug:
             wandb.finish()

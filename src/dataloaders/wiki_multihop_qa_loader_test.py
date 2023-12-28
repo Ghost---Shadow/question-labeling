@@ -1,5 +1,5 @@
 import unittest
-from dataloaders.wiki_multihop_qa_loader import get_loader
+from dataloaders.wiki_multihop_qa_loader import get_train_loader, get_validation_loader
 from tqdm import tqdm
 from train_utils import set_seed
 import numpy as np
@@ -14,7 +14,8 @@ class TestWikiMultihopQaLoader(unittest.TestCase):
 
         batch_size = 1
 
-        train_loader, val_loader = get_loader(batch_size)
+        train_loader = get_train_loader(batch_size=batch_size)
+        val_loader = get_validation_loader(batch_size=batch_size)
 
         # Train loader
         batch = next(iter(train_loader))
@@ -36,15 +37,6 @@ class TestWikiMultihopQaLoader(unittest.TestCase):
             batch["relevant_sentence_indexes"][0]
         )
 
-        # expected = [
-        #     'The Atlantic Islands of Galicia National Park (Galician: "Parque Nacional das Illas Atlánticas de Galicia" , Spanish: "Parque Nacional de las Islas Atlánticas de Galicia" ) is the only national park located in the autonomous community of Galicia, Spain.',
-        #     'Timanfaya National Park (Spanish: "Parque Nacional de Timanfaya" ) is a Spanish national park in the southwestern part of the island of Lanzarote, Canary Islands.',
-        # ]
-        # actual = list(
-        #     np.array(batch["flat_questions"][0])[batch["relevant_sentence_indexes"][0]]
-        # )
-        # assert expected == actual, actual
-
         # Validation loader
         batch = next(iter(val_loader))
         expected = (
@@ -62,18 +54,14 @@ class TestWikiMultihopQaLoader(unittest.TestCase):
         )
         assert expected == actual, actual
 
-        # expected = [
-        #     "What is Scott Derrickson known for in the entertainment industry?",
-        #     "What were some of the notable contributions and achievements of Edward Davis Wood Jr. in the field of filmmaking?",
-        # ]
-        # actual = list(
-        #     np.array(batch["flat_questions"][0])[batch["relevant_sentence_indexes"][0]]
-        # )
         assert expected == actual, actual
 
     # python -m unittest dataloaders.wiki_multihop_qa_loader_test.TestWikiMultihopQaLoader.test_no_bad_rows -v
     def test_no_bad_rows(self):
-        train_loader, val_loader = get_loader(batch_size=2)
+        batch_size = 2
+        train_loader = get_train_loader(batch_size=batch_size)
+        val_loader = get_validation_loader(batch_size=batch_size)
+
         for _ in tqdm(train_loader):
             ...
 

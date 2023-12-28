@@ -58,7 +58,7 @@ def collate_fn(batch):
     }
 
 
-def get_loader(batch_size):
+def get_train_loader(batch_size):
     dataset = load_dataset("hotpot_qa", "distractor")
 
     train_loader = DataLoader(
@@ -68,6 +68,12 @@ def get_loader(batch_size):
         collate_fn=collate_fn,
     )
 
+    return train_loader
+
+
+def get_validation_loader(batch_size):
+    dataset = load_dataset("hotpot_qa", "distractor")
+
     val_loader = DataLoader(
         dataset["validation"],
         batch_size=batch_size,
@@ -75,4 +81,4 @@ def get_loader(batch_size):
         collate_fn=collate_fn,
     )
 
-    return train_loader, val_loader
+    return val_loader

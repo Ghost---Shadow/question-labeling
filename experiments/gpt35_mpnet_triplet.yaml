@@ -15,8 +15,9 @@ architecture:
   loss:
     name: 'triplet'
 
-dataset:
-  name: 'hotpot_qa_with_q'
+datasets:
+  train: 'hotpot_qa_with_q'
+  validation: ['hotpot_qa_with_q', 'wiki_multihop_qa_with_q']
 
 training:
   strategy:

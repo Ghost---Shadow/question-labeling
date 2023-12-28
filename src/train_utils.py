@@ -1,5 +1,6 @@
 import hashlib
 import time
+from dataloaders import DATA_LOADER_LUT
 import torch
 from tqdm import tqdm
 from training_loop_strategies.iterative_strategy import average_metrics
@@ -104,3 +105,20 @@ def train_one_epoch(
             break
 
     return total_loss / num_steps
+
+
+def get_all_loaders(config):
+    train_dataset_name = config["datasets"]["train"]
+    validation_dataset_names = config["datasets"]["validation"]
+    batch_size = config["training"]["batch_size"]
+
+    get_train_loader, _ = DATA_LOADER_LUT[train_dataset_name]
+    train_loader = get_train_loader(batch_size=batch_size)
+
+    validation_loaders = []
+    for validation_dataset_name in validation_dataset_names:
+        _, get_validation_loader = DATA_LOADER_LUT[validation_dataset_name]
+        validation_loader = get_validation_loader(batch_size=batch_size)
+        validation_loaders.append(validation_loader)
+
+    return train_loader, validation_loaders

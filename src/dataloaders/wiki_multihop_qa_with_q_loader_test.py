@@ -1,5 +1,8 @@
 import unittest
-from dataloaders.wiki_multihop_qa_with_q_loader import get_loader
+from dataloaders.wiki_multihop_qa_with_q_loader import (
+    get_train_loader,
+    get_validation_loader,
+)
 from tqdm import tqdm
 from train_utils import set_seed
 import numpy as np
@@ -14,7 +17,8 @@ class TestWikiMultihopQaWithQLoader(unittest.TestCase):
 
         batch_size = 1
 
-        train_loader, val_loader = get_loader(batch_size)
+        train_loader = get_train_loader(batch_size=batch_size)
+        val_loader = get_validation_loader(batch_size=batch_size)
 
         # Train loader
         batch = next(iter(train_loader))
@@ -129,7 +133,9 @@ class TestWikiMultihopQaWithQLoader(unittest.TestCase):
 
     # python -m unittest dataloaders.wiki_multihop_qa_with_q_loader_test.TestWikiMultihopQaWithQLoader.test_no_bad_rows -v
     def test_no_bad_rows(self):
-        train_loader, val_loader = get_loader(batch_size=2)
+        batch_size = 2
+        train_loader = get_train_loader(batch_size=batch_size)
+        val_loader = get_validation_loader(batch_size=batch_size)
         for _ in tqdm(train_loader):
             ...
 
