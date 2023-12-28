@@ -40,7 +40,7 @@ def main(config, debug):
 
         # Load data loaders after setting seed
         print("Loading data loader")
-        train_loader, validation_loaders = get_all_loaders(config)
+        train_loaders, validation_loaders = get_all_loaders(config)
 
         optimizer = optim.AdamW(
             wrapped_model.get_all_trainable_parameters(), lr=learning_rate
@@ -64,9 +64,11 @@ def main(config, debug):
 
         if not debug:
             print("Starting warmup validation")
-            for validation_loader in validation_loaders:
+            for validation_dataset_name in validation_loaders:
+                validation_loader = validation_loaders[validation_dataset_name]
                 validate_one_epoch(
                     config,
+                    validation_dataset_name,
                     validation_loader,
                     wrapped_model,
                     scaler,
@@ -78,21 +80,26 @@ def main(config, debug):
 
         for epoch in range(EPOCHS):
             print(f"Start training for epoch {epoch}")
-            train_loss = train_one_epoch(
-                config,
-                train_loader,
-                wrapped_model,
-                scaler,
-                optimizer,
-                train_step_fn,
-                loss_fn,
-                debug,
-            )
+            for train_dataset_name in train_loaders:
+                train_loader = train_loaders[train_dataset_name]
+                train_loss = train_one_epoch(
+                    config,
+                    train_dataset_name,
+                    train_loader,
+                    wrapped_model,
+                    scaler,
+                    optimizer,
+                    train_step_fn,
+                    loss_fn,
+                    debug,
+                )
             print("Starting validation")
             total_val_loss = 0
-            for validation_loader in validation_loaders:
+            for validation_dataset_name in validation_loaders:
+                validation_loader = validation_loaders[validation_dataset_name]
                 val_loss, _ = validate_one_epoch(
                     config,
+                    validation_dataset_name,
                     validation_loader,
                     wrapped_model,
                     scaler,

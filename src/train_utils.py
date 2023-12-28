@@ -23,6 +23,7 @@ def generate_md5_hash(file_path):
 
 def validate_one_epoch(
     config,
+    validation_dataset_name,
     validation_loader,
     wrapped_model,
     scaler,
@@ -60,8 +61,10 @@ def validate_one_epoch(
         wandb.log(
             {
                 "validation": {
-                    **avg_metrics,
-                    "inference_time": average_inference_time,
+                    validation_dataset_name: {
+                        **avg_metrics,
+                        "inference_time": average_inference_time,
+                    }
                 }
             }
         )
@@ -71,6 +74,7 @@ def validate_one_epoch(
 
 def train_one_epoch(
     config,
+    train_dataset_name,
     train_loader,
     wrapped_model,
     scaler,
@@ -98,7 +102,7 @@ def train_one_epoch(
 
         if not debug:
             # Log to wandb
-            wandb.log({"train": metrics})
+            wandb.log({"train": {train_dataset_name: metrics}})
 
         num_steps += 1
         if debug and num_steps >= 5:
@@ -114,11 +118,12 @@ def get_all_loaders(config):
 
     get_train_loader, _ = DATA_LOADER_LUT[train_dataset_name]
     train_loader = get_train_loader(batch_size=batch_size)
+    train_loaders = {train_dataset_name: train_loader}
 
-    validation_loaders = []
+    validation_loaders = {}
     for validation_dataset_name in validation_dataset_names:
         _, get_validation_loader = DATA_LOADER_LUT[validation_dataset_name]
         validation_loader = get_validation_loader(batch_size=batch_size)
-        validation_loaders.append(validation_loader)
+        validation_loaders[validation_dataset_name] = validation_loader
 
-    return train_loader, validation_loaders
+    return train_loaders, validation_loaders
