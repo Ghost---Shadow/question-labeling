@@ -53,15 +53,15 @@ def record_pick(
     teacher_forcing,
 ):
     # Remove item from pick
-    if next_correct not in can_be_picked_set:
-        # If model picked a paraphrase, then pick the normal version
-        can_be_picked_set.remove(paraphrase_lut[next_correct])
-    else:
+    paraphrase_index = paraphrase_lut.get(next_correct, next_correct)
+    if next_correct in can_be_picked_set:
         can_be_picked_set.remove(next_correct)
+    elif paraphrase_index in can_be_picked_set:
+        can_be_picked_set.remove(paraphrase_index)
 
     next_all_selection_vector = current_all_selection_vector.clone()
-    next_all_selection_vector[next_correct] = 0
-    next_all_selection_vector[paraphrase_lut[next_correct]] = 0
+    next_all_selection_vector[next_correct] = False
+    next_all_selection_vector[paraphrase_index] = False
     all_selection_vector_list.append(next_all_selection_vector)
 
     next_picked_mask = current_picked_mask.clone()

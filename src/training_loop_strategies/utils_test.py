@@ -1,5 +1,6 @@
 import unittest
 import torch
+from train_utils import set_seed
 from training_loop_strategies.utils import (
     compute_cutoff_gain,
     compute_dissimilarities,
@@ -278,6 +279,77 @@ class TestComputeCutoffGain(unittest.TestCase):
         self.assertTrue(
             torch.equal(global_correct_mask, torch.tensor([True, False, False, True]))
         )
+
+
+# python -m unittest training_loop_strategies.utils_test.TestIntegration -v
+class TestIntegration(unittest.TestCase):
+    # python -m unittest training_loop_strategies.utils_test.TestIntegration.test_full_flow -v
+    def test_full_flow(self):
+        # Setup test data
+        set_seed(42)
+        document_embeddings = torch.randn(10, 5)  # Simulated document embeddings
+        query_embedding = torch.randn(1, 5)  # Simulated query embedding
+        flat_questions = list(range(10))  # Simulated flat question indices
+        # Indices without paraphrases
+        no_paraphrase_relevant_question_indexes = set([1, 3, 5, 7])
+        num_correct = len(no_paraphrase_relevant_question_indexes)
+        paraphrase_lut = {0: 2, 2: 0, 4: 6, 6: 4}  # Paraphrase look-up table
+
+        # Compute initial similarities
+        similarities = torch.matmul(document_embeddings, query_embedding.T).squeeze()
+        similarities = torch.clamp(similarities, min=0, max=1)
+
+        # Initialize vectors and masks
+        selection_vector = torch.ones(len(flat_questions))  # Initial selection vector
+        picked_mask = torch.zeros(len(flat_questions), dtype=torch.bool)
+        selection_vector_list = [selection_vector.clone()]
+        picked_mask_list = [picked_mask]
+        teacher_forcing = []
+        recall_at_1 = 0
+        total_loss = torch.zeros([])
+
+        # Processing loop
+        for _ in range(len(no_paraphrase_relevant_question_indexes)):
+            current_all_selection_vector = selection_vector_list[-1]
+            current_picked_mask = picked_mask_list[-1]
+
+            # Function calls
+            dissimilarities = compute_dissimilarities(
+                document_embeddings, current_picked_mask, similarities
+            )
+            # Assuming a loss function is defined
+            loss = torch.nn.functional.mse_loss(
+                similarities, current_all_selection_vector.float()
+            )
+            total_loss += loss
+
+            cloned_predictions = similarities * (1 - dissimilarities)
+            cloned_predictions[current_picked_mask] = 0
+            selected_index = torch.argmax(cloned_predictions).item()
+
+            next_correct, recall_at_1 = select_next_correct(
+                similarities,
+                paraphrase_lut,
+                recall_at_1,
+                no_paraphrase_relevant_question_indexes,
+                selected_index,
+            )
+
+            record_pick(
+                next_correct,
+                no_paraphrase_relevant_question_indexes,
+                paraphrase_lut,
+                current_all_selection_vector,
+                selection_vector_list,
+                current_picked_mask,
+                picked_mask_list,
+                teacher_forcing,
+            )
+
+        # Assertions to validate the flow
+        self.assertEqual(len(teacher_forcing), num_correct)
+        self.assertEqual(len(no_paraphrase_relevant_question_indexes), 0)
+        self.assertEqual(recall_at_1, 0)
 
 
 if __name__ == "__main__":
