@@ -21,7 +21,6 @@ def train_step(config, scaler, wrapped_model, optimizer, batch, loss_fn):
     enable_diversity = not get(
         config, "architecture.quality_diversity.disable_diversity", False
     )
-    print('POTATO', enable_quality, enable_diversity)
 
     for (
         question,
@@ -125,6 +124,14 @@ def train_step(config, scaler, wrapped_model, optimizer, batch, loss_fn):
 def eval_step(config, scaler, wrapped_model, optimizer, batch, loss_fn):
     all_metrics = []
 
+    enable_quality = not get(
+        config, "architecture.quality_diversity.disable_quality", False
+    )
+
+    enable_diversity = not get(
+        config, "architecture.quality_diversity.disable_diversity", False
+    )
+
     with torch.no_grad():
         for (
             question,
@@ -174,7 +181,12 @@ def eval_step(config, scaler, wrapped_model, optimizer, batch, loss_fn):
                     document_embeddings, current_picked_mask, similarities
                 )
 
-                predictions = similarities * (1 - dissimilarities)
+                predictions = torch.ones_like(similarities, device=similarities.device)
+                if enable_quality:
+                    predictions = predictions * similarities
+                if enable_diversity:
+                    predictions = predictions * (1 - dissimilarities)
+
                 labels = current_all_selection_vector.float()
                 loss = loss_fn(predictions, labels)
                 total_loss += loss
@@ -219,6 +231,14 @@ def train_step_full_precision(config, scaler, wrapped_model, optimizer, batch, l
 
     all_metrics = []
 
+    enable_quality = not get(
+        config, "architecture.quality_diversity.disable_quality", False
+    )
+
+    enable_diversity = not get(
+        config, "architecture.quality_diversity.disable_diversity", False
+    )
+
     for (
         question,
         flat_questions,
@@ -261,7 +281,12 @@ def train_step_full_precision(config, scaler, wrapped_model, optimizer, batch, l
                 document_embeddings, current_picked_mask, similarities
             )
 
-            predictions = similarities * (1 - dissimilarities)
+            predictions = torch.ones_like(similarities, device=similarities.device)
+            if enable_quality:
+                predictions = predictions * similarities
+            if enable_diversity:
+                predictions = predictions * (1 - dissimilarities)
+
             labels = current_all_selection_vector.float()
             loss = loss_fn(predictions, labels)
             total_loss += loss
