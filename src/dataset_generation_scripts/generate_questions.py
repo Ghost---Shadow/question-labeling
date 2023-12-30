@@ -123,6 +123,7 @@ def convert_to_question_for_split(dataset, model, split, debug):
                 row = add_paraphrased_question_to_row(model, row)
 
             new_file.write(json.dumps(row) + "\n")
+            new_file.flush()
 
 
 def convert_to_question_dataset(model, debug=False):
