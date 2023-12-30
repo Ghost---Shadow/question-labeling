@@ -100,8 +100,11 @@ def record_pick(
     picked_mask_list,
     teacher_forcing,
 ):
+    # should be python int, not torch int
+    assert type(next_correct) == int
+
     # Remove item from pick
-    paraphrase_index = paraphrase_lut.get(next_correct, next_correct)
+    paraphrase_index = paraphrase_lut[next_correct]
     if next_correct in can_be_picked_set:
         can_be_picked_set.remove(next_correct)
     elif paraphrase_index in can_be_picked_set:
@@ -117,8 +120,6 @@ def record_pick(
     picked_mask_list.append(next_picked_mask)
 
     teacher_forcing.append(next_correct)
-
-    return next_picked_mask, next_all_selection_vector
 
 
 def compute_metrics_non_iterative(similarity, relevant_sentence_indexes, k):
