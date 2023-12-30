@@ -35,52 +35,59 @@ class TestComputeDissimilarities(unittest.TestCase):
 
 # python -m unittest training_loop_strategies.utils_test.TestSelectNextCorrect -v
 class TestSelectNextCorrect(unittest.TestCase):
+    # python -m unittest training_loop_strategies.utils_test.TestSelectNextCorrect.test_correct_selection_from_can_be_picked_set -v
     def test_correct_selection_from_can_be_picked_set(self):
+        """Test selection when the highest similarity index is in the can_be_picked_set."""
         similarities = torch.tensor([0.1, 0.4, 0.35])
         paraphrase_lut = {0: 2, 1: 0, 2: 1}
         can_be_picked_set = set([1])
-        selected_index = 1
+        current_picked_mask = torch.tensor([False, True, False])  # Masking index 1
 
         next_correct = select_next_correct(
-            similarities, paraphrase_lut, can_be_picked_set, selected_index
+            similarities, paraphrase_lut, can_be_picked_set, current_picked_mask
         )
 
-        self.assertEqual(next_correct, selected_index)
+        self.assertEqual(next_correct, 2)  # Should return 2 as 1 is masked
 
-    def test_selection_using_similarities(self):
-        similarities = torch.tensor([0.1, 0.7, 0.6])
-        paraphrase_lut = {}
-        can_be_picked_set = set([1, 2])
-        selected_index = 0  # Not in can_be_picked_set
+    def test_selection_using_paraphrase_lut(self):
+        """Test selection using paraphrase lookup table when the initial selection is not in can_be_picked_set."""
+        similarities = torch.tensor([0.6, 0.3, 0.8])
+        paraphrase_lut = {0: 2, 2: 0}
+        can_be_picked_set = set([0, 1])
+        current_picked_mask = torch.tensor([False, False, True])
 
         next_correct = select_next_correct(
-            similarities, paraphrase_lut, can_be_picked_set, selected_index
+            similarities, paraphrase_lut, can_be_picked_set, current_picked_mask
         )
 
-        self.assertEqual(next_correct, 1)  # Highest similarity in can_be_picked_set
+        # Paraphrase of 2 is 0, which is in can_be_picked_set
+        self.assertEqual(next_correct, 0)
 
-    def test_edge_case_for_argmax_zero(self):
+    def test_selection_fallback_to_can_be_picked_set(self):
+        """Test the fallback mechanism when argmax returns an index not in can_be_picked_set."""
         similarities = torch.tensor([0.0, 0.0, 0.0])
         paraphrase_lut = {}
         can_be_picked_set = set([2])
-        selected_index = 0
+        current_picked_mask = torch.tensor([True, False, False])
 
         next_correct = select_next_correct(
-            similarities, paraphrase_lut, can_be_picked_set, selected_index
+            similarities, paraphrase_lut, can_be_picked_set, current_picked_mask
         )
 
-        self.assertEqual(next_correct, 2)  # Falls back to first in can_be_picked_set
+        self.assertEqual(next_correct, 2)
 
-    def test_function_with_various_inputs(self):
+    def test_selection_avoiding_current_picked_mask(self):
+        """Test that the selection avoids indices marked in current_picked_mask."""
         similarities = torch.tensor([0.5, 0.2, 0.8])
-        paraphrase_lut = {0: 2, 2: 0}
-        can_be_picked_set = set([0, 1])
-        selected_index = 2  # Paraphrase of 2 is 0, which is in can_be_picked_set
+        paraphrase_lut = {}
+        can_be_picked_set = set([0, 1, 2])
+        current_picked_mask = torch.tensor([False, True, False])  # Masking index 1
 
         next_correct = select_next_correct(
-            similarities, paraphrase_lut, can_be_picked_set, selected_index
+            similarities, paraphrase_lut, can_be_picked_set, current_picked_mask
         )
 
+        # Should select index 2 as it has the highest similarity and is not masked
         self.assertEqual(next_correct, 2)
 
 

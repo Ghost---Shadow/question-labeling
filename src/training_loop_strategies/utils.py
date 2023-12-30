@@ -20,14 +20,19 @@ def compute_dissimilarities(document_embeddings, current_picked_mask, similariti
     return dissimilarities
 
 
-def select_next_correct(predictions, paraphrase_lut, can_be_picked_set, selected_index):
+def select_next_correct(
+    predictions, paraphrase_lut, can_be_picked_set, current_picked_mask
+):
+    cloned_predictions = predictions.clone().detach()
+    cloned_predictions[current_picked_mask] = 0
+    selected_index = torch.argmax(cloned_predictions).item()
+
     if (
         selected_index in can_be_picked_set
         or paraphrase_lut.get(selected_index) in can_be_picked_set
     ):
         next_correct = selected_index
     else:
-        cloned_predictions = predictions.clone().detach()
         mask = torch.full(predictions.shape, False)
         mask[list(can_be_picked_set)] = True
         cloned_predictions[~mask] = 0

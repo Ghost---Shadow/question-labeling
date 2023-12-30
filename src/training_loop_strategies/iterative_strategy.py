@@ -218,15 +218,11 @@ def eval_step(config, scaler, wrapped_model, optimizer, batch, loss_fn):
                 loss = loss_fn(predictions, labels)
                 total_loss += loss
 
-                cloned_predictions = predictions.clone()
-                cloned_predictions[current_picked_mask] = 0
-                selected_index = torch.argmax(cloned_predictions).item()
-
                 next_correct = select_next_correct(
                     predictions,
                     paraphrase_lut,
                     can_be_picked_set,
-                    selected_index,
+                    current_picked_mask,
                 )
 
                 record_pick(
