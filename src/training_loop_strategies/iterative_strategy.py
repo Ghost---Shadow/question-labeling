@@ -188,7 +188,7 @@ def eval_step(config, scaler, wrapped_model, optimizer, batch, loss_fn):
             )
 
             picked_mask = torch.zeros(
-                len(flat_questions), device="cuda:0", dtype=torch.bool
+                len(flat_questions), device=similarities.device, dtype=torch.bool
             )
             selection_vector_list = [selection_vector.clone()]
             picked_mask_list = [picked_mask]
@@ -312,7 +312,7 @@ def train_step_full_precision(config, scaler, wrapped_model, optimizer, batch, l
         selection_vector = torch.tensor(selection_vector, device=similarities.device)
 
         picked_mask = torch.zeros(
-            len(flat_questions), device="cuda:0", dtype=torch.bool
+            len(flat_questions), device=similarities.device, dtype=torch.bool
         )
         selection_vector_list = [selection_vector.clone()]
         picked_mask_list = [picked_mask]
