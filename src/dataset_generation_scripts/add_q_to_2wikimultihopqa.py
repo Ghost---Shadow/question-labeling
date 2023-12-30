@@ -1,5 +1,6 @@
 from concurrent.futures import ThreadPoolExecutor
 import json
+import os
 from models.openai_chat_model import OpenAIChatModel
 from datasets import load_dataset
 from tqdm import tqdm
@@ -80,12 +81,22 @@ def convert_to_question_for_split(dataset, model, split, debug):
 
     TRAIN_LIMIT = 15000
 
+    processed_ids = set()
+    if os.path.exists(split_path):
+        with open(split_path) as f:
+            for line in f:
+                row = json.loads(line)
+                processed_ids.add(row["_id"])
+
     with open(split_path, "a") as f:
         for current_row, row in enumerate(
             tqdm(dataset[split], total=min(TRAIN_LIMIT, len(dataset[split])))
         ):
             if debug and current_row >= 1:
                 break
+
+            if row["_id"] in processed_ids:
+                continue
 
             # Limit for trainset for now
             if current_row >= TRAIN_LIMIT:
@@ -96,6 +107,7 @@ def convert_to_question_for_split(dataset, model, split, debug):
             add_paraphrased_question_to_row(model, row)
 
             f.write(json.dumps(row) + "\n")
+            f.flush()
 
 
 def convert_to_question_dataset(model, debug=False):
