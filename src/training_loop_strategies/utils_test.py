@@ -130,6 +130,23 @@ class TestSearchMetrics(unittest.TestCase):
                 expected_metrics[key], actual_metrics[key], msg=key, places=2
             )
 
+    # python -m unittest training_loop_strategies.utils_test.TestSearchMetrics.test_compute_search_metrics_with_k_out_of_range -v
+    def test_compute_search_metrics_with_k_out_of_range(self):
+        # Mock Config with k larger than the number of predictions
+        config = {"eval": {"k": [1, 5]}}
+
+        # Mock Predictions (Tensor) with only 3 items
+        predictions = torch.tensor([0.9, 0.8, 0.7])
+
+        # Mock Paraphrase Lookup Table
+        paraphrase_lut = {0: 2, 1: 2}
+
+        # Mock Set of Relevant Documents
+        can_be_picked_set = {0, 2}
+
+        # Run the function
+        compute_search_metrics(config, predictions, paraphrase_lut, can_be_picked_set)
+
 
 # python -m unittest training_loop_strategies.utils_test.TestRecordPick -v
 class TestRecordPick(unittest.TestCase):

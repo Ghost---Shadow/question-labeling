@@ -48,8 +48,12 @@ def compute_search_metrics(config, predictions, paraphrase_lut, can_be_picked_se
     new_metrics = {}
 
     total_relevant_items = len(can_be_picked_set)
+    num_predictions = predictions.size(0)  # Number of items in the predictions tensor
 
     for k in config["eval"]["k"]:
+        # Check if k is greater than the number of predictions
+        k = min(k, num_predictions)
+
         # Get the top k indices from the predictions
         top_k_indices = torch.topk(predictions, k).indices
 
