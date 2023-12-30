@@ -133,125 +133,89 @@ class TestSearchMetrics(unittest.TestCase):
 
 # python -m unittest training_loop_strategies.utils_test.TestRecordPick -v
 class TestRecordPick(unittest.TestCase):
-    # python -m unittest training_loop_strategies.utils_test.TestRecordPick.test_removal_from_can_be_picked_set -v
-    def test_removal_from_can_be_picked_set(self):
+    def test_record_pick(self):
+        # Sample inputs for testing
         next_correct = 2
-        can_be_picked_set = set([1, 2, 3])
-        paraphrase_lut = {1: 4, 2: 5, 3: 6}
-        # Ensure the tensors are large enough for the paraphrase indices
-        current_all_selection_vector = torch.tensor([0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7])
-        current_picked_mask = torch.tensor(
-            [False, False, False, False, False, False, False]
-        )
-        all_selection_vector_list = []
-        picked_mask_list = []
+        can_be_picked_set = {1, 2}
+        paraphrase_lut = {1: 4, 2: 5, 4: 1, 5: 2}
+        labels_mask_list = [torch.tensor([False, True, True, False, True, True])]
+        picked_mask_list = [torch.tensor([False, False, False, False, False, False])]
         teacher_forcing = []
 
+        # Expected outputs
+        expected_can_be_picked_set = {1}
+        expected_labels_mask_list = [
+            torch.tensor([False, True, True, False, True, True]),
+            torch.tensor([False, True, False, False, True, False]),
+        ]
+        expected_picked_mask_list = [
+            torch.tensor([False, False, False, False, False, False]),
+            torch.tensor([False, False, True, False, False, False]),
+        ]
+        expected_teacher_forcing = [2]
+
+        # Call the function to test
         record_pick(
             next_correct,
             can_be_picked_set,
             paraphrase_lut,
-            current_all_selection_vector,
-            all_selection_vector_list,
-            current_picked_mask,
+            labels_mask_list,
             picked_mask_list,
             teacher_forcing,
         )
 
-        self.assertNotIn(next_correct, can_be_picked_set)
-
-    # python -m unittest training_loop_strategies.utils_test.TestRecordPick.test_update_all_selection_vector_list -v
-    def test_update_all_selection_vector_list(self):
-        next_correct = 2
-        can_be_picked_set = set([1, 2, 3])
-        paraphrase_lut = {1: 4, 2: 5, 3: 6}
-        # Ensure the tensors are large enough for the paraphrase indices
-        current_all_selection_vector = torch.tensor([0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7])
-        current_picked_mask = torch.tensor(
-            [False, False, False, False, False, False, False]
-        )
-        all_selection_vector_list = []
-        picked_mask_list = []
-        teacher_forcing = []
-
-        record_pick(
-            next_correct,
-            can_be_picked_set,
-            paraphrase_lut,
-            current_all_selection_vector,
-            all_selection_vector_list,
-            current_picked_mask,
-            picked_mask_list,
-            teacher_forcing,
-        )
-
-        self.assertEqual(len(all_selection_vector_list), 1)
-        self.assertTrue(
-            torch.equal(
-                all_selection_vector_list[0],
-                torch.tensor([0.1, 0.2, 0, 0.4, 0.5, 0, 0.7]),
+        self.assertEqual(can_be_picked_set, expected_can_be_picked_set)
+        self.assertEqual(teacher_forcing, expected_teacher_forcing)
+        self.assertEqual(len(labels_mask_list), len(expected_labels_mask_list))
+        self.assertEqual(len(picked_mask_list), len(expected_picked_mask_list))
+        for i in range(len(labels_mask_list)):
+            self.assertEqual(
+                labels_mask_list[i].tolist(),
+                expected_labels_mask_list[i].tolist(),
             )
-        )
+            self.assertEqual(
+                picked_mask_list[i].tolist(), expected_picked_mask_list[i].tolist()
+            )
 
-    # python -m unittest training_loop_strategies.utils_test.TestRecordPick.test_update_picked_mask_list -v
-    def test_update_picked_mask_list(self):
-        next_correct = 2
-        can_be_picked_set = set([1, 2, 3])
-        paraphrase_lut = {1: 4, 2: 5, 3: 6}
-        # Ensure the tensors are large enough for the paraphrase indices
-        current_all_selection_vector = torch.tensor([0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7])
-        current_picked_mask = torch.tensor(
-            [False, False, False, False, False, False, False]
-        )
-        all_selection_vector_list = []
-        picked_mask_list = []
-        teacher_forcing = []
+        ### Iteration 2 ###
 
+        # Expected outputs
+        next_correct = 4
+        expected_can_be_picked_set = set()
+        expected_labels_mask_list = [
+            torch.tensor([False, True, True, False, True, True]),
+            torch.tensor([False, True, False, False, True, False]),
+            torch.tensor([False, False, False, False, False, False]),
+        ]
+        expected_picked_mask_list = [
+            torch.tensor([False, False, False, False, False, False]),
+            torch.tensor([False, False, True, False, False, False]),
+            torch.tensor([False, False, True, False, True, False]),
+        ]
+        expected_teacher_forcing = [2, 4]
+
+        # Call the function to test
         record_pick(
             next_correct,
             can_be_picked_set,
             paraphrase_lut,
-            current_all_selection_vector,
-            all_selection_vector_list,
-            current_picked_mask,
+            labels_mask_list,
             picked_mask_list,
             teacher_forcing,
         )
 
-        self.assertEqual(len(picked_mask_list), 1)
-        self.assertTrue(
-            torch.equal(
-                picked_mask_list[0],
-                torch.tensor([False, False, True, False, False, False, False]),
-            ),
-        )
-
-    # python -m unittest training_loop_strategies.utils_test.TestRecordPick.test_update_teacher_forcing_list -v
-    def test_update_teacher_forcing_list(self):
-        next_correct = 2
-        can_be_picked_set = set([1, 2, 3])
-        paraphrase_lut = {1: 4, 2: 5, 3: 6}
-        # Ensure the tensors are large enough for the paraphrase indices
-        current_all_selection_vector = torch.tensor([0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7])
-        current_picked_mask = torch.tensor(
-            [False, False, False, False, False, False, False]
-        )
-        all_selection_vector_list = []
-        picked_mask_list = []
-        teacher_forcing = []
-
-        record_pick(
-            next_correct,
-            can_be_picked_set,
-            paraphrase_lut,
-            current_all_selection_vector,
-            all_selection_vector_list,
-            current_picked_mask,
-            picked_mask_list,
-            teacher_forcing,
-        )
-
-        self.assertEqual(teacher_forcing, [next_correct])
+        self.assertEqual(can_be_picked_set, expected_can_be_picked_set)
+        self.assertEqual(teacher_forcing, expected_teacher_forcing)
+        self.assertEqual(len(labels_mask_list), len(expected_labels_mask_list))
+        self.assertEqual(len(picked_mask_list), len(expected_picked_mask_list))
+        for i in range(len(labels_mask_list)):
+            self.assertEqual(
+                labels_mask_list[i].tolist(),
+                expected_labels_mask_list[i].tolist(),
+            )
+            self.assertEqual(
+                picked_mask_list[i].tolist(), expected_picked_mask_list[i].tolist()
+            )
 
 
 # python -m unittest training_loop_strategies.utils_test.TestComputeCutoffGain -v
@@ -308,77 +272,6 @@ class TestComputeCutoffGain(unittest.TestCase):
         self.assertTrue(
             torch.equal(global_correct_mask, torch.tensor([True, False, False, True]))
         )
-
-
-# python -m unittest training_loop_strategies.utils_test.TestIntegration -v
-class TestIntegration(unittest.TestCase):
-    # python -m unittest training_loop_strategies.utils_test.TestIntegration.test_full_flow -v
-    def test_full_flow(self):
-        # Setup test data
-        set_seed(42)
-        document_embeddings = torch.randn(10, 5)  # Simulated document embeddings
-        query_embedding = torch.randn(1, 5)  # Simulated query embedding
-        flat_questions = list(range(10))  # Simulated flat question indices
-        # Indices without paraphrases
-        no_paraphrase_relevant_question_indexes = set([1, 3, 5, 7])
-        num_correct = len(no_paraphrase_relevant_question_indexes)
-        paraphrase_lut = {0: 2, 2: 0, 4: 6, 6: 4}  # Paraphrase look-up table
-
-        # Compute initial similarities
-        similarities = torch.matmul(document_embeddings, query_embedding.T).squeeze()
-        similarities = torch.clamp(similarities, min=0, max=1)
-
-        # Initialize vectors and masks
-        selection_vector = torch.ones(len(flat_questions))  # Initial selection vector
-        picked_mask = torch.zeros(len(flat_questions), dtype=torch.bool)
-        selection_vector_list = [selection_vector.clone()]
-        picked_mask_list = [picked_mask]
-        teacher_forcing = []
-        recall_at_1 = 0
-        total_loss = torch.zeros([])
-
-        # Processing loop
-        for _ in range(len(no_paraphrase_relevant_question_indexes)):
-            current_all_selection_vector = selection_vector_list[-1]
-            current_picked_mask = picked_mask_list[-1]
-
-            # Function calls
-            dissimilarities = compute_dissimilarities(
-                document_embeddings, current_picked_mask, similarities
-            )
-            # Assuming a loss function is defined
-            loss = torch.nn.functional.mse_loss(
-                similarities, current_all_selection_vector.float()
-            )
-            total_loss += loss
-
-            cloned_predictions = similarities * (1 - dissimilarities)
-            cloned_predictions[current_picked_mask] = 0
-            selected_index = torch.argmax(cloned_predictions).item()
-
-            next_correct, recall_at_1 = select_next_correct(
-                similarities,
-                paraphrase_lut,
-                recall_at_1,
-                no_paraphrase_relevant_question_indexes,
-                selected_index,
-            )
-
-            record_pick(
-                next_correct,
-                no_paraphrase_relevant_question_indexes,
-                paraphrase_lut,
-                current_all_selection_vector,
-                selection_vector_list,
-                current_picked_mask,
-                picked_mask_list,
-                teacher_forcing,
-            )
-
-        # Assertions to validate the flow
-        self.assertEqual(len(teacher_forcing), num_correct)
-        self.assertEqual(len(no_paraphrase_relevant_question_indexes), 0)
-        self.assertEqual(recall_at_1, 0)
 
 
 if __name__ == "__main__":

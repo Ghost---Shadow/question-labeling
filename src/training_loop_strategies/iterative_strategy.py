@@ -97,9 +97,7 @@ def train_step(config, scaler, wrapped_model, optimizer, batch, loss_fn):
                     next_correct,
                     can_be_picked_set,
                     paraphrase_lut,
-                    current_all_labels_mask,
                     labels_mask_list,
-                    current_picked_mask,
                     picked_mask_list,
                     teacher_forcing,
                 )
@@ -225,9 +223,7 @@ def eval_step(config, scaler, wrapped_model, optimizer, batch, loss_fn):
                     next_correct,
                     can_be_picked_set,
                     paraphrase_lut,
-                    current_all_labels_mask,
                     labels_mask_list,
-                    current_picked_mask,
                     picked_mask_list,
                     teacher_forcing,
                 )

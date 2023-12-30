@@ -94,9 +94,7 @@ def record_pick(
     next_correct,
     can_be_picked_set,
     paraphrase_lut,
-    current_all_selection_vector,
-    all_selection_vector_list,
-    current_picked_mask,
+    labels_mask_list,
     picked_mask_list,
     teacher_forcing,
 ):
@@ -110,11 +108,13 @@ def record_pick(
     elif paraphrase_index in can_be_picked_set:
         can_be_picked_set.remove(paraphrase_index)
 
-    next_all_selection_vector = current_all_selection_vector.clone()
-    next_all_selection_vector[next_correct] = False
-    next_all_selection_vector[paraphrase_index] = False
-    all_selection_vector_list.append(next_all_selection_vector)
+    current_all_labels_mask = labels_mask_list[-1]
+    next_all_labels_mask = current_all_labels_mask.clone()
+    next_all_labels_mask[next_correct] = False
+    next_all_labels_mask[paraphrase_index] = False
+    labels_mask_list.append(next_all_labels_mask)
 
+    current_picked_mask = picked_mask_list[-1]
     next_picked_mask = current_picked_mask.clone()
     next_picked_mask[next_correct] = True
     picked_mask_list.append(next_picked_mask)
