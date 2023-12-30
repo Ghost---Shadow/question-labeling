@@ -1,5 +1,5 @@
 import unittest
-from dataloaders.hotpot_qa_with_q_loader import get_train_loader, get_validation_loader
+from dataloaders.hotpot_qa_loader import get_train_loader, get_validation_loader
 from tqdm import tqdm
 from train_utils import set_seed
 import numpy as np
@@ -19,22 +19,22 @@ class TestHotpotQaLoader(unittest.TestCase):
 
         # Train loader
         batch = next(iter(train_loader))
-        expected = 'Who is the director of the upcoming Candian drama film in which the actress who made her film début as the love interest in Wes Anderson\'s "The Darjeeling Limited" is starring?'
+        expected = "The  Atlantic Islands of Galicia National Park and the Timanfaya National Park are the properties of what country?"
         actual = batch["questions"][0]
         assert actual == expected, actual
 
         expected = [
-            "The Death and Life of John F. Donovan is an upcoming Canadian drama film, co-written, co-produced and directed by Xavier Dolan in his English-language debut.",
-            " It stars Kit Harington, Natalie Portman, Jessica Chastain, Susan Sarandon, Kathy Bates, Jacob Tremblay, Ben Schnetzer, Thandie Newton, Amara Karan, Chris Zylka, Jared Keeso, Emily Hampshire and Michael Gambon.",
-            'Amara Karan (born 1984) is a Sri Lankan-English actress who made her film début as the love interest in Wes Anderson\'s "The Darjeeling Limited".',
+            'The Atlantic Islands of Galicia National Park (Galician: "Parque Nacional das Illas Atlánticas de Galicia" , Spanish: "Parque Nacional de las Islas Atlánticas de Galicia" ) is the only national park located in the autonomous community of Galicia, Spain.',
+            'Timanfaya National Park (Spanish: "Parque Nacional de Timanfaya" ) is a Spanish national park in the southwestern part of the island of Lanzarote, Canary Islands.',
         ]
         actual = list(
             np.array(batch["flat_sentences"][0])[batch["relevant_sentence_indexes"][0]]
         )
         assert expected == actual, actual
-        assert sum(batch["selection_vector"][0]) == len(
-            batch["relevant_question_indexes"][0]
+        actual = list(
+            np.array(batch["flat_sentences"][0])[batch["selection_vector"][0]]
         )
+        assert expected == actual, actual
 
         # Validation loader
         batch = next(iter(val_loader))
@@ -48,6 +48,11 @@ class TestHotpotQaLoader(unittest.TestCase):
         ]
         actual = list(
             np.array(batch["flat_sentences"][0])[batch["relevant_sentence_indexes"][0]]
+        )
+        assert expected == actual, actual
+        assert len(batch["flat_sentences"][0]) == len(batch["selection_vector"][0])
+        actual = list(
+            np.array(batch["flat_sentences"][0])[batch["selection_vector"][0]]
         )
         assert expected == actual, actual
 

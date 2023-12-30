@@ -9,11 +9,11 @@ def collate_fn(batch):
     batch_flat_sentences = []
     batch_relevant_sentence_indexes = []
     batch_selection_vector = []
-    batch_flag_for_error = []
+    # batch_flag_for_error = []
 
     for item in batch:
         # https://github.com/hotpotqa/hotpot/issues/47
-        flag_for_error = False
+        # flag_for_error = False
         question = item["question"]
         flat_sentences = []
 
@@ -36,25 +36,25 @@ def collate_fn(batch):
             if key in index_lut:
                 flat_index = index_lut[key]
                 relevant_sentence_indexes.append(flat_index)
-            else:
-                flag_for_error = True
+            # else:
+            #     flag_for_error = True
 
-        selection_vector = [0] * len(flat_sentences)
+        selection_vector = [False] * len(flat_sentences)
         for index in relevant_sentence_indexes:
-            selection_vector[index] = 1
+            selection_vector[index] = True
 
         batch_questions.append(question)
         batch_flat_sentences.append(flat_sentences)
         batch_relevant_sentence_indexes.append(relevant_sentence_indexes)
         batch_selection_vector.append(selection_vector)
-        batch_flag_for_error.append(flag_for_error)
+        # batch_flag_for_error.append(flag_for_error)
 
     return {
         "questions": batch_questions,
         "flat_sentences": batch_flat_sentences,
         "relevant_sentence_indexes": batch_relevant_sentence_indexes,
         "selection_vector": batch_selection_vector,
-        "flag_for_error": batch_flag_for_error,
+        # "flag_for_error": batch_flag_for_error,
     }
 
 

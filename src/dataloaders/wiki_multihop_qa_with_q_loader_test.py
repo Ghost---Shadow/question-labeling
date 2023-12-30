@@ -22,15 +22,15 @@ class TestWikiMultihopQaWithQLoader(unittest.TestCase):
 
         # Train loader
         batch = next(iter(train_loader))
-        expected = "Do both directors of films Blücher (film) and The Good Old Soak have the same nationality?"
+        expected = "Are director of film All Square and director of film The Prize Fighter both from the same country?"
         actual = batch["questions"][0]
         assert actual == expected, actual
 
         expected = [
-            "The Good Old Soak is a 1937 drama film starring Wallace Beery and directed by J. Walter Ruben from a screenplay by A. E. Thomas based upon the stage play of the same name by Don Marquis.",
-            "Blücher is a 1988 Norwegian thriller film directed by Oddvar Bull Tuhus, starring Helge Jordal, Frank Krog and Hege Schøyen.",
-            "Jacob Walter Ruben( August 14, 1899 – September 4, 1942) was an American screenwriter, film director and producer.",
-            "Oddvar Bull Tuhus( born 14 December 1940) is a Norwegian film director, script writer and television worker.",
+            "All Square is a 2018 American drama film directed by John Hyams.",
+            "Directed by Michael Preece, it was written by Tim Conway and John Myhers, based on a story by Conway.",
+            'John Hyams is an American screenwriter, director and cinematographer, best known for his involvement in the" Universal Soldier" series, for which he has directed two installments.',
+            'Michael Preece( born September 15, 1936) is an American film and television director, script supervisor, producer, and actor best known for directing television series" Dallas" and" Walker, Texas Ranger" and films" The Prize Fighter" and.',
         ]
         actual = list(
             np.array(batch["flat_sentences"][0])[batch["relevant_sentence_indexes"][0]]
@@ -41,14 +41,14 @@ class TestWikiMultihopQaWithQLoader(unittest.TestCase):
         )
 
         expected = [
-            "What is the plot of The Good Old Soak and who are the main actors and director involved in the film?",
-            "What is the plot of the Norwegian thriller film Blücher?",
-            "What were some notable films directed or produced by Jacob Walter Ruben?",
-            "What is Oddvar Bull Tuhus known for in the entertainment industry?",
-            "Can you provide a summary of the storyline in The Good Old Soak and share the names of the lead actors and director associated with the movie?",
-            "Can you provide a summary of the storyline in the Norwegian thriller movie Blücher?",
-            "Which films directed or produced by Jacob Walter Ruben were noteworthy?",
-            "What is Oddvar Bull Tuhus famous for in the entertainment field?",
+            'Who directed the 2018 American drama film "All Square"?',
+            "Who directed the film and who wrote the screenplay for it?",
+            "What is John Hyams best known for in his career as a filmmaker?",
+            "What are some of Michael Preece's notable works as a director, script supervisor, producer, and actor?",
+            'Which filmmaker was in charge of directing the American drama film "All Square" released in 2018?',
+            "Who was the director of the film and who was responsible for writing the screenplay?",
+            "What is John Hyams most notable achievement as a filmmaker?",
+            "Which works by Michael Preece stand out in his career as a director, script supervisor, producer, and actor?",
         ]
         actual = list(
             np.array(batch["flat_questions"][0])[batch["relevant_question_indexes"][0]]
@@ -57,22 +57,27 @@ class TestWikiMultihopQaWithQLoader(unittest.TestCase):
 
         paraphrase_lut = batch["paraphrase_lut"][0]
         flat_questions = batch["flat_questions"][0]
+        selection_vector = batch["selection_vector"][0]
+        actual = list(np.array(flat_questions)[selection_vector])
+        assert len(flat_questions) == len(selection_vector)
+        assert set(expected) == set(actual), actual
+
         expected = [
             [
-                "What is the plot of The Good Old Soak and who are the main actors and director involved in the film?",
-                "Can you provide a summary of the storyline in The Good Old Soak and share the names of the lead actors and director associated with the movie?",
+                'Who directed the 2018 American drama film "All Square"?',
+                'Which filmmaker was in charge of directing the American drama film "All Square" released in 2018?',
             ],
             [
-                "What is the plot of the Norwegian thriller film Blücher?",
-                "Can you provide a summary of the storyline in the Norwegian thriller movie Blücher?",
+                "Who directed the film and who wrote the screenplay for it?",
+                "Who was the director of the film and who was responsible for writing the screenplay?",
             ],
             [
-                "What were some notable films directed or produced by Jacob Walter Ruben?",
-                "Which films directed or produced by Jacob Walter Ruben were noteworthy?",
+                "What is John Hyams best known for in his career as a filmmaker?",
+                "What is John Hyams most notable achievement as a filmmaker?",
             ],
             [
-                "What is Oddvar Bull Tuhus known for in the entertainment industry?",
-                "What is Oddvar Bull Tuhus famous for in the entertainment field?",
+                "What are some of Michael Preece's notable works as a director, script supervisor, producer, and actor?",
+                "Which works by Michael Preece stand out in his career as a director, script supervisor, producer, and actor?",
             ],
         ]
         for (expected_left, expected_right), (key_left, key_right) in zip(
@@ -110,6 +115,10 @@ class TestWikiMultihopQaWithQLoader(unittest.TestCase):
             np.array(batch["flat_questions"][0])[batch["relevant_question_indexes"][0]]
         )
         assert expected == actual, actual
+        actual = list(
+            np.array(batch["flat_questions"][0])[batch["selection_vector"][0]]
+        )
+        assert set(expected) == set(actual), actual
 
         paraphrase_lut = batch["paraphrase_lut"][0]
         flat_questions = batch["flat_questions"][0]

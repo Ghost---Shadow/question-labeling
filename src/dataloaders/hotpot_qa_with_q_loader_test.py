@@ -19,33 +19,31 @@ class TestHotpotQaWithQaLoader(unittest.TestCase):
 
         # Train loader
         batch = next(iter(train_loader))
-        expected = 'Who is the director of the upcoming Candian drama film in which the actress who made her film début as the love interest in Wes Anderson\'s "The Darjeeling Limited" is starring?'
+        expected = "Who was born first, William March or Richard Brautigan?"
         actual = batch["questions"][0]
         assert actual == expected, actual
 
         expected = [
-            "The Death and Life of John F. Donovan is an upcoming Canadian drama film, co-written, co-produced and directed by Xavier Dolan in his English-language debut.",
-            " It stars Kit Harington, Natalie Portman, Jessica Chastain, Susan Sarandon, Kathy Bates, Jacob Tremblay, Ben Schnetzer, Thandie Newton, Amara Karan, Chris Zylka, Jared Keeso, Emily Hampshire and Michael Gambon.",
-            'Amara Karan (born 1984) is a Sri Lankan-English actress who made her film début as the love interest in Wes Anderson\'s "The Darjeeling Limited".',
+            "William March (September 18, 1893 – May 15, 1954) was an American writer of psychological fiction and a highly decorated US Marine.",
+            "Richard Gary Brautigan (January 30, 1935 – ca.",
         ]
         actual = list(
             np.array(batch["flat_sentences"][0])[batch["relevant_sentence_indexes"][0]]
         )
         assert expected == actual, actual
-        assert sum(batch["selection_vector"][0]) == len(
-            batch["relevant_question_indexes"][0]
-        )
 
         expected = [
-            "Who is the director of the upcoming Canadian drama film, The Death and Life of John F. Donovan?",
-            "Who are some of the actors starring in the film mentioned in the passage?",
-            "What was Amara Karan's first film role and in which movie did she make her debut?",
-            "Who will be directing the Canadian drama film, The Death and Life of John F. Donovan?",
-            "Which actors are mentioned in the passage as starring in the film?",
-            "In which movie did Amara Karan make her first film appearance and what was her initial role?",
+            "What were some notable achievements of William March as both a writer and a US Marine?",
+            "What is the significance of Richard Brautigan's work in the literary world?",
+            "What were some significant accomplishments of William March in his roles as a writer and a member of the US Marine Corps?",
+            "Why is Richard Brautigan's work important in the field of literature?",
         ]
         actual = list(
             np.array(batch["flat_questions"][0])[batch["relevant_question_indexes"][0]]
+        )
+        assert expected == actual, actual
+        actual = list(
+            np.array(batch["flat_questions"][0])[batch["selection_vector"][0]]
         )
         assert expected == actual, actual
 
@@ -53,16 +51,12 @@ class TestHotpotQaWithQaLoader(unittest.TestCase):
         flat_questions = batch["flat_questions"][0]
         expected = [
             [
-                "Who is the director of the upcoming Canadian drama film, The Death and Life of John F. Donovan?",
-                "Who will be directing the Canadian drama film, The Death and Life of John F. Donovan?",
+                "What were some notable achievements of William March as both a writer and a US Marine?",
+                "What were some significant accomplishments of William March in his roles as a writer and a member of the US Marine Corps?",
             ],
             [
-                "Who are some of the actors starring in the film mentioned in the passage?",
-                "Which actors are mentioned in the passage as starring in the film?",
-            ],
-            [
-                "What was Amara Karan's first film role and in which movie did she make her debut?",
-                "In which movie did Amara Karan make her first film appearance and what was her initial role?",
+                "What is the significance of Richard Brautigan's work in the literary world?",
+                "Why is Richard Brautigan's work important in the field of literature?",
             ],
         ]
         for (expected_left, expected_right), (key_left, key_right) in zip(
@@ -96,6 +90,10 @@ class TestHotpotQaWithQaLoader(unittest.TestCase):
         ]
         actual = list(
             np.array(batch["flat_questions"][0])[batch["relevant_question_indexes"][0]]
+        )
+        assert expected == actual, actual
+        actual = list(
+            np.array(batch["flat_questions"][0])[batch["selection_vector"][0]]
         )
         assert expected == actual, actual
 

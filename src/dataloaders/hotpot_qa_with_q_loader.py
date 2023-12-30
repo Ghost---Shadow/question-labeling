@@ -39,7 +39,7 @@ def collate_fn(batch):
         batch_relevant_question_indexes.append(relevant_question_indexes)
 
         # Merge selection vector
-        downstream_selection_vector = [1] * len(paraphrased_questions)
+        downstream_selection_vector = [True] * len(paraphrased_questions)
         selection_vector = [*upstream_selection_vector, *downstream_selection_vector]
         batch_selection_vector.append(selection_vector)
 

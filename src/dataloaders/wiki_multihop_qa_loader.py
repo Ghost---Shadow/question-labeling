@@ -37,9 +37,9 @@ def collate_fn(batch):
                 # All rows should be clean
                 assert False, item
 
-        selection_vector = [0] * len(flat_sentences)
+        selection_vector = [False] * len(flat_sentences)
         for index in relevant_sentence_indexes:
-            selection_vector[index] = 1
+            selection_vector[index] = True
 
         batch_questions.append(question)
         batch_flat_sentences.append(flat_sentences)
