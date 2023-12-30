@@ -50,7 +50,8 @@ def validate_one_epoch(
             inference_time = time.time() - start_time
             total_inference_time += inference_time
 
-            if debug and len(all_metrics) == 5:
+            if debug and len(all_metrics) >= 5:
+                # if len(all_metrics) >= 5:
                 break
 
     average_inference_time = total_inference_time / len(all_metrics)
@@ -106,6 +107,7 @@ def train_one_epoch(
 
         num_steps += 1
         if debug and num_steps >= 5:
+            # if num_steps >= 5:
             break
 
     return total_loss / num_steps

@@ -2,6 +2,7 @@ import torch
 from torch.cuda.amp import autocast
 from training_loop_strategies.utils import (
     average_metrics,
+    compute_cutoff_gain,
     compute_dissimilarities,
     record_pick,
     select_next_correct,
@@ -57,6 +58,7 @@ def train_step(config, scaler, wrapped_model, optimizer, batch, loss_fn):
             selection_vector_list = [selection_vector.clone()]
             picked_mask_list = [picked_mask]
             teacher_forcing = []
+            cutoff_gains = []
             recall_at_1 = 0
 
             can_be_picked_set = set(no_paraphrase_relevant_question_indexes)
@@ -104,12 +106,25 @@ def train_step(config, scaler, wrapped_model, optimizer, batch, loss_fn):
                     teacher_forcing,
                 )
 
+                cutoff_gains.append(
+                    compute_cutoff_gain(
+                        predictions,
+                        selection_vector_list[0].clone(),
+                        current_picked_mask,
+                        paraphrase_lut,
+                    )
+                )
+
         scaler.scale(total_loss).backward()
+
+        cutoff_gains = torch.tensor(cutoff_gains)
 
         all_metrics.append(
             {
                 "loss": (total_loss / num_correct_answers).item(),
                 "recall_at_1": recall_at_1 / num_correct_answers,
+                "cutoff_gain_mean": cutoff_gains.mean(),
+                "cutoff_gain_std": cutoff_gains.std(),
             }
         )
 
@@ -167,6 +182,7 @@ def eval_step(config, scaler, wrapped_model, optimizer, batch, loss_fn):
             selection_vector_list = [selection_vector.clone()]
             picked_mask_list = [picked_mask]
             teacher_forcing = []
+            cutoff_gains = []
             recall_at_1 = 0
 
             can_be_picked_set = set(no_paraphrase_relevant_question_indexes)
@@ -214,10 +230,23 @@ def eval_step(config, scaler, wrapped_model, optimizer, batch, loss_fn):
                     teacher_forcing,
                 )
 
+                cutoff_gains.append(
+                    compute_cutoff_gain(
+                        predictions,
+                        selection_vector_list[0].clone(),
+                        current_picked_mask,
+                        paraphrase_lut,
+                    )
+                )
+
+            cutoff_gains = torch.tensor(cutoff_gains)
+
             all_metrics.append(
                 {
                     "loss": (total_loss / num_correct_answers).item(),
                     "recall_at_1": recall_at_1 / num_correct_answers,
+                    "cutoff_gain_mean": cutoff_gains.mean(),
+                    "cutoff_gain_std": cutoff_gains.std(),
                 }
             )
 
