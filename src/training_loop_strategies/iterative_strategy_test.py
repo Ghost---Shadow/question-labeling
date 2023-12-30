@@ -1,5 +1,5 @@
 import unittest
-from dataloaders.hotpot_qa_with_q_loader import get_loader
+from dataloaders.hotpot_qa_with_q_loader import get_train_loader, get_validation_loader
 from losses.triplet_loss import TripletLoss
 import torch.optim as optim
 from models.wrapped_sentence_transformer import WrappedSentenceTransformerModel
@@ -23,13 +23,14 @@ class TestTrainStepMixedPrecision(unittest.TestCase):
                     "device": "cuda:0",
                 },
             },
+            "eval": {"k": [1, 5, 10]},
         }
         wrapped_model = WrappedSentenceTransformerModel(config)
         optimizer = optim.AdamW(wrapped_model.model.parameters(), lr=1e-5)
 
         batch_size = 2
 
-        train_loader, _ = get_loader(batch_size)
+        train_loader = get_train_loader(batch_size)
 
         batch = next(iter(train_loader))
         loss_fn = TripletLoss(config)
@@ -54,13 +55,13 @@ class TestEvalStep(unittest.TestCase):
                     "device": "cuda:0",
                 }
             },
-            # "eval": {"k": [1, 2]},
+            "eval": {"k": [1, 5, 10]},
         }
         wrapped_model = WrappedSentenceTransformerModel(config)
 
         batch_size = 2
 
-        _, eval_loader = get_loader(batch_size)
+        eval_loader = get_validation_loader(batch_size)
 
         batch = next(iter(eval_loader))
         loss_fn = TripletLoss(config)
@@ -84,14 +85,14 @@ class TestTrainStep(unittest.TestCase):
                     "device": "cuda:0",
                 },
             },
-            # "eval": {"k": [1, 2]},
+            "eval": {"k": [1, 5, 10]},
         }
         wrapped_model = WrappedSentenceTransformerModel(config)
         optimizer = optim.AdamW(wrapped_model.model.parameters(), lr=1e-5)
 
         batch_size = 2
 
-        train_loader, _ = get_loader(batch_size)
+        train_loader = get_train_loader(batch_size)
 
         batch = next(iter(train_loader))
         loss_fn = TripletLoss(config)

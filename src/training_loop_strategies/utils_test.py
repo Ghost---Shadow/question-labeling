@@ -4,6 +4,7 @@ from train_utils import set_seed
 from training_loop_strategies.utils import (
     compute_cutoff_gain,
     compute_dissimilarities,
+    compute_search_metrics,
     record_pick,
     select_next_correct,
 )
@@ -37,39 +38,23 @@ class TestSelectNextCorrect(unittest.TestCase):
     def test_correct_selection_from_can_be_picked_set(self):
         similarities = torch.tensor([0.1, 0.4, 0.35])
         paraphrase_lut = {0: 2, 1: 0, 2: 1}
-        recall_at_1 = 0
         can_be_picked_set = set([1])
         selected_index = 1
 
-        next_correct, updated_recall = select_next_correct(
-            similarities, paraphrase_lut, recall_at_1, can_be_picked_set, selected_index
+        next_correct = select_next_correct(
+            similarities, paraphrase_lut, can_be_picked_set, selected_index
         )
 
         self.assertEqual(next_correct, selected_index)
-        self.assertEqual(updated_recall, recall_at_1 + 1)
-
-    def test_update_recall_at_1(self):
-        similarities = torch.tensor([0.1, 0.2, 0.3])
-        paraphrase_lut = {0: 1, 1: 2, 2: 0}
-        recall_at_1 = 5
-        can_be_picked_set = set([1, 2])
-        selected_index = 0  # Paraphrase of 0 is 1, which is in can_be_picked_set
-
-        _, updated_recall = select_next_correct(
-            similarities, paraphrase_lut, recall_at_1, can_be_picked_set, selected_index
-        )
-
-        self.assertEqual(updated_recall, recall_at_1 + 1)
 
     def test_selection_using_similarities(self):
         similarities = torch.tensor([0.1, 0.7, 0.6])
         paraphrase_lut = {}
-        recall_at_1 = 0
         can_be_picked_set = set([1, 2])
         selected_index = 0  # Not in can_be_picked_set
 
-        next_correct, _ = select_next_correct(
-            similarities, paraphrase_lut, recall_at_1, can_be_picked_set, selected_index
+        next_correct = select_next_correct(
+            similarities, paraphrase_lut, can_be_picked_set, selected_index
         )
 
         self.assertEqual(next_correct, 1)  # Highest similarity in can_be_picked_set
@@ -77,12 +62,11 @@ class TestSelectNextCorrect(unittest.TestCase):
     def test_edge_case_for_argmax_zero(self):
         similarities = torch.tensor([0.0, 0.0, 0.0])
         paraphrase_lut = {}
-        recall_at_1 = 0
         can_be_picked_set = set([2])
         selected_index = 0
 
-        next_correct, _ = select_next_correct(
-            similarities, paraphrase_lut, recall_at_1, can_be_picked_set, selected_index
+        next_correct = select_next_correct(
+            similarities, paraphrase_lut, can_be_picked_set, selected_index
         )
 
         self.assertEqual(next_correct, 2)  # Falls back to first in can_be_picked_set
@@ -90,16 +74,54 @@ class TestSelectNextCorrect(unittest.TestCase):
     def test_function_with_various_inputs(self):
         similarities = torch.tensor([0.5, 0.2, 0.8])
         paraphrase_lut = {0: 2, 2: 0}
-        recall_at_1 = 3
         can_be_picked_set = set([0, 1])
         selected_index = 2  # Paraphrase of 2 is 0, which is in can_be_picked_set
 
-        next_correct, updated_recall = select_next_correct(
-            similarities, paraphrase_lut, recall_at_1, can_be_picked_set, selected_index
+        next_correct = select_next_correct(
+            similarities, paraphrase_lut, can_be_picked_set, selected_index
         )
 
         self.assertEqual(next_correct, 2)
-        self.assertEqual(updated_recall, recall_at_1 + 1)
+
+
+# python -m unittest training_loop_strategies.utils_test.TestSearchMetrics -v
+class TestSearchMetrics(unittest.TestCase):
+    def test_compute_search_metrics(self):
+        # Mock Config
+        config = {"eval": {"k": [1, 2, 3]}}
+
+        # Mock Predictions (Tensor)
+        predictions = torch.tensor([0.9, 0.8, 0.1, 0.4, 0.2])
+
+        # Mock Paraphrase Lookup Table
+        paraphrase_lut = {1: 3, 2: 4}
+
+        # Mock Set of Relevant Documents
+        can_be_picked_set = {0, 3}
+
+        # Expected Results
+        expected_metrics = {
+            "recall_at_1": 0.5,
+            "precision_at_1": 1.0,
+            "f1_at_1": 0.6666666666666666,
+            "recall_at_2": 1.0,
+            "precision_at_2": 1.0,
+            "f1_at_2": 1.0,
+            "recall_at_3": 1.0,
+            "precision_at_3": 0.6666666666666666,
+            "f1_at_3": 0.8,
+        }
+
+        # Run the function
+        actual_metrics = compute_search_metrics(
+            config, predictions, paraphrase_lut, can_be_picked_set
+        )
+
+        # Assert the results
+        for key in expected_metrics:
+            self.assertAlmostEqual(
+                expected_metrics[key], actual_metrics[key], msg=key, places=2
+            )
 
 
 # python -m unittest training_loop_strategies.utils_test.TestRecordPick -v

@@ -20,26 +20,69 @@ def compute_dissimilarities(document_embeddings, current_picked_mask, similariti
     return dissimilarities
 
 
-def select_next_correct(
-    similarities, paraphrase_lut, recall_at_1, can_be_picked_set, selected_index
-):
+def select_next_correct(predictions, paraphrase_lut, can_be_picked_set, selected_index):
     if (
         selected_index in can_be_picked_set
         or paraphrase_lut.get(selected_index) in can_be_picked_set
     ):
-        recall_at_1 += 1
         next_correct = selected_index
     else:
-        cloned_similarities = similarities.clone().detach()
-        mask = torch.full(similarities.shape, False)
+        cloned_predictions = predictions.clone().detach()
+        mask = torch.full(predictions.shape, False)
         mask[list(can_be_picked_set)] = True
-        cloned_similarities[~mask] = 0
-        next_correct = torch.argmax(cloned_similarities).item()
+        cloned_predictions[~mask] = 0
+        next_correct = torch.argmax(cloned_predictions).item()
         # Sometimes the probability collapses and argmax returns 0
         if next_correct not in can_be_picked_set:
             next_correct = list(can_be_picked_set)[0]
 
-    return next_correct, recall_at_1
+    return next_correct
+
+
+def compute_search_metrics(config, predictions, paraphrase_lut, can_be_picked_set):
+    new_metrics = {}
+
+    total_relevant_items = len(can_be_picked_set)
+
+    for k in config["eval"]["k"]:
+        # Get the top k indices from the predictions
+        top_k_indices = torch.topk(predictions, k).indices
+
+        # Use a set to track unique relevant documents
+        relevant_documents = set()
+
+        for idx in top_k_indices:
+            idx_int = idx.item()  # Convert to Python integer
+            # Check if the document is relevant
+            if idx_int in can_be_picked_set:
+                relevant_documents.add(idx_int)
+            elif paraphrase_lut.get(idx_int) in can_be_picked_set:
+                relevant_documents.add(paraphrase_lut.get(idx_int))
+
+        relevant_documents_count = len(relevant_documents)
+
+        # Compute recall and precision at k
+        recall_at_k = (
+            relevant_documents_count / total_relevant_items
+            if total_relevant_items > 0
+            else 0
+        )
+        precision_at_k = relevant_documents_count / k
+
+        # Compute F1 score
+        if precision_at_k + recall_at_k > 0:
+            f1_at_k = (
+                2 * (precision_at_k * recall_at_k) / (precision_at_k + recall_at_k)
+            )
+        else:
+            f1_at_k = 0
+
+        # Update the metrics dictionary
+        new_metrics[f"recall_at_{k}"] = recall_at_k
+        new_metrics[f"precision_at_{k}"] = precision_at_k
+        new_metrics[f"f1_at_{k}"] = f1_at_k
+
+    return new_metrics
 
 
 def record_pick(

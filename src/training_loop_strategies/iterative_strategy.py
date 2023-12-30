@@ -4,6 +4,7 @@ from training_loop_strategies.utils import (
     average_metrics,
     compute_cutoff_gain,
     compute_dissimilarities,
+    compute_search_metrics,
     record_pick,
     select_next_correct,
 )
@@ -59,7 +60,7 @@ def train_step(config, scaler, wrapped_model, optimizer, batch, loss_fn):
             picked_mask_list = [picked_mask]
             teacher_forcing = []
             cutoff_gains = []
-            recall_at_1 = 0
+            search_metrics = []
 
             can_be_picked_set = set(no_paraphrase_relevant_question_indexes)
             num_correct_answers = len(can_be_picked_set)
@@ -87,10 +88,9 @@ def train_step(config, scaler, wrapped_model, optimizer, batch, loss_fn):
                 cloned_predictions[current_picked_mask] = 0
                 selected_index = torch.argmax(cloned_predictions).item()
 
-                next_correct, recall_at_1 = select_next_correct(
+                next_correct = select_next_correct(
                     similarities,
                     paraphrase_lut,
-                    recall_at_1,
                     can_be_picked_set,
                     selected_index,
                 )
@@ -115,16 +115,27 @@ def train_step(config, scaler, wrapped_model, optimizer, batch, loss_fn):
                     )
                 )
 
+                search_metrics.append(
+                    compute_search_metrics(
+                        config,
+                        predictions,
+                        paraphrase_lut,
+                        can_be_picked_set,
+                    )
+                )
+
         scaler.scale(total_loss).backward()
 
         cutoff_gains = torch.tensor(cutoff_gains)
 
+        search_metrics = average_metrics(search_metrics)
+
         all_metrics.append(
             {
                 "loss": (total_loss / num_correct_answers).item(),
-                "recall_at_1": recall_at_1 / num_correct_answers,
-                "cutoff_gain_mean": cutoff_gains.mean(),
-                "cutoff_gain_std": cutoff_gains.std(),
+                **search_metrics,
+                "cutoff_gain_mean": cutoff_gains.mean().item(),
+                "cutoff_gain_std": cutoff_gains.std().item(),
             }
         )
 
@@ -183,7 +194,7 @@ def eval_step(config, scaler, wrapped_model, optimizer, batch, loss_fn):
             picked_mask_list = [picked_mask]
             teacher_forcing = []
             cutoff_gains = []
-            recall_at_1 = 0
+            search_metrics = []
 
             can_be_picked_set = set(no_paraphrase_relevant_question_indexes)
             num_correct_answers = len(can_be_picked_set)
@@ -211,10 +222,9 @@ def eval_step(config, scaler, wrapped_model, optimizer, batch, loss_fn):
                 cloned_predictions[current_picked_mask] = 0
                 selected_index = torch.argmax(cloned_predictions).item()
 
-                next_correct, recall_at_1 = select_next_correct(
-                    similarities,
+                next_correct = select_next_correct(
+                    predictions,
                     paraphrase_lut,
-                    recall_at_1,
                     can_be_picked_set,
                     selected_index,
                 )
@@ -239,14 +249,25 @@ def eval_step(config, scaler, wrapped_model, optimizer, batch, loss_fn):
                     )
                 )
 
+                search_metrics.append(
+                    compute_search_metrics(
+                        config,
+                        predictions,
+                        paraphrase_lut,
+                        can_be_picked_set,
+                    )
+                )
+
             cutoff_gains = torch.tensor(cutoff_gains)
+
+            search_metrics = average_metrics(search_metrics)
 
             all_metrics.append(
                 {
                     "loss": (total_loss / num_correct_answers).item(),
-                    "recall_at_1": recall_at_1 / num_correct_answers,
-                    "cutoff_gain_mean": cutoff_gains.mean(),
-                    "cutoff_gain_std": cutoff_gains.std(),
+                    **search_metrics,
+                    "cutoff_gain_mean": cutoff_gains.mean().item(),
+                    "cutoff_gain_std": cutoff_gains.std().item(),
                 }
             )
 
@@ -296,7 +317,8 @@ def train_step_full_precision(config, scaler, wrapped_model, optimizer, batch, l
         selection_vector_list = [selection_vector.clone()]
         picked_mask_list = [picked_mask]
         teacher_forcing = []
-        recall_at_1 = 0
+        search_metrics = []
+        cutoff_gains = []
 
         can_be_picked_set = set(no_paraphrase_relevant_question_indexes)
         num_correct_answers = len(can_be_picked_set)
@@ -324,10 +346,9 @@ def train_step_full_precision(config, scaler, wrapped_model, optimizer, batch, l
             cloned_predictions[current_picked_mask] = 0
             selected_index = torch.argmax(cloned_predictions).item()
 
-            next_correct, recall_at_1 = select_next_correct(
+            next_correct = select_next_correct(
                 similarities,
                 paraphrase_lut,
-                recall_at_1,
                 can_be_picked_set,
                 selected_index,
             )
@@ -343,12 +364,36 @@ def train_step_full_precision(config, scaler, wrapped_model, optimizer, batch, l
                 teacher_forcing,
             )
 
+            cutoff_gains.append(
+                compute_cutoff_gain(
+                    predictions,
+                    selection_vector_list[0].clone(),
+                    current_picked_mask,
+                    paraphrase_lut,
+                )
+            )
+
+            search_metrics.append(
+                compute_search_metrics(
+                    config,
+                    predictions,
+                    paraphrase_lut,
+                    can_be_picked_set,
+                )
+            )
+
         total_loss.backward()
+
+        cutoff_gains = torch.tensor(cutoff_gains)
+
+        search_metrics = average_metrics(search_metrics)
 
         all_metrics.append(
             {
                 "loss": (total_loss / num_correct_answers).item(),
-                "recall_at_1": recall_at_1 / num_correct_answers,
+                **search_metrics,
+                "cutoff_gain_mean": cutoff_gains.mean().item(),
+                "cutoff_gain_std": cutoff_gains.std().item(),
             }
         )
 
