@@ -31,9 +31,7 @@ class TestHotpotQaLoader(unittest.TestCase):
             np.array(batch["flat_sentences"][0])[batch["relevant_sentence_indexes"][0]]
         )
         assert expected == actual, actual
-        actual = list(
-            np.array(batch["flat_sentences"][0])[batch["selection_vector"][0]]
-        )
+        actual = list(np.array(batch["flat_sentences"][0])[batch["labels_mask"][0]])
         assert expected == actual, actual
 
         # Validation loader
@@ -50,10 +48,8 @@ class TestHotpotQaLoader(unittest.TestCase):
             np.array(batch["flat_sentences"][0])[batch["relevant_sentence_indexes"][0]]
         )
         assert expected == actual, actual
-        assert len(batch["flat_sentences"][0]) == len(batch["selection_vector"][0])
-        actual = list(
-            np.array(batch["flat_sentences"][0])[batch["selection_vector"][0]]
-        )
+        assert len(batch["flat_sentences"][0]) == len(batch["labels_mask"][0])
+        actual = list(np.array(batch["flat_sentences"][0])[batch["labels_mask"][0]])
         assert expected == actual, actual
 
     # python -m unittest dataloaders.hotpot_qa_loader_test.TestHotpotQaLoader.test_no_bad_rows -v

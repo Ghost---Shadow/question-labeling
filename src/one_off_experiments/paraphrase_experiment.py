@@ -41,12 +41,12 @@ def load_paraphrased_row():
         flat_index = index_lut[(title, sent_id)]
         relevant_sentence_indexes.append(flat_index)
 
-    selection_vector = [0] * len(flat_questions)
+    labels_mask = [False] * len(flat_questions)
     for index in relevant_sentence_indexes:
-        selection_vector[index] = 1
+        labels_mask[index] = True
 
     flat_questions_paraphrased = item["context"]["questions_paraphrased"]
-    paraphrased_vector = [1] * len(flat_questions_paraphrased)
+    paraphrased_vector = [True] * len(flat_questions_paraphrased)
 
     paraphrase_lut = {}
     for right, left in enumerate(relevant_sentence_indexes):
@@ -55,47 +55,47 @@ def load_paraphrased_row():
         paraphrase_lut[right] = left
 
     all_questions = [*flat_questions, *flat_questions_paraphrased]
-    all_selection_vector = [*selection_vector, *paraphrased_vector]
+    all_labels_mask = [*labels_mask, *paraphrased_vector]
 
-    all_selection_vector = torch.tensor(all_selection_vector, device="cuda:0")
+    all_labels_mask = torch.tensor(all_labels_mask, device="cuda:0")
 
     query = item["question"]
 
-    left_selection_vector = all_selection_vector.clone()
-    left_selection_vector[len(selection_vector) :] = 0
+    left_labels_mask = all_labels_mask.clone()
+    left_labels_mask[len(labels_mask) :] = 0
 
-    right_selection_vector = all_selection_vector.clone()
-    right_selection_vector[: len(selection_vector)] = 0
+    right_labels_mask = all_labels_mask.clone()
+    right_labels_mask[: len(labels_mask)] = 0
 
-    assert left_selection_vector.sum() == right_selection_vector.sum()
+    assert left_labels_mask.sum() == right_labels_mask.sum()
 
-    left_selection_vector = left_selection_vector.bool()
-    right_selection_vector = right_selection_vector.bool()
+    left_labels_mask = left_labels_mask.bool()
+    right_labels_mask = right_labels_mask.bool()
 
-    selection_vectors = (left_selection_vector, right_selection_vector)
+    labels_masks = (left_labels_mask, right_labels_mask)
 
     return (
         query,
         all_questions,
-        all_selection_vector,
+        all_labels_mask,
         relevant_sentence_indexes,
         paraphrase_lut,
-        selection_vectors,
+        labels_masks,
     )
 
 
-def compute_inward_metric(criterion, similarities, selection_vector):
-    metric = criterion(similarities, selection_vector)
+def compute_inward_metric(criterion, similarities, labels_mask):
+    metric = criterion(similarities, labels_mask)
 
     return metric
 
 
-def compute_outward_metric(criterion, document_embeddings, selection_vectors):
-    left_selection_vector, right_selection_vector = selection_vectors
+def compute_outward_metric(criterion, document_embeddings, labels_masks):
+    left_labels_mask, right_labels_mask = labels_masks
 
     # Extract the relevant vectors
-    left_vector = document_embeddings[left_selection_vector]
-    right_vector = document_embeddings[right_selection_vector]
+    left_vector = document_embeddings[left_labels_mask]
+    right_vector = document_embeddings[right_labels_mask]
 
     similarities = torch.matmul(left_vector, right_vector.T)
 
@@ -151,10 +151,10 @@ def train_session(seed, enable_inward, enable_outward, enable_local_inward):
         (
             query,
             all_questions,
-            all_selection_vector,
+            all_labels_mask,
             relevant_sentence_indexes,
             paraphrase_lut,
-            selection_vectors,
+            labels_masks,
         ) = load_paraphrased_row()
 
         query_embedding, document_embeddings = model.get_query_and_document_embeddings(
@@ -166,17 +166,17 @@ def train_session(seed, enable_inward, enable_outward, enable_local_inward):
         teacher_forcing = []
         all_inwards = []
         all_outwards = []
-        all_selection_vector_list = [all_selection_vector.clone()]
+        all_labels_mask_list = [all_labels_mask.clone()]
         picked_mask_list = [picked_mask]
 
         recall_at_1 = 0
 
-        original_all_selection_vector = all_selection_vector_list[0]
+        original_all_labels_mask = all_labels_mask_list[0]
 
         num_correct_answers = len(relevant_sentence_indexes)
         can_be_picked_set = set(relevant_sentence_indexes)
         for _ in range(num_correct_answers):
-            current_all_selection_vector = all_selection_vector_list[-1]
+            current_all_labels_mask = all_labels_mask_list[-1]
             current_picked_mask = picked_mask_list[-1]
 
             similarities = torch.matmul(
@@ -185,12 +185,12 @@ def train_session(seed, enable_inward, enable_outward, enable_local_inward):
             similarities = torch.clamp(similarities, min=0, max=1)
 
             inward = compute_inward_metric(
-                criterion, similarities, original_all_selection_vector
+                criterion, similarities, original_all_labels_mask
             )
             all_inwards.append(inward)
 
             outward = compute_outward_metric(
-                criterion, document_embeddings, selection_vectors
+                criterion, document_embeddings, labels_masks
             )
             all_outwards.append(outward)
 
@@ -199,7 +199,7 @@ def train_session(seed, enable_inward, enable_outward, enable_local_inward):
             )
 
             predictions = similarities * (1 - dissimilarities)
-            labels = current_all_selection_vector.float()
+            labels = current_all_labels_mask.float()
             local_inward = criterion(predictions, labels)
 
             loss = torch.zeros([], device=local_inward.device)
@@ -229,8 +229,8 @@ def train_session(seed, enable_inward, enable_outward, enable_local_inward):
                 next_correct,
                 can_be_picked_set,
                 paraphrase_lut,
-                current_all_selection_vector,
-                all_selection_vector_list,
+                current_all_labels_mask,
+                all_labels_mask_list,
                 current_picked_mask,
                 picked_mask_list,
                 teacher_forcing,

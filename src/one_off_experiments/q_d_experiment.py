@@ -49,10 +49,10 @@ def train_session(seed, enable_quality, enable_diversity):
         (
             query,
             all_questions,
-            all_selection_vector,
+            all_labels_mask,
             relevant_sentence_indexes,
             paraphrase_lut,
-            selection_vectors,
+            labels_masks,
         ) = load_paraphrased_row()
 
         query_embedding, document_embeddings = model.get_query_and_document_embeddings(
@@ -62,7 +62,7 @@ def train_session(seed, enable_quality, enable_diversity):
         picked_mask = torch.zeros(len(all_questions), device=device, dtype=torch.bool)
         num_correct_answers = len(relevant_sentence_indexes)
         can_be_picked_set = set(relevant_sentence_indexes)
-        all_selection_vector_list = [all_selection_vector.clone()]
+        all_labels_mask_list = [all_labels_mask.clone()]
         picked_mask_list = [picked_mask]
         actual_selected_indices = []
         teacher_forcing = []
@@ -75,7 +75,7 @@ def train_session(seed, enable_quality, enable_diversity):
         similarities = torch.clamp(similarities, min=0, max=1)
 
         for _ in range(num_correct_answers):
-            current_all_selection_vector = all_selection_vector_list[-1]
+            current_all_labels_mask = all_labels_mask_list[-1]
             current_picked_mask = picked_mask_list[-1]
 
             dissimilarities = compute_dissimilarities(
@@ -88,13 +88,13 @@ def train_session(seed, enable_quality, enable_diversity):
             if enable_diversity:
                 predictions = predictions * (1 - dissimilarities)
 
-            labels = current_all_selection_vector.float()
+            labels = current_all_labels_mask.float()
             triplet_loss = triplet_loss_fn(predictions, labels)
             total_triplet_loss += triplet_loss
 
             cutoff_gain = compute_cutoff_gain(
                 predictions,
-                all_selection_vector_list[0],
+                all_labels_mask_list[0],
                 current_picked_mask,
                 paraphrase_lut,
             )
@@ -118,8 +118,8 @@ def train_session(seed, enable_quality, enable_diversity):
                 next_correct,
                 can_be_picked_set,
                 paraphrase_lut,
-                current_all_selection_vector,
-                all_selection_vector_list,
+                current_all_labels_mask,
+                all_labels_mask_list,
                 current_picked_mask,
                 picked_mask_list,
                 teacher_forcing,

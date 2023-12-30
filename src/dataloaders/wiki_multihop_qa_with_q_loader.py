@@ -6,17 +6,17 @@ from dataloaders import wiki_multihop_qa_loader
 def collate_fn(batch):
     batch_flat_questions = []
     batch_relevant_question_indexes = []
-    batch_selection_vector = []
+    batch_labels_mask = []
     batch_paraphrase_lut = []
 
     upstream_batch = wiki_multihop_qa_loader.collate_fn(batch)
     batch_upstream_relevant_sentence_indexes = upstream_batch[
         "relevant_sentence_indexes"
     ]
-    batch_upstream_selection_vector = upstream_batch["selection_vector"]
+    batch_upstream_labels_mask = upstream_batch["labels_mask"]
 
-    for item, upstream_relevant_sentence_indexes, upstream_selection_vector in zip(
-        batch, batch_upstream_relevant_sentence_indexes, batch_upstream_selection_vector
+    for item, upstream_relevant_sentence_indexes, upstream_labels_mask in zip(
+        batch, batch_upstream_relevant_sentence_indexes, batch_upstream_labels_mask
     ):
         flat_questions = []
 
@@ -39,9 +39,9 @@ def collate_fn(batch):
         batch_relevant_question_indexes.append(relevant_question_indexes)
 
         # Merge selection vector
-        downstream_selection_vector = [True] * len(paraphrased_questions)
-        selection_vector = [*upstream_selection_vector, *downstream_selection_vector]
-        batch_selection_vector.append(selection_vector)
+        downstream_labels_mask = [True] * len(paraphrased_questions)
+        labels_mask = [*upstream_labels_mask, *downstream_labels_mask]
+        batch_labels_mask.append(labels_mask)
 
         # Paraphrase look up table
         paraphrase_lut = {}
@@ -56,7 +56,7 @@ def collate_fn(batch):
         **upstream_batch,
         "flat_questions": batch_flat_questions,
         "relevant_question_indexes": batch_relevant_question_indexes,
-        "selection_vector": batch_selection_vector,
+        "labels_mask": batch_labels_mask,
         "paraphrase_lut": batch_paraphrase_lut,
     }
 

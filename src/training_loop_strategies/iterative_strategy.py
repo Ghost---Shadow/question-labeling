@@ -27,13 +27,13 @@ def train_step(config, scaler, wrapped_model, optimizer, batch, loss_fn):
     for (
         question,
         flat_questions,
-        selection_vector,
+        labels_mask,
         no_paraphrase_relevant_question_indexes,
         paraphrase_lut,
     ) in zip(
         batch["questions"],
         batch["flat_questions"],
-        batch["selection_vector"],
+        batch["labels_mask"],
         batch["relevant_sentence_indexes"],
         batch["paraphrase_lut"],
     ):
@@ -49,14 +49,12 @@ def train_step(config, scaler, wrapped_model, optimizer, batch, loss_fn):
                 document_embeddings, query_embedding.T
             ).squeeze()
             similarities = torch.clamp(similarities, min=0, max=1)
-            selection_vector = torch.tensor(
-                selection_vector, device=similarities.device
-            )
+            labels_mask = torch.tensor(labels_mask, device=similarities.device)
 
             picked_mask = torch.zeros(
                 len(flat_questions), device=similarities.device, dtype=torch.bool
             )
-            selection_vector_list = [selection_vector.clone()]
+            labels_mask_list = [labels_mask.clone()]
             picked_mask_list = [picked_mask]
             teacher_forcing = []
             cutoff_gains = []
@@ -67,7 +65,7 @@ def train_step(config, scaler, wrapped_model, optimizer, batch, loss_fn):
             total_loss = torch.zeros([], device=similarities.device)
 
             for _ in range(num_correct_answers):
-                current_all_selection_vector = selection_vector_list[-1]
+                current_all_labels_mask = labels_mask_list[-1]
                 current_picked_mask = picked_mask_list[-1]
 
                 dissimilarities = compute_dissimilarities(
@@ -80,7 +78,7 @@ def train_step(config, scaler, wrapped_model, optimizer, batch, loss_fn):
                 if enable_diversity:
                     predictions = predictions * (1 - dissimilarities)
 
-                labels = current_all_selection_vector.float()
+                labels = current_all_labels_mask.float()
                 loss = loss_fn(predictions, labels)
                 total_loss += loss
 
@@ -99,8 +97,8 @@ def train_step(config, scaler, wrapped_model, optimizer, batch, loss_fn):
                     next_correct,
                     can_be_picked_set,
                     paraphrase_lut,
-                    current_all_selection_vector,
-                    selection_vector_list,
+                    current_all_labels_mask,
+                    labels_mask_list,
                     current_picked_mask,
                     picked_mask_list,
                     teacher_forcing,
@@ -109,7 +107,7 @@ def train_step(config, scaler, wrapped_model, optimizer, batch, loss_fn):
                 cutoff_gains.append(
                     compute_cutoff_gain(
                         predictions,
-                        selection_vector_list[0].clone(),
+                        labels_mask_list[0].clone(),
                         current_picked_mask,
                         paraphrase_lut,
                     )
@@ -162,13 +160,13 @@ def eval_step(config, scaler, wrapped_model, optimizer, batch, loss_fn):
         for (
             question,
             flat_questions,
-            selection_vector,
+            labels_mask,
             no_paraphrase_relevant_question_indexes,
             paraphrase_lut,
         ) in zip(
             batch["questions"],
             batch["flat_questions"],
-            batch["selection_vector"],
+            batch["labels_mask"],
             batch["relevant_sentence_indexes"],
             batch["paraphrase_lut"],
         ):
@@ -183,14 +181,12 @@ def eval_step(config, scaler, wrapped_model, optimizer, batch, loss_fn):
                 document_embeddings, query_embedding.T
             ).squeeze()
             similarities = torch.clamp(similarities, min=0, max=1)
-            selection_vector = torch.tensor(
-                selection_vector, device=similarities.device
-            )
+            labels_mask = torch.tensor(labels_mask, device=similarities.device)
 
             picked_mask = torch.zeros(
                 len(flat_questions), device=similarities.device, dtype=torch.bool
             )
-            selection_vector_list = [selection_vector.clone()]
+            labels_mask_list = [labels_mask.clone()]
             picked_mask_list = [picked_mask]
             teacher_forcing = []
             cutoff_gains = []
@@ -201,7 +197,7 @@ def eval_step(config, scaler, wrapped_model, optimizer, batch, loss_fn):
             total_loss = torch.zeros([], device=similarities.device)
 
             for _ in range(num_correct_answers):
-                current_all_selection_vector = selection_vector_list[-1]
+                current_all_labels_mask = labels_mask_list[-1]
                 current_picked_mask = picked_mask_list[-1]
 
                 dissimilarities = compute_dissimilarities(
@@ -214,7 +210,7 @@ def eval_step(config, scaler, wrapped_model, optimizer, batch, loss_fn):
                 if enable_diversity:
                     predictions = predictions * (1 - dissimilarities)
 
-                labels = current_all_selection_vector.float()
+                labels = current_all_labels_mask.float()
                 loss = loss_fn(predictions, labels)
                 total_loss += loss
 
@@ -229,8 +225,8 @@ def eval_step(config, scaler, wrapped_model, optimizer, batch, loss_fn):
                     next_correct,
                     can_be_picked_set,
                     paraphrase_lut,
-                    current_all_selection_vector,
-                    selection_vector_list,
+                    current_all_labels_mask,
+                    labels_mask_list,
                     current_picked_mask,
                     picked_mask_list,
                     teacher_forcing,
@@ -239,7 +235,7 @@ def eval_step(config, scaler, wrapped_model, optimizer, batch, loss_fn):
                 cutoff_gains.append(
                     compute_cutoff_gain(
                         predictions,
-                        selection_vector_list[0].clone(),
+                        labels_mask_list[0].clone(),
                         current_picked_mask,
                         paraphrase_lut,
                     )
@@ -288,13 +284,13 @@ def train_step_full_precision(config, scaler, wrapped_model, optimizer, batch, l
     for (
         question,
         flat_questions,
-        selection_vector,
+        labels_mask,
         no_paraphrase_relevant_question_indexes,
         paraphrase_lut,
     ) in zip(
         batch["questions"],
         batch["flat_questions"],
-        batch["selection_vector"],
+        batch["labels_mask"],
         batch["relevant_sentence_indexes"],
         batch["paraphrase_lut"],
     ):
@@ -305,12 +301,12 @@ def train_step_full_precision(config, scaler, wrapped_model, optimizer, batch, l
 
         similarities = torch.matmul(document_embeddings, query_embedding.T).squeeze()
         similarities = torch.clamp(similarities, min=0, max=1)
-        selection_vector = torch.tensor(selection_vector, device=similarities.device)
+        labels_mask = torch.tensor(labels_mask, device=similarities.device)
 
         picked_mask = torch.zeros(
             len(flat_questions), device=similarities.device, dtype=torch.bool
         )
-        selection_vector_list = [selection_vector.clone()]
+        labels_mask_list = [labels_mask.clone()]
         picked_mask_list = [picked_mask]
         teacher_forcing = []
         search_metrics = []
@@ -321,7 +317,7 @@ def train_step_full_precision(config, scaler, wrapped_model, optimizer, batch, l
         total_loss = torch.zeros([], device=similarities.device)
 
         for _ in range(num_correct_answers):
-            current_all_selection_vector = selection_vector_list[-1]
+            current_all_labels_mask = labels_mask_list[-1]
             current_picked_mask = picked_mask_list[-1]
 
             dissimilarities = compute_dissimilarities(
@@ -334,7 +330,7 @@ def train_step_full_precision(config, scaler, wrapped_model, optimizer, batch, l
             if enable_diversity:
                 predictions = predictions * (1 - dissimilarities)
 
-            labels = current_all_selection_vector.float()
+            labels = current_all_labels_mask.float()
             loss = loss_fn(predictions, labels)
             total_loss += loss
 
@@ -353,8 +349,8 @@ def train_step_full_precision(config, scaler, wrapped_model, optimizer, batch, l
                 next_correct,
                 can_be_picked_set,
                 paraphrase_lut,
-                current_all_selection_vector,
-                selection_vector_list,
+                current_all_labels_mask,
+                labels_mask_list,
                 current_picked_mask,
                 picked_mask_list,
                 teacher_forcing,
@@ -363,7 +359,7 @@ def train_step_full_precision(config, scaler, wrapped_model, optimizer, batch, l
             cutoff_gains.append(
                 compute_cutoff_gain(
                     predictions,
-                    selection_vector_list[0].clone(),
+                    labels_mask_list[0].clone(),
                     current_picked_mask,
                     paraphrase_lut,
                 )

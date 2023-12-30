@@ -6,7 +6,7 @@ def collate_fn(batch):
     batch_questions = []
     batch_flat_sentences = []
     batch_relevant_sentence_indexes = []
-    batch_selection_vector = []
+    batch_labels_mask = []
     # batch_flag_for_error = []
 
     for item in batch:
@@ -37,21 +37,21 @@ def collate_fn(batch):
                 # All rows should be clean
                 assert False, item
 
-        selection_vector = [False] * len(flat_sentences)
+        labels_mask = [False] * len(flat_sentences)
         for index in relevant_sentence_indexes:
-            selection_vector[index] = True
+            labels_mask[index] = True
 
         batch_questions.append(question)
         batch_flat_sentences.append(flat_sentences)
         batch_relevant_sentence_indexes.append(relevant_sentence_indexes)
-        batch_selection_vector.append(selection_vector)
+        batch_labels_mask.append(labels_mask)
         # batch_flag_for_error.append(flag_for_error)
 
     return {
         "questions": batch_questions,
         "flat_sentences": batch_flat_sentences,
         "relevant_sentence_indexes": batch_relevant_sentence_indexes,
-        "selection_vector": batch_selection_vector,
+        "labels_mask": batch_labels_mask,
         # "flag_for_error": batch_flag_for_error,
     }
 

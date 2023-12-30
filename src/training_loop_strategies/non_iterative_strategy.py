@@ -14,13 +14,13 @@ def train_step(config, scaler, wrapped_model, optimizer, batch, loss_fn):
     for (
         question,
         flat_questions,
-        selection_vector,
+        labels_mask,
         no_paraphrase_relevant_question_indexes,
         paraphrase_lut,
     ) in zip(
         batch["questions"],
         batch["flat_questions"],
-        batch["selection_vector"],
+        batch["labels_mask"],
         batch["relevant_sentence_indexes"],
         batch["paraphrase_lut"],
     ):
@@ -37,10 +37,8 @@ def train_step(config, scaler, wrapped_model, optimizer, batch, loss_fn):
             ).squeeze()
             similarities = torch.clamp(similarities, min=0, max=1)
             predictions = similarities
-            selection_vector = torch.tensor(
-                selection_vector, device=similarities.device
-            )
-            labels = selection_vector.float()
+            labels_mask = torch.tensor(labels_mask, device=similarities.device)
+            labels = labels_mask.float()
             loss = loss_fn(predictions, labels)
 
         scaler.scale(loss).backward()
@@ -74,13 +72,13 @@ def eval_step(config, scaler, wrapped_model, optimizer, batch, loss_fn):
         for (
             question,
             flat_questions,
-            selection_vector,
+            labels_mask,
             no_paraphrase_relevant_question_indexes,
             paraphrase_lut,
         ) in zip(
             batch["questions"],
             batch["flat_questions"],
-            batch["selection_vector"],
+            batch["labels_mask"],
             batch["relevant_sentence_indexes"],
             batch["paraphrase_lut"],
         ):
@@ -96,10 +94,8 @@ def eval_step(config, scaler, wrapped_model, optimizer, batch, loss_fn):
             ).squeeze()
             similarities = torch.clamp(similarities, min=0, max=1)
             predictions = similarities
-            selection_vector = torch.tensor(
-                selection_vector, device=similarities.device
-            )
-            labels = selection_vector.float()
+            labels_mask = torch.tensor(labels_mask, device=similarities.device)
+            labels = labels_mask.float()
             loss = loss_fn(predictions, labels)
 
             search_metrics = compute_search_metrics(

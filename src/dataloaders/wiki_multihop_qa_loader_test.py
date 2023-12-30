@@ -33,12 +33,10 @@ class TestWikiMultihopQaLoader(unittest.TestCase):
             np.array(batch["flat_sentences"][0])[batch["relevant_sentence_indexes"][0]]
         )
         assert expected == actual, actual
-        assert sum(batch["selection_vector"][0]) == len(
+        assert sum(batch["labels_mask"][0]) == len(
             batch["relevant_sentence_indexes"][0]
         )
-        actual = list(
-            np.array(batch["flat_sentences"][0])[batch["selection_vector"][0]]
-        )
+        actual = list(np.array(batch["flat_sentences"][0])[batch["labels_mask"][0]])
         assert expected == actual, actual
 
         # Validation loader

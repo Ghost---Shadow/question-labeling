@@ -36,7 +36,7 @@ class TestWikiMultihopQaWithQLoader(unittest.TestCase):
             np.array(batch["flat_sentences"][0])[batch["relevant_sentence_indexes"][0]]
         )
         assert expected == actual, actual
-        assert sum(batch["selection_vector"][0]) == len(
+        assert sum(batch["labels_mask"][0]) == len(
             batch["relevant_question_indexes"][0]
         )
 
@@ -57,9 +57,9 @@ class TestWikiMultihopQaWithQLoader(unittest.TestCase):
 
         paraphrase_lut = batch["paraphrase_lut"][0]
         flat_questions = batch["flat_questions"][0]
-        selection_vector = batch["selection_vector"][0]
-        actual = list(np.array(flat_questions)[selection_vector])
-        assert len(flat_questions) == len(selection_vector)
+        labels_mask = batch["labels_mask"][0]
+        actual = list(np.array(flat_questions)[labels_mask])
+        assert len(flat_questions) == len(labels_mask)
         assert set(expected) == set(actual), actual
 
         expected = [
@@ -115,9 +115,7 @@ class TestWikiMultihopQaWithQLoader(unittest.TestCase):
             np.array(batch["flat_questions"][0])[batch["relevant_question_indexes"][0]]
         )
         assert expected == actual, actual
-        actual = list(
-            np.array(batch["flat_questions"][0])[batch["selection_vector"][0]]
-        )
+        actual = list(np.array(batch["flat_questions"][0])[batch["labels_mask"][0]])
         assert set(expected) == set(actual), actual
 
         paraphrase_lut = batch["paraphrase_lut"][0]

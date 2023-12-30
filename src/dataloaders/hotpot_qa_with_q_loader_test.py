@@ -42,9 +42,7 @@ class TestHotpotQaWithQaLoader(unittest.TestCase):
             np.array(batch["flat_questions"][0])[batch["relevant_question_indexes"][0]]
         )
         assert expected == actual, actual
-        actual = list(
-            np.array(batch["flat_questions"][0])[batch["selection_vector"][0]]
-        )
+        actual = list(np.array(batch["flat_questions"][0])[batch["labels_mask"][0]])
         assert expected == actual, actual
 
         paraphrase_lut = batch["paraphrase_lut"][0]
@@ -92,9 +90,7 @@ class TestHotpotQaWithQaLoader(unittest.TestCase):
             np.array(batch["flat_questions"][0])[batch["relevant_question_indexes"][0]]
         )
         assert expected == actual, actual
-        actual = list(
-            np.array(batch["flat_questions"][0])[batch["selection_vector"][0]]
-        )
+        actual = list(np.array(batch["flat_questions"][0])[batch["labels_mask"][0]])
         assert expected == actual, actual
 
         paraphrase_lut = batch["paraphrase_lut"][0]
