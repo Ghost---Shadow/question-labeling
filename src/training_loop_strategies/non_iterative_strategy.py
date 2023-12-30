@@ -2,8 +2,7 @@ import torch
 from torch.cuda.amp import autocast
 from training_loop_strategies.utils import (
     average_metrics,
-    compute_metrics_non_iterative,
-    compute_recall_non_iterative,
+    compute_search_metrics,
 )
 
 
@@ -46,14 +45,17 @@ def train_step(config, scaler, wrapped_model, optimizer, batch, loss_fn):
 
         scaler.scale(loss).backward()
 
-        recall_at_1 = compute_recall_non_iterative(
-            predictions, no_paraphrase_relevant_question_indexes, paraphrase_lut
+        search_metrics = compute_search_metrics(
+            config,
+            predictions,
+            paraphrase_lut,
+            set(no_paraphrase_relevant_question_indexes),
         )
 
         all_metrics.append(
             {
                 "loss": loss.item(),
-                "recall_at_1": recall_at_1,
+                **search_metrics,
             }
         )
 
@@ -100,14 +102,17 @@ def eval_step(config, scaler, wrapped_model, optimizer, batch, loss_fn):
             labels = selection_vector.float()
             loss = loss_fn(predictions, labels)
 
-            recall_at_1 = compute_recall_non_iterative(
-                predictions, no_paraphrase_relevant_question_indexes, paraphrase_lut
+            search_metrics = compute_search_metrics(
+                config,
+                predictions,
+                paraphrase_lut,
+                set(no_paraphrase_relevant_question_indexes),
             )
 
             all_metrics.append(
                 {
                     "loss": loss.item(),
-                    "recall_at_1": recall_at_1,
+                    **search_metrics,
                 }
             )
 
