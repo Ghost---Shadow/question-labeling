@@ -222,55 +222,38 @@ class TestRecordPick(unittest.TestCase):
 class TestComputeCutoffGain(unittest.TestCase):
     # python -m unittest training_loop_strategies.utils_test.TestComputeCutoffGain.test_no_picked_documents -v
     def test_no_picked_documents(self):
-        similarities = torch.tensor([0.1, 0.2, 0.3, 0.4])
-        global_correct_mask = torch.tensor([True, True, False, True])
+        predictions = torch.tensor([0.1, 0.2, 0.3, 0.4])
+        global_correct_mask = torch.tensor([True, True, False, False])
         current_picked_mask = torch.tensor([False, False, False, False])
-        paraphrase_lut = {}
+        paraphrase_lut = {0: 1}
 
         result = compute_cutoff_gain(
-            similarities,
-            global_correct_mask,
+            predictions,
+            global_correct_mask,  # dont clone for testing
             current_picked_mask,
             paraphrase_lut,
         )
-        self.assertAlmostEqual(result, -0.2, places=4)
+        self.assertAlmostEqual(result, -0.3, places=4)
         self.assertTrue(
-            torch.equal(global_correct_mask, torch.tensor([True, True, False, True]))
+            torch.equal(global_correct_mask, torch.tensor([True, True, False, False]))
         )
 
-    def test_picked_documents_no_paraphrases(self):
-        similarities = torch.tensor([0.1, 0.4, 0.3, 0.2])
-        global_correct_mask = torch.tensor([True, True, True, False])
+    # python -m unittest training_loop_strategies.utils_test.TestComputeCutoffGain.test_picked_documents -v
+    def test_picked_documents(self):
+        predictions = torch.tensor([0.1, 0.4, 0.3, 0.2])
+        global_correct_mask = torch.tensor([False, True, True, False])
         current_picked_mask = torch.tensor([False, True, False, False])
-        paraphrase_lut = {}
+        paraphrase_lut = {1: 2}
 
         result = compute_cutoff_gain(
-            similarities,
-            global_correct_mask,
+            predictions,
+            global_correct_mask,  # dont clone for testing
             current_picked_mask,
             paraphrase_lut,
         )
-        self.assertAlmostEqual(result, -0.1, places=4)
+        self.assertAlmostEqual(result, 0.1, places=4)
         self.assertTrue(
-            torch.equal(global_correct_mask, torch.tensor([True, True, True, False]))
-        )
-
-    def test_picked_paraphrase_documents(self):
-        similarities = torch.tensor([0.5, 0.2, 0.3, 0.1])
-        global_correct_mask = torch.tensor([True, False, True, True])
-        current_picked_mask = torch.tensor([True, False, False, False])
-        paraphrase_lut = {0: 2}  # Document 0 is a paraphrase of Document 2
-
-        result = compute_cutoff_gain(
-            similarities,
-            global_correct_mask,
-            current_picked_mask,
-            paraphrase_lut,
-        )
-        self.assertAlmostEqual(result, -0.2, places=4)
-        # global_correct_mask should be updated since document 0 (a paraphrase of 2) is picked
-        self.assertTrue(
-            torch.equal(global_correct_mask, torch.tensor([True, False, False, True]))
+            torch.equal(global_correct_mask, torch.tensor([False, True, False, False]))
         )
 
 

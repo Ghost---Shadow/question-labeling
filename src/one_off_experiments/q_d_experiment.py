@@ -94,7 +94,7 @@ def train_session(seed, enable_quality, enable_diversity):
 
             cutoff_gain = compute_cutoff_gain(
                 predictions,
-                all_labels_mask_list[0],
+                all_labels_mask_list[0].clone(),
                 current_picked_mask,
                 paraphrase_lut,
             )

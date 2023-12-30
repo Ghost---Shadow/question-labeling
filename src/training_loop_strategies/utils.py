@@ -193,19 +193,19 @@ def compute_recall_non_iterative(
 
 
 def compute_cutoff_gain(
-    similarities, global_correct_mask, current_picked_mask, paraphrase_lut
+    predictions, global_correct_mask, current_picked_mask, paraphrase_lut
 ):
     # Convert to boolean mask if not already
     global_correct_mask = global_correct_mask.bool()
 
     # Update global_correct_mask to mark documents as incorrect if their paraphrases have been picked
     for i, picked in enumerate(current_picked_mask):
-        if picked and i in paraphrase_lut:
+        if picked:
             paraphrase_index = paraphrase_lut[i]
             global_correct_mask[paraphrase_index] = False
 
     # Find the least similar correct document
-    least_similar_correct = similarities[global_correct_mask].min()
-    most_similar_incorrect = similarities[~global_correct_mask].max()
+    least_similar_correct = predictions[global_correct_mask].min()
+    most_similar_incorrect = predictions[~global_correct_mask].max()
 
     return (least_similar_correct - most_similar_incorrect).item()
