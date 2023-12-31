@@ -284,7 +284,7 @@ class TestComputeCutoffGain(unittest.TestCase):
         gain = compute_cutoff_gain(
             predictions, global_correct_mask, current_picked_mask, paraphrase_lut
         )
-        self.assertAlmostEqual(gain, 0, places=4)
+        self.assertAlmostEqual(gain, 0.0, places=4)
 
         predictions = torch.tensor([0.2, 0.5, 0.3, 0.4])
         global_correct_mask = torch.tensor([False, False, False, False])
@@ -294,7 +294,7 @@ class TestComputeCutoffGain(unittest.TestCase):
         gain = compute_cutoff_gain(
             predictions, global_correct_mask, current_picked_mask, paraphrase_lut
         )
-        self.assertAlmostEqual(gain, 0, places=4)
+        self.assertAlmostEqual(gain, 0.0, places=4)
 
 
 if __name__ == "__main__":

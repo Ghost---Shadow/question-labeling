@@ -205,7 +205,7 @@ def compute_cutoff_gain(
     # If everything is correct or incorrect then there is nothing we can do
     num_correct = global_correct_mask.sum()
     if len(global_correct_mask) == num_correct or num_correct == 0:
-        return 0
+        return 0.0
 
     # Update global_correct_mask to mark documents as incorrect if their paraphrases have been picked
     for i, picked in enumerate(current_picked_mask):
