@@ -273,6 +273,29 @@ class TestComputeCutoffGain(unittest.TestCase):
             torch.equal(global_correct_mask, torch.tensor([False, True, False, False]))
         )
 
+    # python -m unittest training_loop_strategies.utils_test.TestComputeCutoffGain.test_empty_most_similar_incorrect -v
+    def test_empty_most_similar_incorrect(self):
+        # Set up a scenario where all predictions are marked as correct
+        predictions = torch.tensor([0.2, 0.5, 0.3, 0.4])
+        global_correct_mask = torch.tensor([True, True, True, True])
+        current_picked_mask = torch.tensor([False, False, False, False])
+        paraphrase_lut = {0: 1, 2: 3}
+
+        gain = compute_cutoff_gain(
+            predictions, global_correct_mask, current_picked_mask, paraphrase_lut
+        )
+        self.assertAlmostEqual(gain, 0, places=4)
+
+        predictions = torch.tensor([0.2, 0.5, 0.3, 0.4])
+        global_correct_mask = torch.tensor([False, False, False, False])
+        current_picked_mask = torch.tensor([False, False, False, False])
+        paraphrase_lut = {}
+
+        gain = compute_cutoff_gain(
+            predictions, global_correct_mask, current_picked_mask, paraphrase_lut
+        )
+        self.assertAlmostEqual(gain, 0, places=4)
+
 
 if __name__ == "__main__":
     unittest.main()
