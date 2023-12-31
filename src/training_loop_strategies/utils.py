@@ -52,6 +52,7 @@ def compute_search_metrics(config, predictions, paraphrase_lut, can_be_picked_se
 
     for k in config["eval"]["k"]:
         # Check if k is greater than the number of predictions
+        original_k = k
         k = min(k, num_predictions)
 
         # Get the top k indices from the predictions
@@ -87,9 +88,9 @@ def compute_search_metrics(config, predictions, paraphrase_lut, can_be_picked_se
             f1_at_k = 0
 
         # Update the metrics dictionary
-        new_metrics[f"recall_at_{k}"] = recall_at_k
-        new_metrics[f"precision_at_{k}"] = precision_at_k
-        new_metrics[f"f1_at_{k}"] = f1_at_k
+        new_metrics[f"recall_at_{original_k}"] = recall_at_k
+        new_metrics[f"precision_at_{original_k}"] = precision_at_k
+        new_metrics[f"f1_at_{original_k}"] = f1_at_k
 
     return new_metrics
 

@@ -144,8 +144,25 @@ class TestSearchMetrics(unittest.TestCase):
         # Mock Set of Relevant Documents
         can_be_picked_set = {0, 2}
 
+        expected_metrics = {
+            "recall_at_1": 0.5,
+            "precision_at_1": 1.0,
+            "f1_at_1": 0.6666666666666666,
+            "recall_at_5": 1.0,
+            "precision_at_5": 0.6666666666666666,
+            "f1_at_5": 0.8,
+        }
+
         # Run the function
-        compute_search_metrics(config, predictions, paraphrase_lut, can_be_picked_set)
+        actual_metrics = compute_search_metrics(
+            config, predictions, paraphrase_lut, can_be_picked_set
+        )
+
+        # Assert the results
+        for key in expected_metrics:
+            self.assertAlmostEqual(
+                expected_metrics[key], actual_metrics[key], msg=key, places=2
+            )
 
 
 # python -m unittest training_loop_strategies.utils_test.TestRecordPick -v
