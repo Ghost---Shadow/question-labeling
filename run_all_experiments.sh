@@ -10,6 +10,9 @@ python ./src/train.py --config=experiments/gpt35_mpnet_ni_triplet.yaml
 # python ./src/train.py --config=experiments/gpt35_mpnet_triplet.yaml --debug
 python ./src/train.py --config=experiments/gpt35_mpnet_triplet.yaml
 
+# python ./src/train.py --config=experiments/gpt35_mpnet_triplet_wiki.yaml --debug
+python ./src/train.py --config=experiments/gpt35_mpnet_triplet_wiki.yaml
+
 # python ./src/train.py --config=experiments/gpt35_mpnet_kldiv.yaml --debug
 python ./src/train.py --config=experiments/gpt35_mpnet_kldiv.yaml
 
