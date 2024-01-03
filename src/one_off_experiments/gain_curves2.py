@@ -33,7 +33,7 @@ if not similarity_file_exists or not dissimilarity_file_exists:
     config = {
         "architecture": {
             "semantic_search_model": {
-                "checkpoint": "all-mpnet-base-v2",
+                "checkpoint": "sentence-transformers/all-mpnet-base-v2",
                 "device": "cuda:0",
             }
         }

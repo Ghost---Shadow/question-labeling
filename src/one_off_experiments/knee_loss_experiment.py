@@ -68,7 +68,7 @@ def train_session(seed, enable_local_inward, enable_knee):
     config = {
         "architecture": {
             "semantic_search_model": {
-                "checkpoint": "all-mpnet-base-v2",
+                "checkpoint": "sentence-transformers/all-mpnet-base-v2",
                 "device": "cuda:0",
             }
         }

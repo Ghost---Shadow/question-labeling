@@ -18,7 +18,7 @@ class TestTrainStep(unittest.TestCase):
         config = {
             "architecture": {
                 "semantic_search_model": {
-                    "checkpoint": "all-mpnet-base-v2",
+                    "checkpoint": "sentence-transformers/all-mpnet-base-v2",
                     "device": "cuda:0",
                 },
             },
@@ -52,7 +52,7 @@ class TestEvalStep(unittest.TestCase):
         config = {
             "architecture": {
                 "semantic_search_model": {
-                    "checkpoint": "all-mpnet-base-v2",
+                    "checkpoint": "sentence-transformers/all-mpnet-base-v2",
                     "device": "cuda:0",
                 },
             },

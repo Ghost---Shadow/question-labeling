@@ -27,7 +27,7 @@ class TestSubmodularMutualInformation(unittest.TestCase):
         config = {
             "architecture": {
                 "semantic_search_model": {
-                    "checkpoint": "all-mpnet-base-v2",
+                    "checkpoint": "sentence-transformers/all-mpnet-base-v2",
                     # "device": "cuda:0",
                     "device": "cpu",
                 },
@@ -66,7 +66,7 @@ class TestSubmodularMutualInformation(unittest.TestCase):
         config = {
             "architecture": {
                 "semantic_search_model": {
-                    "checkpoint": "all-mpnet-base-v2",
+                    "checkpoint": "sentence-transformers/all-mpnet-base-v2",
                     # "device": "cuda:0",
                     "device": "cpu",
                 },
@@ -102,7 +102,7 @@ class TestSubmodularMutualInformation(unittest.TestCase):
         config = {
             "architecture": {
                 "semantic_search_model": {
-                    "checkpoint": "all-mpnet-base-v2",
+                    "checkpoint": "sentence-transformers/all-mpnet-base-v2",
                     # "device": "cuda:0",
                     "device": "cpu",
                 },
@@ -138,7 +138,7 @@ class TestSubmodularMutualInformation(unittest.TestCase):
         config = {
             "architecture": {
                 "semantic_search_model": {
-                    "checkpoint": "all-mpnet-base-v2",
+                    "checkpoint": "sentence-transformers/all-mpnet-base-v2",
                     # "device": "cuda:0",
                     "device": "cpu",
                 },
@@ -167,7 +167,7 @@ class TestSubmodularMutualInformation(unittest.TestCase):
         config = {
             "architecture": {
                 "semantic_search_model": {
-                    "checkpoint": "all-mpnet-base-v2",
+                    "checkpoint": "sentence-transformers/all-mpnet-base-v2",
                     # "device": "cuda:0",
                     "device": "cpu",
                 },
@@ -189,7 +189,7 @@ class TestQualityGainSequential(unittest.TestCase):
         config = {
             "architecture": {
                 "semantic_search_model": {
-                    "checkpoint": "all-mpnet-base-v2",
+                    "checkpoint": "sentence-transformers/all-mpnet-base-v2",
                     # "device": "cuda:0",
                     "device": "cpu",
                 }
@@ -241,7 +241,7 @@ class TestQualityGain(unittest.TestCase):
         config = {
             "architecture": {
                 "semantic_search_model": {
-                    "checkpoint": "all-mpnet-base-v2",
+                    "checkpoint": "sentence-transformers/all-mpnet-base-v2",
                     # "device": "cuda:0",
                     "device": "cpu",
                 }
@@ -299,7 +299,7 @@ class TestDiversityGainSequential(unittest.TestCase):
         config = {
             "architecture": {
                 "semantic_search_model": {
-                    "checkpoint": "all-mpnet-base-v2",
+                    "checkpoint": "sentence-transformers/all-mpnet-base-v2",
                     # "device": "cuda:0",
                     "device": "cpu",
                 }
@@ -351,7 +351,7 @@ class TestDiversityGain(unittest.TestCase):
         config = {
             "architecture": {
                 "semantic_search_model": {
-                    "checkpoint": "all-mpnet-base-v2",
+                    "checkpoint": "sentence-transformers/all-mpnet-base-v2",
                     # "device": "cuda:0",
                     "device": "cpu",
                 }

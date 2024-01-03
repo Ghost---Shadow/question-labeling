@@ -65,7 +65,7 @@ if __name__ == "__main__":
         "--model_name",
         type=str,
         required=False,
-        default="all-mpnet-base-v2",
+        default="sentence-transformers/all-mpnet-base-v2",
         help="Name of the SentenceTransformer model",
     )
     parser.add_argument(

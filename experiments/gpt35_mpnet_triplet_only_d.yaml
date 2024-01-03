@@ -9,7 +9,7 @@ architecture:
   
   semantic_search_model:
     name: 'sentence_transformer'
-    checkpoint: 'all-mpnet-base-v2'
+    checkpoint: 'sentence-transformers/all-mpnet-base-v2'
     device: "cuda:0"
 
   loss:

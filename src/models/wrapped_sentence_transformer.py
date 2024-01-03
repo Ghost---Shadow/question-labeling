@@ -1,8 +1,6 @@
-from sentence_transformers import SentenceTransformer
 from sentence_transformers.util import batch_to_device
 import torch
-from merge_functions import MERGE_STRATEGY_LUT
-from pydash import get
+from transformers import AutoTokenizer, AutoModel
 
 
 class WrappedSentenceTransformerModel:
@@ -10,52 +8,22 @@ class WrappedSentenceTransformerModel:
         self.config = config
 
         checkpoint = config["architecture"]["semantic_search_model"]["checkpoint"]
-        device = config["architecture"]["semantic_search_model"]["device"]
-        merge_strategy_name = get(
-            config, "architecture.aggregation_strategy.merge_strategy.name", None
-        )
-
-        MergeModelClass = MERGE_STRATEGY_LUT[merge_strategy_name]
-
-        self.device = device
-        self.model = SentenceTransformer(checkpoint).to(device)
-
-        # Set output dim
-        output_dim = self.model.get_sentence_embedding_dimension()
-        config["architecture"]["semantic_search_model"]["output_dim"] = output_dim
-
-        self.merge_model = MergeModelClass(config)
+        self.device = config["architecture"]["semantic_search_model"]["device"]
+        self.tokenizer = AutoTokenizer.from_pretrained(checkpoint)
+        self.model = AutoModel.from_pretrained(checkpoint).to(self.device)
 
     def get_all_trainable_parameters(self):
-        self.is_model_trainable = get(
-            self.config, "architecture.semantic_search_model.trainable", True
-        )
-        self.is_merge_fn_trainable = get(
-            self.config,
-            "architecture.semantic_search_model.aggregation_strategy.merge_strategy.trainable",
-            True,
-        )
-
-        all_parameters = []
-
-        if self.is_model_trainable:
-            all_parameters.extend(list(self.model.parameters()))
-
-        if self.is_merge_fn_trainable:
-            all_parameters.extend(list(self.merge_model.parameters()))
-
-        return all_parameters
+        return self.model.parameters()
 
     def get_query_and_document_embeddings(self, query, documents):
         all_sentences = [query] + documents
-        # Convert sentences to input format expected by the model (e.g., tokenization)
-        # This depends on how SentenceTransformer expects its inputs
-        features = self.model.tokenize(all_sentences)
+        features = self.tokenizer(
+            all_sentences, padding=True, truncation=True, return_tensors="pt"
+        )
         features = batch_to_device(features, self.device)
 
-        # Use model.forward() to maintain the computation graph
-        out_features = self.model.forward(features)
-        all_embeddings = out_features["sentence_embedding"]
+        model_output = self.model(**features)
+        all_embeddings = model_output.pooler_output
 
         # Extract query and document embeddings
         query_embedding = all_embeddings[0]
