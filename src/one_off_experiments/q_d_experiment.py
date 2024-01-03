@@ -1,3 +1,4 @@
+from pathlib import Path
 from losses.triplet_loss import TripletLoss
 from models.wrapped_sentence_transformer import WrappedSentenceTransformerModel
 from one_off_experiments.paraphrase_experiment import load_paraphrased_row
@@ -11,6 +12,22 @@ from training_loop_strategies.utils import (
     select_next_correct,
 )
 import wandb
+import numpy as np
+
+
+def gpu_to_numpy(tensor):
+    return tensor.clone().detach().cpu().numpy()
+
+
+def checkpoint_knee_tensor(train_steps, all_diversities, all_predictions, similarities):
+    knee_tensor = {
+        "similarities": gpu_to_numpy(similarities),
+        "all_diversities": [gpu_to_numpy(diversity) for diversity in all_diversities],
+        "all_predictions": [gpu_to_numpy(prediction) for prediction in all_predictions],
+    }
+    base_path = Path("./artifacts/knee_tensors")
+    base_path.mkdir(exist_ok=True, parents=True)
+    np.savez(base_path / f"step_{train_steps}.npz", **knee_tensor)
 
 
 def train_session(seed, enable_quality, enable_diversity):
@@ -49,7 +66,7 @@ def train_session(seed, enable_quality, enable_diversity):
         (
             query,
             all_questions,
-            all_labels_mask,
+            labels_mask,
             relevant_sentence_indexes,
             paraphrase_lut,
             labels_masks,
@@ -62,10 +79,12 @@ def train_session(seed, enable_quality, enable_diversity):
         picked_mask = torch.zeros(len(all_questions), device=device, dtype=torch.bool)
         num_correct_answers = len(relevant_sentence_indexes)
         can_be_picked_set = set(relevant_sentence_indexes)
-        all_labels_mask_list = [all_labels_mask.clone()]
+        labels_mask_list = [labels_mask.clone()]
         picked_mask_list = [picked_mask]
         actual_selected_indices = []
         teacher_forcing = []
+        all_diversities = []
+        all_predictions = []
         recall_at_1 = 0
         total_cutoff_gain = 0
 
@@ -75,7 +94,7 @@ def train_session(seed, enable_quality, enable_diversity):
         similarities = torch.clamp(similarities, min=0, max=1)
 
         for _ in range(num_correct_answers):
-            current_all_labels_mask = all_labels_mask_list[-1]
+            current_labels_mask = labels_mask_list[-1]
             current_picked_mask = picked_mask_list[-1]
 
             dissimilarities = compute_dissimilarities(
@@ -88,13 +107,16 @@ def train_session(seed, enable_quality, enable_diversity):
             if enable_diversity:
                 predictions = predictions * (1 - dissimilarities)
 
-            labels = current_all_labels_mask.float()
+            # all_diversities.append(1 - dissimilarities)
+            # all_predictions.append(predictions)
+
+            labels = current_labels_mask.float()
             triplet_loss = triplet_loss_fn(predictions, labels)
             total_triplet_loss += triplet_loss
 
             cutoff_gain = compute_cutoff_gain(
                 predictions,
-                all_labels_mask_list[0].clone(),
+                labels_mask_list[0].clone(),
                 current_picked_mask,
                 paraphrase_lut,
             )
@@ -106,24 +128,22 @@ def train_session(seed, enable_quality, enable_diversity):
             selected_index = torch.argmax(cloned_predictions).item()
             actual_selected_indices.append(selected_index)
 
-            next_correct, recall_at_1 = select_next_correct(
-                similarities,
-                paraphrase_lut,
-                recall_at_1,
-                can_be_picked_set,
-                selected_index,
+            next_correct = select_next_correct(
+                predictions, paraphrase_lut, can_be_picked_set, current_picked_mask
             )
 
             record_pick(
                 next_correct,
                 can_be_picked_set,
                 paraphrase_lut,
-                current_all_labels_mask,
-                all_labels_mask_list,
-                current_picked_mask,
+                labels_mask_list,
                 picked_mask_list,
                 teacher_forcing,
             )
+
+        # checkpoint_knee_tensor(
+        #     train_step, all_diversities, all_predictions, similarities
+        # )
 
         total_triplet_loss = total_triplet_loss / num_correct_answers
 
