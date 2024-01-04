@@ -2,8 +2,6 @@ from pathlib import Path
 import shutil
 import unittest
 from models.checkpoint_manager import CheckpointManager
-from models.wrapped_sentence_transformer import WrappedSentenceTransformerModel
-import torch.optim as optim
 import torch
 import random
 from tqdm import tqdm
@@ -20,7 +18,7 @@ def rmrf_if_possible(path):
 class TestCheckpointManagerAutoLoad(unittest.TestCase):
     def test_checkpoint_auto_load(self):
         config = {
-            "name": "TestCheckpointManagerAutoLoad",
+            "wandb": {"name": "TestCheckpointManagerAutoLoad"},
             "architecture": {
                 "semantic_search_model": {
                     "checkpoint": "sentence-transformers/all-mpnet-base-v2",
@@ -49,7 +47,7 @@ class TestCheckpointManager(unittest.TestCase):
     def setUp(self):
         # Configuration for CheckpointManager
         self.config = {
-            "name": "TestCheckpointManagerAutoLoad",
+            "wandb": {"name": "TestCheckpointManager"},
             "architecture": {
                 "semantic_search_model": {
                     "checkpoint": "sentence-transformers/all-mpnet-base-v2",
@@ -89,7 +87,7 @@ class TestCheckpointManager(unittest.TestCase):
 class TestCheckpointManagerTraining(unittest.TestCase):
     def setUp(self):
         self.config = {
-            "name": "TestCheckpointManagerTraining",
+            "wandb": {"name": "TestCheckpointManagerTraining"},
             "architecture": {
                 "semantic_search_model": {
                     "checkpoint": "sentence-transformers/all-mpnet-base-v2",
@@ -189,7 +187,7 @@ class TestCheckpointManagerTraining(unittest.TestCase):
 class TestCheckpointManagerTrainingAMP(unittest.TestCase):
     def setUp(self):
         self.config = {
-            "name": "TestCheckpointManagerTrainingAMP",
+            "wandb": {"name": "TestCheckpointManagerTrainingAMP"},
             "architecture": {
                 "semantic_search_model": {
                     "checkpoint": "sentence-transformers/all-mpnet-base-v2",

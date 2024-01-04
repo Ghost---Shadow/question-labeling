@@ -29,7 +29,7 @@ class CheckpointManager:
         learning_rate = float(config["training"]["learning_rate"])
 
         # Placeholders for loading
-        self.last_epoch = 0
+        self.last_epoch = -1
         self.config = config
         self.wrapped_model = MODEL_LUT[semantic_search_model_name](config)
         self.scaler = GradScaler()
@@ -48,7 +48,7 @@ class CheckpointManager:
     @staticmethod
     def generate_checkpoint_dir(config, seed):
         config_hash = generate_md5_hash(config)
-        config_name = config["name"]
+        config_name = config["wandb"]["name"]
         checkpoint_dir = f"./checkpoints/{config_name}_{config_hash}/seed_{seed}/"
         return checkpoint_dir
 

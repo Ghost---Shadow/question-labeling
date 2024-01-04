@@ -13,14 +13,6 @@ def set_seed(seed):
     torch.backends.cudnn.deterministic = True
 
 
-def generate_md5_hash(file_path):
-    hasher = hashlib.md5()
-    with open(file_path, "rb") as f:
-        buf = f.read()
-        hasher.update(buf)
-    return hasher.hexdigest()
-
-
 def validate_one_epoch(
     config,
     validation_dataset_name,
