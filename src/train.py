@@ -33,7 +33,7 @@ def main(config, debug):
         train_loaders, validation_loaders = get_all_loaders(config)
 
         # Checkpoint manager
-        checkpoint_manager = CheckpointManager(config, seed)
+        checkpoint_manager = CheckpointManager(config, seed, train_loaders)
 
         # This seed is sweeped already
         if checkpoint_manager.last_epoch + 1 >= EPOCHS:

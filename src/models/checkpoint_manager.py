@@ -3,6 +3,7 @@ import json
 import os
 import random
 import re
+from learning_rate_schedulers.warmup_linear_scheduler import WarmupLinearScheduler
 from models import MODEL_LUT
 import numpy as np
 import torch
@@ -18,7 +19,7 @@ def generate_md5_hash(config):
 
 
 class CheckpointManager:
-    def __init__(self, config, seed):
+    def __init__(self, config, seed, train_loaders):
         self.checkpoint_dir = CheckpointManager.generate_checkpoint_dir(config, seed)
         os.makedirs(self.checkpoint_dir, exist_ok=True)
 
@@ -28,6 +29,8 @@ class CheckpointManager:
         ]
         learning_rate = float(config["training"]["learning_rate"])
 
+        longest_train_loader = max(train_loaders, key=len)
+
         # Placeholders for loading
         self.last_epoch = -1
         self.config = config
@@ -36,7 +39,9 @@ class CheckpointManager:
         self.optimizer = optim.AdamW(
             self.wrapped_model.get_all_trainable_parameters(), lr=learning_rate
         )
-        self.scheduler = None  # TODO
+        self.scheduler = WarmupLinearScheduler(
+            config, self.optimizer, longest_train_loader, last_step=-1
+        )
 
         try:
             self.load()

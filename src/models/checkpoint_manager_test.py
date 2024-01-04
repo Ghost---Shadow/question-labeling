@@ -26,19 +26,20 @@ class TestCheckpointManagerAutoLoad(unittest.TestCase):
                     "device": "cpu",
                 }
             },
-            "training": {"learning_rate": 1e-4},
+            "training": {"learning_rate": 1e-4, "epochs": 10, "warmup_ratio": 0.5},
         }
         seed = 42
+        train_loaders = [[1, 2], [1]]
 
         # Wipe checkpoint dir to test clean load
         checkpoint_dir = CheckpointManager.generate_checkpoint_dir(config, seed)
         rmrf_if_possible(checkpoint_dir)
 
-        checkpoint_manager = CheckpointManager(config, seed)
+        checkpoint_manager = CheckpointManager(config, seed, train_loaders)
         checkpoint_manager.save(epoch=2)
         self.assertEqual(checkpoint_manager.last_epoch, 2)
 
-        new_checkpoint_manager = CheckpointManager(config, seed)
+        new_checkpoint_manager = CheckpointManager(config, seed, train_loaders)
         self.assertEqual(new_checkpoint_manager.last_epoch, 2)
 
 
@@ -47,7 +48,7 @@ class TestCheckpointManager(unittest.TestCase):
     def setUp(self):
         # Configuration for CheckpointManager
         self.config = {
-            "wandb": {"name": "TestCheckpointManager"},
+            "wandb": {"name": "TestCheckpointManagerAutoLoad"},
             "architecture": {
                 "semantic_search_model": {
                     "checkpoint": "sentence-transformers/all-mpnet-base-v2",
@@ -55,12 +56,15 @@ class TestCheckpointManager(unittest.TestCase):
                     "device": "cpu",
                 }
             },
-            "training": {"learning_rate": 1e-4},
+            "training": {"learning_rate": 1e-4, "epochs": 10, "warmup_ratio": 0.5},
         }
         self.seed = 42
+        self.train_loaders = [[1, 2], [1]]
 
         # Initialize CheckpointManager
-        self.checkpoint_manager = CheckpointManager(self.config, self.seed)
+        self.checkpoint_manager = CheckpointManager(
+            self.config, self.seed, self.train_loaders
+        )
 
     def test_save_load_idempotency(self):
         # Save the checkpoint
@@ -75,7 +79,9 @@ class TestCheckpointManager(unittest.TestCase):
     # python -m unittest models.checkpoint_manager_test.TestCheckpointManager.test_get_latest_checkpoint -v
     def test_get_latest_checkpoint(self):
         checkpoint_files = ["epoch_1.pth", "epoch_11.pth", "epoch_2.pth"]
-        checkpoint_manager = CheckpointManager(self.config, self.seed)
+        checkpoint_manager = CheckpointManager(
+            self.config, self.seed, self.train_loaders
+        )
 
         latest_checkpoint = checkpoint_manager.get_latest_checkpoint(checkpoint_files)
         expected_checkpoint = Path("./epoch_11.pth")
@@ -86,18 +92,26 @@ class TestCheckpointManager(unittest.TestCase):
 # python -m unittest models.checkpoint_manager_test.TestCheckpointManagerTraining -v
 class TestCheckpointManagerTraining(unittest.TestCase):
     def setUp(self):
+        self.epochs = 20
+        self.interrupt_epoch = 10
         self.config = {
-            "wandb": {"name": "TestCheckpointManagerTraining"},
+            "wandb": {"name": "TestCheckpointManagerAutoLoad"},
             "architecture": {
                 "semantic_search_model": {
                     "checkpoint": "sentence-transformers/all-mpnet-base-v2",
                     "name": "sentence_transformer",
-                    "device": "cuda:0",
+                    "device": "cpu",
                 }
             },
-            "training": {"learning_rate": 1e-4},
+            "training": {
+                "learning_rate": 1e-4,
+                "epochs": self.epochs,
+                "warmup_ratio": 0.5,
+            },
         }
         self.seed = 42
+        self.train_loaders = [[1]]
+
         torch.manual_seed(self.seed)
         random.seed(self.seed)
 
@@ -110,6 +124,7 @@ class TestCheckpointManagerTraining(unittest.TestCase):
         self.checkpoint_manager = CheckpointManager(
             self.config,
             self.seed,
+            self.train_loaders,
         )
         self.query = "What color is the fruit that Alice loves?"
         self.documents = [
@@ -132,7 +147,7 @@ class TestCheckpointManagerTraining(unittest.TestCase):
         optimizer = self.checkpoint_manager.optimizer
 
         # Train for 20 steps and drop checkpoint at step 10
-        for step in tqdm(range(20)):
+        for step in tqdm(range(self.epochs)):
             (
                 question_embedding,
                 document_embeddings,
@@ -147,11 +162,11 @@ class TestCheckpointManagerTraining(unittest.TestCase):
             loss.backward()
             optimizer.step()
 
-            if step == 9:
+            if step == self.interrupt_epoch - 1:
                 # Save checkpoint at step 10
                 self.checkpoint_manager.save(epoch=10)
 
-            if step > 9:
+            if step > self.interrupt_epoch - 1:
                 initial_losses.append(loss.item())
 
         # Wipe clean
@@ -163,7 +178,7 @@ class TestCheckpointManagerTraining(unittest.TestCase):
         new_wrapped_model = self.checkpoint_manager.wrapped_model
         new_optimizer = self.checkpoint_manager.optimizer
 
-        for step in tqdm(range(10, 20)):
+        for step in tqdm(range(self.interrupt_epoch, self.epochs)):
             (
                 question_embedding,
                 document_embeddings,
@@ -186,8 +201,10 @@ class TestCheckpointManagerTraining(unittest.TestCase):
 # python -m unittest models.checkpoint_manager_test.TestCheckpointManagerTrainingAMP -v
 class TestCheckpointManagerTrainingAMP(unittest.TestCase):
     def setUp(self):
+        self.epochs = 20
+        self.interrupt_epoch = 10
         self.config = {
-            "wandb": {"name": "TestCheckpointManagerTrainingAMP"},
+            "wandb": {"name": "TestCheckpointManagerAutoLoad"},
             "architecture": {
                 "semantic_search_model": {
                     "checkpoint": "sentence-transformers/all-mpnet-base-v2",
@@ -195,9 +212,15 @@ class TestCheckpointManagerTrainingAMP(unittest.TestCase):
                     "device": "cuda:0",
                 }
             },
-            "training": {"learning_rate": 1e-4},
+            "training": {
+                "learning_rate": 1e-4,
+                "epochs": self.epochs,
+                "warmup_ratio": 0.5,
+            },
         }
         self.seed = 42
+        self.train_loaders = [[1]]
+
         torch.manual_seed(self.seed)
         random.seed(self.seed)
 
@@ -211,6 +234,7 @@ class TestCheckpointManagerTrainingAMP(unittest.TestCase):
         self.checkpoint_manager = CheckpointManager(
             self.config,
             self.seed,
+            self.train_loaders,
         )
         self.query = "What color is the fruit that Alice loves?"
         self.documents = [
@@ -234,7 +258,7 @@ class TestCheckpointManagerTrainingAMP(unittest.TestCase):
         scaler = self.checkpoint_manager.scaler
 
         # Training loop with AMP
-        for step in tqdm(range(20)):
+        for step in tqdm(range(self.epochs)):
             with torch.cuda.amp.autocast(dtype=torch.float16):
                 (
                     question_embedding,
@@ -251,11 +275,11 @@ class TestCheckpointManagerTrainingAMP(unittest.TestCase):
             scaler.step(optimizer)
             scaler.update()
 
-            if step == 9:
+            if step == self.interrupt_epoch - 1:
                 # Save checkpoint with AMP state
                 self.checkpoint_manager.save(epoch=10)
 
-            if step > 9:
+            if step > self.interrupt_epoch - 1:
                 initial_losses.append(loss.item())
 
         # Wipe clean
@@ -270,7 +294,7 @@ class TestCheckpointManagerTrainingAMP(unittest.TestCase):
         new_scaler = self.checkpoint_manager.scaler
 
         # Retraining loop with AMP from checkpoint
-        for step in tqdm(range(10, 20)):
+        for step in tqdm(range(self.interrupt_epoch, self.epochs)):
             with torch.cuda.amp.autocast(dtype=torch.float16):
                 (
                     question_embedding,
