@@ -77,14 +77,17 @@ class TestCheckpointManagerTraining(unittest.TestCase):
             self.wrapped_model.get_all_trainable_parameters(), lr=0.001
         )
 
-        # Dummy scheduler (not used in this test)
+        # (not used in this test)
         self.scheduler = None
-
-        # Configuration for CheckpointManager
+        self.scaler = None
 
         # Initialize CheckpointManager
         self.checkpoint_manager = CheckpointManager(
-            self.wrapped_model.model, self.optimizer, self.scheduler, self.config
+            self.wrapped_model.model,
+            self.optimizer,
+            self.scheduler,
+            self.config,
+            self.scaler,
         )
         self.query = "What color is the fruit that Alice loves?"
         self.documents = [
@@ -123,11 +126,16 @@ class TestCheckpointManagerTraining(unittest.TestCase):
             if step >= 9:
                 initial_losses.append(loss.item())
 
+        # Wipe clean
+        self.optimizer = None
+        self.model = None
+
         # Reload checkpoint at step 10 and retrain
         self.checkpoint_manager.load()
         new_wrapped_model = WrappedSentenceTransformerModel(
             self.config, self.checkpoint_manager.model
         )
+        self.optimizer = self.checkpoint_manager.optimizer
         for step in tqdm(range(10, 20)):
             (
                 question_embedding,
@@ -140,6 +148,116 @@ class TestCheckpointManagerTraining(unittest.TestCase):
             self.optimizer.zero_grad()
             loss.backward()
             self.optimizer.step()
+
+            reloaded_losses.append(loss.item())
+
+        # Compare the loss values
+        for initial_loss, reloaded_loss in zip(initial_losses, reloaded_losses):
+            self.assertAlmostEqual(initial_loss, reloaded_loss, places=5)
+
+
+# python -m unittest models.checkpoint_manager_test.TestCheckpointManagerTrainingAMP -v
+class TestCheckpointManagerTrainingAMP(unittest.TestCase):
+    def setUp(self):
+        torch.manual_seed(0)
+        random.seed(0)
+
+        self.config = {
+            "name": "TestCheckpointManagerTrainingAMP",
+            "architecture": {
+                "semantic_search_model": {
+                    "device": "cuda:0",
+                    "checkpoint": "sentence-transformers/all-mpnet-base-v2",
+                }
+            },
+        }
+        self.wrapped_model = WrappedSentenceTransformerModel(self.config)
+        self.optimizer = optim.Adam(
+            self.wrapped_model.get_all_trainable_parameters(), lr=0.001
+        )
+        self.scheduler = None
+
+        # Initialize AMP scaler
+        self.scaler = torch.cuda.amp.GradScaler()
+
+        # Initialize CheckpointManager with AMP scaler
+        self.checkpoint_manager = CheckpointManager(
+            self.wrapped_model.model,
+            self.optimizer,
+            self.scheduler,
+            self.config,
+            self.scaler,
+        )
+        self.query = "What color is the fruit that Alice loves?"
+        self.documents = [
+            "What fruit does Alice love?",
+            "What fruit does Bob love?",
+            "What is the color of apple?",
+            "How heavy is an apple?",
+        ]
+        self.target = torch.tensor(
+            [[1.0, 0.0, 1.0, 0.0]], device=self.wrapped_model.device
+        )
+
+    def test_training_checkpoint_amp(self):
+        loss_function = torch.nn.MSELoss()
+        initial_losses = []
+        reloaded_losses = []
+
+        # Training loop with AMP
+        for step in tqdm(range(20)):
+            with torch.cuda.amp.autocast(dtype=torch.float16):
+                (
+                    question_embedding,
+                    document_embeddings,
+                ) = self.wrapped_model.get_query_and_document_embeddings(
+                    self.query, self.documents
+                )
+                inner_product = (question_embedding @ document_embeddings.T).squeeze()
+
+                loss = loss_function(inner_product.unsqueeze(0), self.target)
+
+            self.optimizer.zero_grad()
+            self.scaler.scale(loss).backward()
+            self.scaler.step(self.optimizer)
+            self.scaler.update()
+
+            if step == 9:
+                # Save checkpoint with AMP state
+                self.checkpoint_manager.save(epoch=10)
+
+            if step >= 9:
+                initial_losses.append(loss.item())
+
+        # Wipe clean
+        self.optimizer = None
+        self.model = None
+        self.scaler = None
+
+        # Reload checkpoint
+        self.checkpoint_manager.load()
+        new_wrapped_model = WrappedSentenceTransformerModel(
+            self.config, self.checkpoint_manager.model
+        )
+        self.optimizer = self.checkpoint_manager.optimizer
+        self.scaler = self.checkpoint_manager.scaler
+
+        # Retraining loop with AMP from checkpoint
+        for step in tqdm(range(10, 20)):
+            with torch.cuda.amp.autocast(dtype=torch.float16):
+                (
+                    question_embedding,
+                    document_embeddings,
+                ) = new_wrapped_model.get_query_and_document_embeddings(
+                    self.query, self.documents
+                )
+                inner_product = (question_embedding @ document_embeddings.T).squeeze()
+                loss = loss_function(inner_product.unsqueeze(0), self.target)
+
+            self.optimizer.zero_grad()
+            self.scaler.scale(loss).backward()
+            self.scaler.step(self.optimizer)
+            self.scaler.update()
 
             reloaded_losses.append(loss.item())
 
