@@ -4,16 +4,13 @@ from transformers import AutoTokenizer, AutoModel
 
 
 class WrappedSentenceTransformerModel:
-    def __init__(self, config, model=None):
+    def __init__(self, config):
         self.config = config
 
         checkpoint = config["architecture"]["semantic_search_model"]["checkpoint"]
         self.device = config["architecture"]["semantic_search_model"]["device"]
         self.tokenizer = AutoTokenizer.from_pretrained(checkpoint)
-        if model is None:
-            self.model = AutoModel.from_pretrained(checkpoint).to(self.device)
-        else:
-            self.model = model
+        self.model = AutoModel.from_pretrained(checkpoint).to(self.device)
 
     def get_all_trainable_parameters(self):
         return self.model.parameters()
