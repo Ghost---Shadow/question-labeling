@@ -26,7 +26,13 @@ class TestCheckpointManagerAutoLoad(unittest.TestCase):
                     "device": "cpu",
                 }
             },
-            "training": {"learning_rate": 1e-4, "epochs": 10, "warmup_ratio": 0.5},
+            "training": {
+                "learning_rate": 1e-4,
+                "epochs": 10,
+                "warmup_ratio": 0.5,
+                "weight_decay": 0.01,
+                "learning_rate_decay_strategy": "linear",
+            },
         }
         seed = 42
         train_loaders = [[1, 2], [1]]
@@ -56,7 +62,13 @@ class TestCheckpointManager(unittest.TestCase):
                     "device": "cpu",
                 }
             },
-            "training": {"learning_rate": 1e-4, "epochs": 10, "warmup_ratio": 0.5},
+            "training": {
+                "learning_rate": 1e-4,
+                "epochs": 10,
+                "warmup_ratio": 0.5,
+                "weight_decay": 0.01,
+                "learning_rate_decay_strategy": "linear",
+            },
         }
         self.seed = 42
         self.train_loaders = [[1, 2], [1]]
@@ -107,6 +119,8 @@ class TestCheckpointManagerTraining(unittest.TestCase):
                 "learning_rate": 1e-4,
                 "epochs": self.epochs,
                 "warmup_ratio": 0.5,
+                "weight_decay": 0.01,
+                "learning_rate_decay_strategy": "linear",
             },
         }
         self.seed = 42
@@ -216,6 +230,8 @@ class TestCheckpointManagerTrainingAMP(unittest.TestCase):
                 "learning_rate": 1e-4,
                 "epochs": self.epochs,
                 "warmup_ratio": 0.5,
+                "weight_decay": 0.01,
+                "learning_rate_decay_strategy": "linear",
             },
         }
         self.seed = 42

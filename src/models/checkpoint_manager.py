@@ -3,7 +3,7 @@ import json
 import os
 import random
 import re
-from learning_rate_schedulers.warmup_linear_scheduler import WarmupLinearScheduler
+from learning_rate_schedulers import LR_SCHEDULER_LUT
 from models import MODEL_LUT
 import numpy as np
 import torch
@@ -28,6 +28,10 @@ class CheckpointManager:
             "name"
         ]
         learning_rate = float(config["training"]["learning_rate"])
+        learning_rate_decay_strategy = config["training"][
+            "learning_rate_decay_strategy"
+        ]
+        weight_decay = float(config["training"]["weight_decay"])
 
         longest_train_loader = max(train_loaders, key=len)
 
@@ -37,9 +41,11 @@ class CheckpointManager:
         self.wrapped_model = MODEL_LUT[semantic_search_model_name](config)
         self.scaler = GradScaler()
         self.optimizer = optim.AdamW(
-            self.wrapped_model.get_all_trainable_parameters(), lr=learning_rate
+            self.wrapped_model.get_all_trainable_parameters(),
+            lr=learning_rate,
+            weight_decay=weight_decay,
         )
-        self.scheduler = WarmupLinearScheduler(
+        self.scheduler = LR_SCHEDULER_LUT[learning_rate_decay_strategy](
             config, self.optimizer, longest_train_loader, last_step=-1
         )
 
