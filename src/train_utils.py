@@ -22,6 +22,7 @@ def validate_one_epoch(
     eval_step_fn,
     loss_fn,
     debug,
+    samples_consumed,
 ):
     wrapped_model.model.eval()
 
@@ -58,10 +59,11 @@ def validate_one_epoch(
                         "inference_time": average_inference_time,
                     }
                 }
-            }
+            },
+            step=samples_consumed,
         )
 
-    return avg_metrics["loss"], average_inference_time
+    return avg_metrics["loss"]
 
 
 def train_one_epoch(
@@ -74,11 +76,15 @@ def train_one_epoch(
     train_step_fn,
     loss_fn,
     debug,
+    current_epoch,
 ):
     wrapped_model.model.train()
 
     total_loss = 0
     num_steps = 0
+
+    steps_per_epoch = len(train_loader)
+    batch_size = config["training"]["batch_size"]
 
     pbar = tqdm(train_loader)
     for batch in pbar:
@@ -92,16 +98,18 @@ def train_one_epoch(
 
         pbar.set_description(f"Loss: {step_loss:.4f}")
 
-        if not debug:
-            # Log to wandb
-            wandb.log({"train": {train_dataset_name: metrics}})
-
         num_steps += 1
         if debug and num_steps >= 5:
             # if num_steps >= 5:
             break
 
-    return total_loss / num_steps
+        global_step = current_epoch * steps_per_epoch + num_steps
+        samples_consumed = global_step * batch_size
+
+        if not debug:
+            wandb.log({"train": {train_dataset_name: metrics}}, step=samples_consumed)
+
+    return total_loss / num_steps, samples_consumed
 
 
 def get_all_loaders(config):
