@@ -35,6 +35,10 @@ def main(config, debug):
         # Checkpoint manager
         checkpoint_manager = CheckpointManager(config, seed)
 
+        # This seed is sweeped already
+        if checkpoint_manager.last_epoch >= EPOCHS:
+            continue
+
         if not debug:
             wandb.init(
                 project=config["wandb"]["project"],
@@ -49,9 +53,10 @@ def main(config, debug):
                 },
                 mode="disabled" if debug else None,
                 entity=config["wandb"].get("entity", None),
+                resume=True,
             )
 
-        if not debug:
+        if not debug and checkpoint_manager.last_epoch == -1:
             print("Starting warmup validation")
             for validation_dataset_name in validation_loaders:
                 validation_loader = validation_loaders[validation_dataset_name]
