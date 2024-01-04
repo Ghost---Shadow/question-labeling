@@ -1,0 +1,33 @@
+wandb:
+  project: "question_labeling_batch_size_sweep"
+  name: "gpt35_mpnet_triplet_batch_2"
+  # entity: "carml"
+
+architecture:
+  question_generator_model:
+    name: 'gpt-3.5-turbo'
+  
+  semantic_search_model:
+    name: 'sentence_transformer'
+    checkpoint: 'sentence-transformers/all-mpnet-base-v2'
+    device: "cuda:0"
+
+  loss:
+    name: 'triplet'
+
+datasets:
+  train: 'hotpot_qa_with_q'
+  validation: ['hotpot_qa_with_q']
+
+training:
+  strategy:
+    name: 'iterative_strategy'
+  epochs: 2
+  batch_size: 2
+  learning_rate: 1e-5
+  seeds: [42]
+  # seeds: [42, 43, 44, 45, 46]
+
+eval:
+  k: [1, 5]
+  disable_cutoff_gains: true

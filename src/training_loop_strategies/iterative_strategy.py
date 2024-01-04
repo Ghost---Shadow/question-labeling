@@ -102,14 +102,15 @@ def train_step(config, scaler, wrapped_model, optimizer, batch, loss_fn):
                     teacher_forcing,
                 )
 
-                cutoff_gains.append(
-                    compute_cutoff_gain(
-                        predictions,
-                        labels_mask_list[0].clone(),
-                        current_picked_mask,
-                        paraphrase_lut,
+                if not get(config, "eval.disable_cutoff_gains", False):
+                    cutoff_gains.append(
+                        compute_cutoff_gain(
+                            predictions,
+                            labels_mask_list[0].clone(),
+                            current_picked_mask,
+                            paraphrase_lut,
+                        )
                     )
-                )
 
                 search_metrics.append(
                     compute_search_metrics(
@@ -120,7 +121,8 @@ def train_step(config, scaler, wrapped_model, optimizer, batch, loss_fn):
                     )
                 )
 
-        scaler.scale(total_loss).backward()
+        avg_loss = total_loss / num_correct_answers
+        scaler.scale(avg_loss).backward()
 
         cutoff_gains = torch.tensor(cutoff_gains)
 
@@ -128,7 +130,7 @@ def train_step(config, scaler, wrapped_model, optimizer, batch, loss_fn):
 
         all_metrics.append(
             {
-                "loss": (total_loss / num_correct_answers).item(),
+                "loss": avg_loss.item(),
                 **search_metrics,
                 "cutoff_gain_mean": cutoff_gains.mean().item(),
                 "cutoff_gain_std": cutoff_gains.std().item(),
