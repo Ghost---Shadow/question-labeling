@@ -25,10 +25,6 @@ def main(config, debug):
     loss_name = config["architecture"]["loss"]["name"]
     training_strategy_name = config["training"]["strategy"]["name"]
 
-    # Models
-    print("Loading model")
-    wrapped_model = MODEL_LUT[semantic_search_model_name](config)
-
     # loss function
     loss_fn = LOSS_LUT[loss_name](config)
 
@@ -41,6 +37,10 @@ def main(config, debug):
         # Load data loaders after setting seed
         print("Loading data loader")
         train_loaders, validation_loaders = get_all_loaders(config)
+
+        # Models
+        print("Loading model")
+        wrapped_model = MODEL_LUT[semantic_search_model_name](config)
 
         optimizer = optim.AdamW(
             wrapped_model.get_all_trainable_parameters(), lr=learning_rate
