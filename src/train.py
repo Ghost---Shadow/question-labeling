@@ -53,7 +53,6 @@ def main(config, debug):
                 },
                 mode="disabled" if debug else None,
                 entity=config["wandb"].get("entity", None),
-                resume=True,
             )
 
         if not debug and checkpoint_manager.last_epoch == -1:
