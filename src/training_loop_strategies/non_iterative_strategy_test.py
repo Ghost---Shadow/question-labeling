@@ -72,3 +72,7 @@ class TestEvalStep(unittest.TestCase):
         loss = eval_step(config, scaler, wrapped_model, optimizer, batch, loss_fn)
 
         print(loss)
+
+
+if __name__ == "__main__":
+    unittest.main()

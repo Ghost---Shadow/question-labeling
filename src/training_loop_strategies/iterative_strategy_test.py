@@ -103,3 +103,7 @@ class TestTrainStep(unittest.TestCase):
                 config, scaler, wrapped_model, optimizer, batch, loss_fn
             )
             print(metrics)
+
+
+if __name__ == "__main__":
+    unittest.main()
