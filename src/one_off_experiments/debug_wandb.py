@@ -1,7 +1,6 @@
 import wandb
 
 
-# Function to calculate deterministic train loss
 def calculate_train_loss(step):
     return 0.5 / (step + 1)
 
@@ -29,3 +28,9 @@ for batch_size, interrupt_step, restart_step, end_step in configs:
         wandb.log({"loss": train_loss}, step=step * batch_size)
 
     wandb.finish()
+
+run = wandb.init(project="debug_wandb", name="tomato")
+for step in range(10):
+    wandb.log({"loss_a": step}, step=step)
+    wandb.log({"loss_b": step * 2}, step=step)
+wandb.finish()
