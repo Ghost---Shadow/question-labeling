@@ -36,7 +36,7 @@ def main(config, debug):
         checkpoint_manager = CheckpointManager(config, seed)
 
         # This seed is sweeped already
-        if checkpoint_manager.last_epoch >= EPOCHS:
+        if checkpoint_manager.last_epoch + 1 >= EPOCHS:
             continue
 
         if not debug:
