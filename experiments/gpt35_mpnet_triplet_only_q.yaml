@@ -22,13 +22,17 @@ datasets:
   train: 'hotpot_qa_with_q'
   validation: ['hotpot_qa_with_q', 'wiki_multihop_qa_with_q']
 
+# https://arxiv.org/pdf/2004.09297.pdf - Page 12
 training:
   strategy:
     name: 'iterative_strategy'
-  epochs: 2
-  batch_size: 2
-  learning_rate: 1e-5
+  epochs: 5 # +1 to verify overfit
+  batch_size: 48
+  learning_rate: 3e-5
+  weight_decay: 0.01
+  learning_rate_decay_strategy: 'linear'
   seeds: [42]
+  warmup_ratio: 0.06
   # seeds: [42, 43, 44, 45, 46]
 
 eval:
