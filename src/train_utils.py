@@ -46,20 +46,15 @@ def validate_one_epoch(
                 # if len(all_metrics) >= 5:
                 break
 
-    average_inference_time = total_inference_time / len(all_metrics)
     avg_metrics = average_metrics(all_metrics)
+
+    average_inference_time = total_inference_time / len(all_metrics)
+    avg_metrics["step_time"] = average_inference_time
 
     # Log metrics if not in debug mode
     if not debug:
         wandb.log(
-            {
-                "validation": {
-                    validation_dataset_name: {
-                        **avg_metrics,
-                        "inference_time": average_inference_time,
-                    }
-                }
-            },
+            {"validation": {validation_dataset_name: avg_metrics}},
             step=samples_consumed,
         )
 
@@ -88,10 +83,11 @@ def train_one_epoch(
 
     pbar = tqdm(train_loader)
     for batch in pbar:
-        # Call to train_step function
+        start_time = time.time()
         metrics = train_step_fn(
             config, scaler, wrapped_model, optimizer, batch, loss_fn
         )
+        metrics["step_time"] = time.time() - start_time
 
         step_loss = metrics["loss"]
         total_loss += metrics["loss"]
