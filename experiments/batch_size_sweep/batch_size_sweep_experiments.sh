@@ -4,6 +4,9 @@ python ./src/train.py --config=experiments/batch_size_sweep/gpt35_mpnet_triplet_
 # python ./src/train.py --config=experiments/batch_size_sweep/gpt35_mpnet_triplet_batch_16.yaml --debug
 python ./src/train.py --config=experiments/batch_size_sweep/gpt35_mpnet_triplet_batch_16.yaml
 
+# python ./src/train.py --config=experiments/batch_size_sweep/gpt35_mpnet_triplet_batch_32.yaml --debug
+python ./src/train.py --config=experiments/batch_size_sweep/gpt35_mpnet_triplet_batch_32.yaml
+
 # python ./src/train.py --config=experiments/batch_size_sweep/gpt35_mpnet_triplet_batch_48.yaml --debug
 python ./src/train.py --config=experiments/batch_size_sweep/gpt35_mpnet_triplet_batch_48.yaml
 
