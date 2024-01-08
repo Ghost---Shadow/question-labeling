@@ -230,14 +230,15 @@ def eval_step(config, scaler, wrapped_model, optimizer, batch, loss_fn):
                     teacher_forcing,
                 )
 
-                cutoff_gains.append(
-                    compute_cutoff_gain(
-                        predictions,
-                        labels_mask_list[0].clone(),
-                        current_picked_mask,
-                        paraphrase_lut,
+                if not get(config, "eval.disable_cutoff_gains", False):
+                    cutoff_gains.append(
+                        compute_cutoff_gain(
+                            predictions,
+                            labels_mask_list[0].clone(),
+                            current_picked_mask,
+                            paraphrase_lut,
+                        )
                     )
-                )
 
                 search_metrics.append(
                     compute_search_metrics(
