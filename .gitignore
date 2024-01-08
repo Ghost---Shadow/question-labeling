@@ -165,5 +165,6 @@ wandb/*
 artifacts/*
 !artifacts/.gitkeep
 experiments/completions/*.done
+checkpoints
 checkpoints/*
 !checkpoints/.gitkeep
