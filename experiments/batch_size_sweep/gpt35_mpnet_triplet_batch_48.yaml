@@ -1,7 +1,7 @@
 wandb:
   project: "question_labeling_batch_size_sweep"
   name: "gpt35_mpnet_triplet_batch_48"
-  entity: "carml"
+  # entity: "carml"
 
 architecture:
   question_generator_model:
