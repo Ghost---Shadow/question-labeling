@@ -1,6 +1,6 @@
 wandb:
   project: "question_labeling"
-  name: "gpt35_mpnet_kldiv"
+  name: "gpt35_mpnet_triplet"
   # entity: "carml"
 
 architecture:
@@ -13,11 +13,11 @@ architecture:
     device: "cuda:0"
 
   loss:
-    name: 'kl_div'
+    name: 'triplet'
 
 datasets:
   train: 'hotpot_qa_with_q'
-  validation: ['hotpot_qa_with_q', 'wiki_multihop_qa_with_q']
+  validation: ['hotpot_qa_with_q']
 
 # https://arxiv.org/pdf/2004.09297.pdf - Page 12
 training:
