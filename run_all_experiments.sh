@@ -15,4 +15,4 @@ python ./src/train.py --config=experiments/gpt35_mpnet_ni_triplet.yaml
 # python ./src/train.py --config=experiments/gpt35_mpnet_triplet_wiki.yaml --debug
 python ./src/train.py --config=experiments/gpt35_mpnet_triplet_wiki.yaml
 
-gcloud compute instances stop q-labeling-2 --zone=us-central1-a --project=angular-unison-350808
+gcloud compute instances stop q-labeling-1 --zone=us-central1-a --project=angular-unison-350808

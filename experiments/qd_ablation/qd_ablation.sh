@@ -4,4 +4,4 @@ python ./src/train.py --config=experiments/qd_ablation/gpt35_mpnet_triplet_only_
 # python ./src/train.py --config=experiments/qd_ablation/gpt35_mpnet_triplet_only_q.yaml --debug
 python ./src/train.py --config=experiments/qd_ablation/gpt35_mpnet_triplet_only_q.yaml
 
-gcloud compute instances stop q-labeling-2 --zone=us-central1-a --project=angular-unison-350808
+gcloud compute instances stop q-labeling-1 --zone=us-central1-a --project=angular-unison-350808
