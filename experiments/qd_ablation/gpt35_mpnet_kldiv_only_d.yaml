@@ -1,6 +1,6 @@
 wandb:
-  project: "question_labeling"
-  name: "gpt35_mpnet_triplet_only_q"
+  project: "question_labeling_qd_ablation"
+  name: "gpt35_mpnet_kldiv_only_d"
   # entity: "carml"
 
 architecture:
@@ -13,10 +13,10 @@ architecture:
     device: "cuda:0"
 
   loss:
-    name: 'triplet'
+    name: 'kl_div'
 
   quality_diversity:
-    disable_diversity: true
+    disable_quality: true
 
 datasets:
   train: 'hotpot_qa_with_q'
@@ -26,8 +26,8 @@ datasets:
 training:
   strategy:
     name: 'iterative_strategy'
-  epochs: 5 # +1 to verify overfit
-  batch_size: 48
+  epochs: 7 # +3 to verify overfit
+  batch_size: 32
   learning_rate: 3e-5
   weight_decay: 0.01
   learning_rate_decay_strategy: 'linear'
