@@ -1,3 +1,8 @@
+#!/bin/bash
+set -euo pipefail
+
+echo $HOSTNAME $ZONE
+
 # python ./src/train.py --config=experiments/batch_size_sweep/gpt35_mpnet_triplet_batch_2.yaml --debug
 python ./src/train.py --config=experiments/batch_size_sweep/gpt35_mpnet_triplet_batch_2.yaml
 
@@ -13,4 +18,4 @@ python ./src/train.py --config=experiments/batch_size_sweep/gpt35_mpnet_triplet_
 # python ./src/train.py --config=experiments/batch_size_sweep/gpt35_mpnet_triplet_batch_64.yaml --debug
 python ./src/train.py --config=experiments/batch_size_sweep/gpt35_mpnet_triplet_batch_64.yaml
 
-gcloud compute instances stop $HOSTNAME --zone=us-central1-a --project=angular-unison-350808
+source devops/stop_current_gcp_instance.sh

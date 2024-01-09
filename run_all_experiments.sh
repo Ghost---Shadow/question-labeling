@@ -1,3 +1,8 @@
+#!/bin/bash
+set -euo pipefail
+
+echo $HOSTNAME $ZONE
+
 # Batch size sweeps
 source experiments/batch_size_sweep/batch_size_sweep_experiments.sh
 
@@ -15,4 +20,4 @@ python ./src/train.py --config=experiments/gpt35_mpnet_ni_triplet.yaml
 # python ./src/train.py --config=experiments/gpt35_mpnet_triplet_wiki.yaml --debug
 python ./src/train.py --config=experiments/gpt35_mpnet_triplet_wiki.yaml
 
-gcloud compute instances stop $HOSTNAME --zone=us-central1-a --project=angular-unison-350808
+source devops/stop_current_gcp_instance.sh
