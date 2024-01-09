@@ -168,4 +168,4 @@ experiments/completions/*.done
 checkpoints
 checkpoints/*
 !checkpoints/.gitkeep
-./devops/install_gpu_driver.py
+install_gpu_driver.py
