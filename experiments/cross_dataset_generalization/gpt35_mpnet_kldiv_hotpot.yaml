@@ -1,6 +1,6 @@
 wandb:
   project: "question_labeling"
-  name: "gpt35_mpnet_triplet_wiki"
+  name: "gpt35_mpnet_kldiv_hotpot"
   # entity: "carml"
 
 architecture:
@@ -13,18 +13,18 @@ architecture:
     device: "cuda:0"
 
   loss:
-    name: 'triplet'
+    name: 'kl_div'
 
 datasets:
-  train: 'wiki_multihop_qa_with_q'
+  train: 'hotpot_qa_with_q'
   validation: ['hotpot_qa_with_q', 'wiki_multihop_qa_with_q']
 
 # https://arxiv.org/pdf/2004.09297.pdf - Page 12
 training:
   strategy:
     name: 'iterative_strategy'
-  epochs: 5 # +1 to verify overfit
-  batch_size: 48
+  epochs: 7 # +3 to verify overfit
+  batch_size: 32
   learning_rate: 3e-5
   weight_decay: 0.01
   learning_rate_decay_strategy: 'linear'
