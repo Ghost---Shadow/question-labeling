@@ -1,0 +1,36 @@
+wandb:
+  project: "question_labeling_cross_dataset"
+  name: "gpt35_beamr_kldiv"
+  # entity: "carml"
+
+architecture:
+  question_generator_model:
+    name: 'gpt-3.5-turbo'
+  
+  semantic_search_model:
+    name: 'deberta'
+    checkpoint: 'scholarly-shadows-syndicate/beam_retriever_unofficial_encoder_only'
+    device: "cuda:0"
+
+  loss:
+    name: 'kl_div'
+
+datasets:
+  train: 'hotpot_qa_with_q'
+  validation: ['hotpot_qa_with_q']
+
+# https://arxiv.org/pdf/2004.09297.pdf - Page 12
+training:
+  strategy:
+    name: 'iterative_strategy'
+  epochs: 7 # +3 to verify overfit
+  batch_size: 32
+  learning_rate: 3e-5
+  weight_decay: 0.01
+  learning_rate_decay_strategy: 'linear'
+  seeds: [42]
+  warmup_ratio: 0.06
+  # seeds: [42, 43, 44, 45, 46]
+
+eval:
+  k: [1, 5, 10]
