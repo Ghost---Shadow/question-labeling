@@ -178,7 +178,7 @@ class TestCheckpointManagerTraining(unittest.TestCase):
 
             if step == self.interrupt_epoch - 1:
                 # Save checkpoint at step 10
-                self.checkpoint_manager.save(epoch=10)
+                self.checkpoint_manager.save(epoch=self.interrupt_epoch)
 
             if step > self.interrupt_epoch - 1:
                 initial_losses.append(loss.item())
@@ -293,7 +293,7 @@ class TestCheckpointManagerTrainingAMP(unittest.TestCase):
 
             if step == self.interrupt_epoch - 1:
                 # Save checkpoint with AMP state
-                self.checkpoint_manager.save(epoch=10)
+                self.checkpoint_manager.save(epoch=self.interrupt_epoch)
 
             if step > self.interrupt_epoch - 1:
                 initial_losses.append(loss.item())
