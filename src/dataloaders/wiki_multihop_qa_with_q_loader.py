@@ -62,7 +62,7 @@ def collate_fn(batch):
 
 
 def get_train_loader(batch_size):
-    dataset = load_dataset("somebody-had-to-do-it/2wikimultihopqa_with_q_gpt35")
+    dataset = load_dataset("scholarly-shadows-syndicate/2wikimultihopqa_with_q_gpt35")
 
     train_loader = DataLoader(
         dataset["train"],
@@ -75,7 +75,7 @@ def get_train_loader(batch_size):
 
 
 def get_validation_loader(batch_size):
-    dataset = load_dataset("somebody-had-to-do-it/2wikimultihopqa_with_q_gpt35")
+    dataset = load_dataset("scholarly-shadows-syndicate/2wikimultihopqa_with_q_gpt35")
 
     val_loader = DataLoader(
         dataset["validation"],
