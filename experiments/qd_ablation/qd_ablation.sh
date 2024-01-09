@@ -1,7 +1,7 @@
 #!/bin/bash
 set -euo pipefail
 
-echo $HOSTNAME $ZONE
+echo $HOSTNAME
 
 # python ./src/train.py --config=experiments/qd_ablation/gpt35_mpnet_triplet_only_d.yaml --debug
 python ./src/train.py --config=experiments/qd_ablation/gpt35_mpnet_triplet_only_d.yaml

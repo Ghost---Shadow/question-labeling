@@ -1,7 +1,7 @@
 #!/bin/bash
 set -euo pipefail
 
-echo $HOSTNAME $ZONE
+echo $HOSTNAME
 
 # Batch size sweeps
 source experiments/batch_size_sweep/batch_size_sweep_experiments.sh

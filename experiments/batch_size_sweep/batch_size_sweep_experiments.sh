@@ -1,7 +1,7 @@
 #!/bin/bash
 set -euo pipefail
 
-echo $HOSTNAME $ZONE
+echo $HOSTNAME
 
 # python ./src/train.py --config=experiments/batch_size_sweep/gpt35_mpnet_triplet_batch_2.yaml --debug
 python ./src/train.py --config=experiments/batch_size_sweep/gpt35_mpnet_triplet_batch_2.yaml
