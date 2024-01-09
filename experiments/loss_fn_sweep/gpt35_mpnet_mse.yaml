@@ -1,5 +1,5 @@
 wandb:
-  project: "question_labeling"
+  project: "question_labeling_loss_fn_ablations"
   name: "gpt35_mpnet_mse"
   # entity: "carml"
 
@@ -33,4 +33,5 @@ training:
   # seeds: [42, 43, 44, 45, 46]
 
 eval:
-  k: [1, 5, 10]
+  k: [1, 5]
+  disable_cutoff_gains: true
