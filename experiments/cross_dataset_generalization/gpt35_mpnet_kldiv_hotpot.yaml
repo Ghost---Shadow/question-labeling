@@ -1,5 +1,5 @@
 wandb:
-  project: "question_labeling"
+  project: "question_labeling_cross_dataset"
   name: "gpt35_mpnet_kldiv_hotpot"
   # entity: "carml"
 
