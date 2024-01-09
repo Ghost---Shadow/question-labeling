@@ -23,7 +23,7 @@ datasets:
 training:
   strategy:
     name: 'iterative_strategy'
-  epochs: 6 # +2 to verify overfit
+  epochs: 7 # +3 to verify overfit
   batch_size: 32
   learning_rate: 3e-5
   weight_decay: 0.01
