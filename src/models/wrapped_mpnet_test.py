@@ -1,5 +1,5 @@
 import unittest
-from models.wrapped_sentence_transformer import WrappedSentenceTransformerModel
+from models.wrapped_mpnet import WrappedMpnetModel
 import numpy as np
 import torch
 import torch.optim as optim
@@ -7,9 +7,9 @@ import torch.nn as nn
 from torch.cuda.amp import autocast, GradScaler
 
 
-# python -m unittest models.wrapped_sentence_transformer_test.TestWrappedSentenceTransformerModel -v
-class TestWrappedSentenceTransformerModel(unittest.TestCase):
-    # python -m unittest models.wrapped_sentence_transformer_test.TestWrappedSentenceTransformerModel.test_get_inner_products -v
+# python -m unittest models.wrapped_mpnet_test.TestWrappedMpnetModel -v
+class TestWrappedMpnetModel(unittest.TestCase):
+    # python -m unittest models.wrapped_mpnet_test.TestWrappedMpnetModel.test_get_inner_products -v
     def test_get_inner_products(self):
         config = {
             "architecture": {
@@ -20,7 +20,7 @@ class TestWrappedSentenceTransformerModel(unittest.TestCase):
                 }
             }
         }
-        model = WrappedSentenceTransformerModel(config)
+        model = WrappedMpnetModel(config)
         query = "What color is the fruit that Alice loves?"
         documents = [
             "What fruit does Alice love?",
@@ -48,10 +48,10 @@ class TestWrappedSentenceTransformerModel(unittest.TestCase):
         assert actual == expected, actual
 
 
-# python -m unittest models.wrapped_sentence_transformer_test.TestOverfit -v
+# python -m unittest models.wrapped_mpnet_test.TestOverfit -v
 # @unittest.skip("needs GPU")
 class TestOverfit(unittest.TestCase):
-    # python -m unittest models.wrapped_sentence_transformer_test.TestOverfit.test_overfit -v
+    # python -m unittest models.wrapped_mpnet_test.TestOverfit.test_overfit -v
     def test_overfit(self):
         config = {
             "architecture": {
@@ -61,7 +61,7 @@ class TestOverfit(unittest.TestCase):
                 }
             }
         }
-        wrapped_model = WrappedSentenceTransformerModel(config)
+        wrapped_model = WrappedMpnetModel(config)
         query = "What color is the fruit that Alice loves?"
         documents = [
             "What fruit does Alice love?",
@@ -94,7 +94,7 @@ class TestOverfit(unittest.TestCase):
 
         print(inner_product)
 
-    # python -m unittest models.wrapped_sentence_transformer_test.TestOverfit.test_overfit_amp -v
+    # python -m unittest models.wrapped_mpnet_test.TestOverfit.test_overfit_amp -v
     def test_overfit_amp(self):
         config = {
             "architecture": {
@@ -104,7 +104,7 @@ class TestOverfit(unittest.TestCase):
                 }
             }
         }
-        wrapped_model = WrappedSentenceTransformerModel(config)
+        wrapped_model = WrappedMpnetModel(config)
         query = "What color is the fruit that Alice loves?"
         documents = [
             "What fruit does Alice love?",

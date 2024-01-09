@@ -1,6 +1,6 @@
 import json
 from losses.triplet_loss import TripletLoss
-from models.wrapped_sentence_transformer import WrappedSentenceTransformerModel
+from models.wrapped_mpnet import WrappedMpnetModel
 import numpy as np
 import torch
 import torch.optim as optim
@@ -141,7 +141,7 @@ def train_session(seed, enable_inward, enable_outward, enable_local_inward):
             }
         }
     }
-    model = WrappedSentenceTransformerModel(config)
+    model = WrappedMpnetModel(config)
 
     optimizer = optim.AdamW(model.model.parameters(), lr=1e-5)
     criterion = TripletLoss({})

@@ -1,7 +1,7 @@
 import os
 from pathlib import Path
 from dataloaders.hotpot_qa_loader import get_loader
-from models.wrapped_sentence_transformer import WrappedSentenceTransformerModel
+from models.wrapped_mpnet import WrappedMpnetModel
 import numpy as np
 from tqdm import tqdm
 import torch
@@ -38,7 +38,7 @@ if not similarity_file_exists or not dissimilarity_file_exists:
             }
         }
     }
-    model = WrappedSentenceTransformerModel(config)
+    model = WrappedMpnetModel(config)
 
     query_embedding, document_embeddings = model.get_query_and_document_embeddings(
         question, sentences

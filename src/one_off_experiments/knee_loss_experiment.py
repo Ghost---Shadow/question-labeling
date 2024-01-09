@@ -1,6 +1,6 @@
 from losses.knee_loss import KneeLoss
 from losses.triplet_loss import TripletLoss
-from models.wrapped_sentence_transformer import WrappedSentenceTransformerModel
+from models.wrapped_mpnet import WrappedMpnetModel
 from one_off_experiments.paraphrase_experiment import load_paraphrased_row
 from tqdm import tqdm
 from train_utils import set_seed
@@ -73,7 +73,7 @@ def train_session(seed, enable_local_inward, enable_knee):
             }
         }
     }
-    model = WrappedSentenceTransformerModel(config)
+    model = WrappedMpnetModel(config)
     optimizer = torch.optim.AdamW(model.model.parameters(), lr=1e-5)
     triplet_loss_fn = TripletLoss({})
     knee_loss_fn = KneeLoss({})

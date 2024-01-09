@@ -2,7 +2,7 @@ import unittest
 from dataloaders.hotpot_qa_with_q_loader import get_train_loader, get_validation_loader
 from losses.triplet_loss import TripletLoss
 import torch.optim as optim
-from models.wrapped_sentence_transformer import WrappedSentenceTransformerModel
+from models.wrapped_mpnet import WrappedMpnetModel
 from training_loop_strategies.iterative_strategy import (
     eval_step,
     train_step,
@@ -25,7 +25,7 @@ class TestTrainStepMixedPrecision(unittest.TestCase):
             },
             "eval": {"k": [1, 5, 10]},
         }
-        wrapped_model = WrappedSentenceTransformerModel(config)
+        wrapped_model = WrappedMpnetModel(config)
         optimizer = optim.AdamW(wrapped_model.model.parameters(), lr=1e-5)
 
         batch_size = 2
@@ -57,7 +57,7 @@ class TestEvalStep(unittest.TestCase):
             },
             "eval": {"k": [1, 5, 10]},
         }
-        wrapped_model = WrappedSentenceTransformerModel(config)
+        wrapped_model = WrappedMpnetModel(config)
 
         batch_size = 2
 
@@ -87,7 +87,7 @@ class TestTrainStep(unittest.TestCase):
             },
             "eval": {"k": [1, 5, 10]},
         }
-        wrapped_model = WrappedSentenceTransformerModel(config)
+        wrapped_model = WrappedMpnetModel(config)
         optimizer = optim.AdamW(wrapped_model.model.parameters(), lr=1e-5)
 
         batch_size = 2

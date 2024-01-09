@@ -3,7 +3,11 @@ import torch
 from transformers import AutoTokenizer, AutoModel
 
 
-class WrappedSentenceTransformerModel:
+class WrappedMpnetModel:
+    """
+    https://huggingface.co/sentence-transformers/all-mpnet-base-v2
+    """
+
     def __init__(self, config):
         self.config = config
 

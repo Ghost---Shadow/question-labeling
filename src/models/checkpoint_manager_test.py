@@ -22,7 +22,7 @@ class TestCheckpointManagerAutoLoad(unittest.TestCase):
             "architecture": {
                 "semantic_search_model": {
                     "checkpoint": "sentence-transformers/all-mpnet-base-v2",
-                    "name": "sentence_transformer",
+                    "name": "mpnet",
                     "device": "cpu",
                 }
             },
@@ -58,7 +58,7 @@ class TestCheckpointManager(unittest.TestCase):
             "architecture": {
                 "semantic_search_model": {
                     "checkpoint": "sentence-transformers/all-mpnet-base-v2",
-                    "name": "sentence_transformer",
+                    "name": "mpnet",
                     "device": "cpu",
                 }
             },
@@ -111,7 +111,7 @@ class TestCheckpointManagerTraining(unittest.TestCase):
             "architecture": {
                 "semantic_search_model": {
                     "checkpoint": "sentence-transformers/all-mpnet-base-v2",
-                    "name": "sentence_transformer",
+                    "name": "mpnet",
                     "device": "cpu",
                 }
             },
@@ -222,7 +222,7 @@ class TestCheckpointManagerTrainingAMP(unittest.TestCase):
             "architecture": {
                 "semantic_search_model": {
                     "checkpoint": "sentence-transformers/all-mpnet-base-v2",
-                    "name": "sentence_transformer",
+                    "name": "mpnet",
                     "device": "cuda:0",
                 }
             },
