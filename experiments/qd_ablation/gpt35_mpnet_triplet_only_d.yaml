@@ -20,7 +20,7 @@ architecture:
 
 datasets:
   train: 'hotpot_qa_with_q'
-  validation: ['hotpot_qa_with_q', 'wiki_multihop_qa_with_q']
+  validation: ['hotpot_qa_with_q']
 
 # https://arxiv.org/pdf/2004.09297.pdf - Page 12
 training:
