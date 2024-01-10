@@ -1,5 +1,6 @@
 from pathlib import Path
 from losses.triplet_loss import TripletLoss
+from models.wrapped_deberta import WrappedDebertaModel
 from models.wrapped_mpnet import WrappedMpnetModel
 from one_off_experiments.paraphrase_experiment import load_paraphrased_row
 from tqdm import tqdm
@@ -41,7 +42,8 @@ def train_session(seed, enable_quality, enable_diversity):
 
     wandb.init(
         project="q_d_experiment",
-        name="q_d_experiment" + s + f"_{seed}",
+        # name="q_d_experiment" + s + f"_{seed}",
+        name="q_d_experiment_deberta" + s + f"_{seed}",
         config={
             "quality": enable_quality,
             "diversity": enable_diversity,
@@ -52,12 +54,14 @@ def train_session(seed, enable_quality, enable_diversity):
     config = {
         "architecture": {
             "semantic_search_model": {
-                "checkpoint": "sentence-transformers/all-mpnet-base-v2",
+                # "checkpoint": "sentence-transformers/all-mpnet-base-v2",
+                "checkpoint": "microsoft/deberta-v3-base",
                 "device": "cuda:0",
             }
         }
     }
-    model = WrappedMpnetModel(config)
+    # model = WrappedMpnetModel(config)
+    model = WrappedDebertaModel(config)
     optimizer = torch.optim.AdamW(model.model.parameters(), lr=1e-5)
     triplet_loss_fn = TripletLoss({})
 
@@ -182,8 +186,8 @@ def train_session(seed, enable_quality, enable_diversity):
 if __name__ == "__main__":
     permutations = [
         [True, True],
-        [False, True],
-        [True, False],
+        # [False, True],
+        # [True, False],
     ]
     # seeds = [42, 43, 44]
     seeds = [42]
