@@ -22,7 +22,10 @@ class TestTrainStepMixedPrecision(unittest.TestCase):
                     "device": "cuda:0",
                 },
             },
-            "eval": {"k": [5, 10]},
+            "eval": {
+                "k": [5, 10],
+                "disable_cutoff_gains": True,
+            },
         }
         wrapped_model = WrappedMpnetModel(config)
         optimizer = optim.AdamW(wrapped_model.model.parameters(), lr=1e-5)
@@ -54,7 +57,10 @@ class TestEvalStep(unittest.TestCase):
                     "device": "cuda:0",
                 }
             },
-            "eval": {"k": [1, 5, 10]},
+            "eval": {
+                "k": [5, 10],
+                "disable_cutoff_gains": True,
+            },
         }
         wrapped_model = WrappedMpnetModel(config)
 

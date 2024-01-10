@@ -157,6 +157,9 @@ def average_metrics(metrics_array):
     # Iterate over each dictionary in the array
     for metrics in metrics_array:
         for key, value in metrics.items():
+            if value is None:
+                continue
+
             # Add the value to the sum_dict, handling the case where the key might not exist yet
             if key in sum_dict:
                 sum_dict[key] += value

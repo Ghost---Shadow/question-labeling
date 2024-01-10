@@ -58,8 +58,8 @@ def train_step(config, scaler, wrapped_model, optimizer, batch, loss_fn):
             labels_mask_list = [labels_mask.clone()]
             picked_mask_list = [picked_mask]
             teacher_forcing = []
-            cutoff_gains = []
             actual_picks = []
+            actual_pick_prediction = []
 
             can_be_picked_set = set(no_paraphrase_relevant_question_indexes)
             num_correct_answers = len(can_be_picked_set)
@@ -81,9 +81,11 @@ def train_step(config, scaler, wrapped_model, optimizer, batch, loss_fn):
                     predictions = predictions * (1 - dissimilarities)
 
                 # Store the highest scoring document
-                actual_picks.append(
-                    pick_highest_scoring_new_document(predictions, actual_picks)
+                picked_doc_idx = pick_highest_scoring_new_document(
+                    predictions, actual_picks
                 )
+                actual_picks.append(picked_doc_idx)
+                actual_pick_prediction.append(predictions[picked_doc_idx].item())
 
                 if len(can_be_picked_set) > 0:
                     labels = current_all_labels_mask.float()
@@ -97,16 +99,6 @@ def train_step(config, scaler, wrapped_model, optimizer, batch, loss_fn):
                         can_be_picked_set,
                         current_picked_mask,
                     )
-
-                    if not get(config, "eval.disable_cutoff_gains", False):
-                        cutoff_gains.append(
-                            compute_cutoff_gain(
-                                predictions,
-                                labels_mask_list[0].clone(),
-                                current_picked_mask,
-                                paraphrase_lut,
-                            )
-                        )
 
                     # Update bookkeeping
                     record_pick(
@@ -129,8 +121,6 @@ def train_step(config, scaler, wrapped_model, optimizer, batch, loss_fn):
         avg_loss = total_loss / num_correct_answers
         scaler.scale(avg_loss).backward()
 
-        cutoff_gains = torch.tensor(cutoff_gains)
-
         search_metrics = compute_search_metrics(
             config,
             actual_picks,
@@ -138,12 +128,20 @@ def train_step(config, scaler, wrapped_model, optimizer, batch, loss_fn):
             no_paraphrase_relevant_question_indexes,
         )
 
+        cutoff_gain = None
+        if not get(config, "eval.disable_cutoff_gains", False):
+            cutoff_gain = compute_cutoff_gain(
+                actual_picks,
+                actual_pick_prediction,
+                paraphrase_lut,
+                no_paraphrase_relevant_question_indexes,
+            )
+
         all_metrics.append(
             {
                 "loss": avg_loss.item(),
                 **search_metrics,
-                "cutoff_gain_mean": cutoff_gains.mean().item(),
-                "cutoff_gain_std": cutoff_gains.std().item(),
+                "cutoff_gain": cutoff_gain,
             }
         )
 
@@ -170,7 +168,7 @@ def eval_step(config, scaler, wrapped_model, optimizer, batch, loss_fn):
         for (
             question,
             flat_questions,
-            labels_mask,
+            _,
             no_paraphrase_relevant_question_indexes,
             paraphrase_lut,
         ) in zip(
@@ -191,25 +189,18 @@ def eval_step(config, scaler, wrapped_model, optimizer, batch, loss_fn):
                 document_embeddings, query_embedding.T
             ).squeeze()
             similarities = torch.clamp(similarities, min=0, max=1)
-            labels_mask = torch.tensor(labels_mask, device=similarities.device)
 
             picked_mask = torch.zeros(
                 len(flat_questions), device=similarities.device, dtype=torch.bool
             )
-            labels_mask_list = [labels_mask.clone()]
             picked_mask_list = [picked_mask]
-            teacher_forcing = []
-            cutoff_gains = []
-            search_metrics = []
+            actual_picks = []
+            actual_pick_prediction = []
 
-            can_be_picked_set = set(no_paraphrase_relevant_question_indexes)
-            num_correct_answers = len(can_be_picked_set)
-            total_loss = torch.zeros([], device=similarities.device)
+            num_hops = len(flat_questions)
 
-            for _ in range(num_correct_answers):
-                current_all_labels_mask = labels_mask_list[-1]
+            for _ in range(num_hops):
                 current_picked_mask = picked_mask_list[-1]
-
                 dissimilarities = compute_dissimilarities(
                     document_embeddings, current_picked_mask, similarities
                 )
@@ -220,55 +211,39 @@ def eval_step(config, scaler, wrapped_model, optimizer, batch, loss_fn):
                 if enable_diversity:
                     predictions = predictions * (1 - dissimilarities)
 
-                labels = current_all_labels_mask.float()
-                loss = loss_fn(predictions, labels)
-                total_loss += loss
+                # Store the highest scoring document
+                picked_doc_idx = pick_highest_scoring_new_document(
+                    predictions, actual_picks
+                )
+                actual_picks.append(picked_doc_idx)
+                actual_pick_prediction.append(predictions[picked_doc_idx].item())
 
-                next_correct = select_next_correct(
-                    predictions,
+                picked_doc_idx = actual_picks[-1]
+                next_picked_mask = current_picked_mask.clone()
+                next_picked_mask[picked_doc_idx] = True
+                picked_mask_list.append(next_picked_mask)
+
+            search_metrics = compute_search_metrics(
+                config,
+                actual_picks,
+                paraphrase_lut,
+                no_paraphrase_relevant_question_indexes,
+            )
+
+            cutoff_gain = None
+            if not get(config, "eval.disable_cutoff_gains", False):
+                cutoff_gain = compute_cutoff_gain(
+                    actual_picks,
+                    actual_pick_prediction,
                     paraphrase_lut,
-                    can_be_picked_set,
-                    current_picked_mask,
+                    no_paraphrase_relevant_question_indexes,
                 )
-
-                if not get(config, "eval.disable_cutoff_gains", False):
-                    cutoff_gains.append(
-                        compute_cutoff_gain(
-                            predictions,
-                            labels_mask_list[0].clone(),
-                            current_picked_mask,
-                            paraphrase_lut,
-                        )
-                    )
-
-                search_metrics.append(
-                    compute_search_metrics(
-                        config,
-                        predictions,
-                        paraphrase_lut,
-                        can_be_picked_set,
-                    )
-                )
-
-                record_pick(
-                    next_correct,
-                    can_be_picked_set,
-                    paraphrase_lut,
-                    labels_mask_list,
-                    picked_mask_list,
-                    teacher_forcing,
-                )
-
-            cutoff_gains = torch.tensor(cutoff_gains)
-
-            search_metrics = average_metrics(search_metrics)
 
             all_metrics.append(
                 {
-                    "loss": (total_loss / num_correct_answers).item(),
+                    "loss": None,  # Not needed
                     **search_metrics,
-                    "cutoff_gain_mean": cutoff_gains.mean().item(),
-                    "cutoff_gain_std": cutoff_gains.std().item(),
+                    "cutoff_gain": cutoff_gain,
                 }
             )
 
