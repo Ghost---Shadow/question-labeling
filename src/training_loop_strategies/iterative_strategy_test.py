@@ -24,7 +24,7 @@ class TestTrainStepMixedPrecision(unittest.TestCase):
             },
             "eval": {
                 "k": [5, 10],
-                "disable_cutoff_gains": True,
+                "disable_cutoff_gains": False,
             },
         }
         wrapped_model = WrappedMpnetModel(config)
@@ -59,7 +59,7 @@ class TestEvalStep(unittest.TestCase):
             },
             "eval": {
                 "k": [5, 10],
-                "disable_cutoff_gains": True,
+                "disable_cutoff_gains": False,
             },
         }
         wrapped_model = WrappedMpnetModel(config)

@@ -173,24 +173,38 @@ def average_metrics(metrics_array):
 
 
 def compute_cutoff_gain(
-    predictions, global_correct_mask, current_picked_mask, paraphrase_lut
+    actual_picks,
+    actual_pick_prediction,
+    paraphrase_lut,
+    no_paraphrase_relevant_question_indexes,
 ):
-    # Convert to boolean mask if not already
-    global_correct_mask = global_correct_mask.bool()
+    """
+    Computes the difference between the prediction of the least similar correct document
+    and the most similar incorrect document.
 
-    # If everything is correct or incorrect then there is nothing we can do
-    num_correct = global_correct_mask.sum()
-    if len(global_correct_mask) == num_correct or num_correct == 0:
-        return 0.0
+    :param actual_picks: List of indices of documents picked.
+    :param actual_pick_prediction: Corresponding prediction scores for the actual picks.
+    :param paraphrase_lut: Lookup table for paraphrases.
+    :param no_paraphrase_relevant_question_indexes: Indices of relevant documents without considering paraphrases.
+    :return: The calculated difference in predictions.
+    """
+    # Initialize variables to track the least similar correct and most similar incorrect
+    least_similar_correct_score = float("inf")
+    most_similar_incorrect_score = float("-inf")
 
-    # Update global_correct_mask to mark documents as incorrect if their paraphrases have been picked
-    for i, picked in enumerate(current_picked_mask):
-        if picked:
-            paraphrase_index = paraphrase_lut[i]
-            global_correct_mask[paraphrase_index] = False
+    can_be_picked_set = set(no_paraphrase_relevant_question_indexes)
 
-    # Find the least similar correct document
-    least_similar_correct = predictions[global_correct_mask].min()
-    most_similar_incorrect = predictions[~global_correct_mask].max()
+    # Iterate through each pick
+    for pick, score in zip(actual_picks, actual_pick_prediction):
+        if (
+            pick in can_be_picked_set
+            or paraphrase_lut.get(pick, pick) in can_be_picked_set
+        ):
+            least_similar_correct_score = min(least_similar_correct_score, score)
+            can_be_picked_set.discard(pick)
+            can_be_picked_set.discard(paraphrase_lut.get(pick, pick))
+        else:
+            most_similar_incorrect_score = max(most_similar_incorrect_score, score)
 
-    return (least_similar_correct - most_similar_incorrect).item()
+    # Calculate the difference
+    return least_similar_correct_score - most_similar_incorrect_score

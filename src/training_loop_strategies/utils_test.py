@@ -258,64 +258,35 @@ class TestRecordPick(unittest.TestCase):
 
 # python -m unittest training_loop_strategies.utils_test.TestComputeCutoffGain -v
 class TestComputeCutoffGain(unittest.TestCase):
-    # python -m unittest training_loop_strategies.utils_test.TestComputeCutoffGain.test_no_picked_documents -v
-    def test_no_picked_documents(self):
-        predictions = torch.tensor([0.1, 0.2, 0.3, 0.4])
-        global_correct_mask = torch.tensor([True, True, False, False])
-        current_picked_mask = torch.tensor([False, False, False, False])
-        paraphrase_lut = {0: 1}
+    # python -m unittest training_loop_strategies.utils_test.TestComputeCutoffGain.test_no_paraphrase -v
+    def test_no_paraphrase(self):
+        actual_picks = [0, 1, 2, 3, 4]
+        actual_pick_prediction = [0.9, 0.8, 0.6, 0.5, 0.4]
+        paraphrase_lut = {0: 4, 4: 0}
+        no_paraphrase_relevant_question_indexes = [0, 1]
 
         result = compute_cutoff_gain(
-            predictions,
-            global_correct_mask,  # dont clone for testing
-            current_picked_mask,
+            actual_picks,
+            actual_pick_prediction,
             paraphrase_lut,
+            no_paraphrase_relevant_question_indexes,
         )
-        self.assertAlmostEqual(result, -0.3, places=4)
-        self.assertTrue(
-            torch.equal(global_correct_mask, torch.tensor([True, True, False, False]))
-        )
+        self.assertAlmostEqual(result, 0.2, places=4)
 
-    # python -m unittest training_loop_strategies.utils_test.TestComputeCutoffGain.test_picked_documents -v
-    def test_picked_documents(self):
-        predictions = torch.tensor([0.1, 0.4, 0.3, 0.2])
-        global_correct_mask = torch.tensor([False, True, True, False])
-        current_picked_mask = torch.tensor([False, True, False, False])
-        paraphrase_lut = {1: 2}
+    # python -m unittest training_loop_strategies.utils_test.TestComputeCutoffGain.test_with_paraphrase -v
+    def test_with_paraphrase(self):
+        actual_picks = [4, 1, 2, 3, 0]
+        actual_pick_prediction = [0.9, 0.8, 0.6, 0.5, 0.4]
+        paraphrase_lut = {0: 4, 4: 0}
+        no_paraphrase_relevant_question_indexes = [0, 1]
 
         result = compute_cutoff_gain(
-            predictions,
-            global_correct_mask,  # dont clone for testing
-            current_picked_mask,
+            actual_picks,
+            actual_pick_prediction,
             paraphrase_lut,
+            no_paraphrase_relevant_question_indexes,
         )
-        self.assertAlmostEqual(result, 0.1, places=4)
-        self.assertTrue(
-            torch.equal(global_correct_mask, torch.tensor([False, True, False, False]))
-        )
-
-    # python -m unittest training_loop_strategies.utils_test.TestComputeCutoffGain.test_empty_most_similar_incorrect -v
-    def test_empty_most_similar_incorrect(self):
-        # Set up a scenario where all predictions are marked as correct
-        predictions = torch.tensor([0.2, 0.5, 0.3, 0.4])
-        global_correct_mask = torch.tensor([True, True, True, True])
-        current_picked_mask = torch.tensor([False, False, False, False])
-        paraphrase_lut = {0: 1, 2: 3}
-
-        gain = compute_cutoff_gain(
-            predictions, global_correct_mask, current_picked_mask, paraphrase_lut
-        )
-        self.assertAlmostEqual(gain, 0.0, places=4)
-
-        predictions = torch.tensor([0.2, 0.5, 0.3, 0.4])
-        global_correct_mask = torch.tensor([False, False, False, False])
-        current_picked_mask = torch.tensor([False, False, False, False])
-        paraphrase_lut = {}
-
-        gain = compute_cutoff_gain(
-            predictions, global_correct_mask, current_picked_mask, paraphrase_lut
-        )
-        self.assertAlmostEqual(gain, 0.0, places=4)
+        self.assertAlmostEqual(result, 0.2, places=4)
 
 
 if __name__ == "__main__":
