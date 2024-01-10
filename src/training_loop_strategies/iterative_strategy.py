@@ -86,13 +86,13 @@ def train_step(config, scaler, wrapped_model, optimizer, batch, loss_fn):
                     predictions, paraphrase_lut, can_be_picked_set, current_picked_mask
                 )
 
-                record_pick(
-                    next_correct,
-                    can_be_picked_set,
-                    paraphrase_lut,
-                    labels_mask_list,
-                    picked_mask_list,
-                    teacher_forcing,
+                search_metrics.append(
+                    compute_search_metrics(
+                        config,
+                        predictions,
+                        paraphrase_lut,
+                        can_be_picked_set,
+                    )
                 )
 
                 if not get(config, "eval.disable_cutoff_gains", False):
@@ -105,13 +105,13 @@ def train_step(config, scaler, wrapped_model, optimizer, batch, loss_fn):
                         )
                     )
 
-                search_metrics.append(
-                    compute_search_metrics(
-                        config,
-                        predictions,
-                        paraphrase_lut,
-                        can_be_picked_set,
-                    )
+                record_pick(
+                    next_correct,
+                    can_be_picked_set,
+                    paraphrase_lut,
+                    labels_mask_list,
+                    picked_mask_list,
+                    teacher_forcing,
                 )
 
         avg_loss = total_loss / num_correct_answers
@@ -214,15 +214,6 @@ def eval_step(config, scaler, wrapped_model, optimizer, batch, loss_fn):
                     current_picked_mask,
                 )
 
-                record_pick(
-                    next_correct,
-                    can_be_picked_set,
-                    paraphrase_lut,
-                    labels_mask_list,
-                    picked_mask_list,
-                    teacher_forcing,
-                )
-
                 if not get(config, "eval.disable_cutoff_gains", False):
                     cutoff_gains.append(
                         compute_cutoff_gain(
@@ -240,6 +231,15 @@ def eval_step(config, scaler, wrapped_model, optimizer, batch, loss_fn):
                         paraphrase_lut,
                         can_be_picked_set,
                     )
+                )
+
+                record_pick(
+                    next_correct,
+                    can_be_picked_set,
+                    paraphrase_lut,
+                    labels_mask_list,
+                    picked_mask_list,
+                    teacher_forcing,
                 )
 
             cutoff_gains = torch.tensor(cutoff_gains)

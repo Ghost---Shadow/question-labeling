@@ -60,6 +60,7 @@ def train_session(seed, enable_quality, enable_diversity):
             },
         },
         "eval": {"k": [1, 5, 10]},
+        # "eval": {"k": [1]},
     }
     wrapped_model = WrappedMpnetModel(config)
     # wrapped_model = WrappedDebertaModel(config)
@@ -93,8 +94,8 @@ def train_session(seed, enable_quality, enable_diversity):
 if __name__ == "__main__":
     permutations = [
         [True, True],
-        [False, True],
-        [True, False],
+        # [False, True],
+        # [True, False],
     ]
     # seeds = [42, 43, 44]
     seeds = [42]
