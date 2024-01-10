@@ -2,8 +2,10 @@ import torch
 from torch.cuda.amp import autocast
 from training_loop_strategies.utils import (
     average_metrics,
+    compute_cutoff_gain,
     compute_search_metrics,
 )
+from pydash import get
 
 
 def train_step(config, scaler, wrapped_model, optimizer, batch, loss_fn):
@@ -43,7 +45,9 @@ def train_step(config, scaler, wrapped_model, optimizer, batch, loss_fn):
 
         scaler.scale(loss).backward()
 
-        ranking_indices = predictions.argsort(descending=True).tolist()
+        sorted_predictions, sorted_indices = predictions.sort(descending=True)
+        ranking_predictions = sorted_predictions.tolist()
+        ranking_indices = sorted_indices.tolist()
 
         search_metrics = compute_search_metrics(
             config,
@@ -52,10 +56,20 @@ def train_step(config, scaler, wrapped_model, optimizer, batch, loss_fn):
             no_paraphrase_relevant_question_indexes,
         )
 
+        cutoff_gain = None
+        if not get(config, "eval.disable_cutoff_gains", False):
+            cutoff_gain = compute_cutoff_gain(
+                ranking_indices,
+                ranking_predictions,
+                paraphrase_lut,
+                no_paraphrase_relevant_question_indexes,
+            )
+
         all_metrics.append(
             {
                 "loss": loss.item(),
                 **search_metrics,
+                "cutoff_gain": cutoff_gain,
             }
         )
 
@@ -100,7 +114,9 @@ def eval_step(config, scaler, wrapped_model, optimizer, batch, loss_fn):
             labels = labels_mask.float()
             loss = loss_fn(predictions, labels)
 
-            ranking_indices = predictions.argsort(descending=True).tolist()
+            sorted_predictions, sorted_indices = predictions.sort(descending=True)
+            ranking_predictions = sorted_predictions.tolist()
+            ranking_indices = sorted_indices.tolist()
 
             search_metrics = compute_search_metrics(
                 config,
@@ -109,10 +125,20 @@ def eval_step(config, scaler, wrapped_model, optimizer, batch, loss_fn):
                 no_paraphrase_relevant_question_indexes,
             )
 
+            cutoff_gain = None
+            if not get(config, "eval.disable_cutoff_gains", False):
+                cutoff_gain = compute_cutoff_gain(
+                    ranking_indices,
+                    ranking_predictions,
+                    paraphrase_lut,
+                    no_paraphrase_relevant_question_indexes,
+                )
+
             all_metrics.append(
                 {
                     "loss": loss.item(),
                     **search_metrics,
+                    "cutoff_gain": cutoff_gain,
                 }
             )
 

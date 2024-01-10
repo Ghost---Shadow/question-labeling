@@ -6,10 +6,11 @@ from one_off_experiments.paraphrase_experiment import load_paraphrased_row
 from tqdm import tqdm
 from train_utils import set_seed
 import torch
-from training_loop_strategies.iterative_strategy import train_step
 import wandb
 import numpy as np
 from torch.cuda.amp import GradScaler
+import training_loop_strategies.iterative_strategy as iterative_strategy
+import training_loop_strategies.non_iterative_strategy as non_iterative_strategy
 
 
 def gpu_to_numpy(tensor):
@@ -27,14 +28,23 @@ def checkpoint_knee_tensor(train_steps, all_diversities, all_predictions, simila
     np.savez(base_path / f"step_{train_steps}.npz", **knee_tensor)
 
 
-def train_session(seed, enable_quality, enable_diversity):
+def train_session(seed, enable_iterative, enable_quality, enable_diversity):
     set_seed(seed)
 
     s = ""
+    if not enable_iterative:
+        s += "_ni"
     if enable_quality:
+        assert enable_iterative
         s += "_q"
     if enable_diversity:
+        assert enable_iterative
         s += "_d"
+
+    train_step = {
+        True: iterative_strategy.train_step,
+        False: non_iterative_strategy.train_step,
+    }[enable_iterative]
 
     wandb.init(
         project="q_d_experiment",
@@ -93,13 +103,16 @@ def train_session(seed, enable_quality, enable_diversity):
 
 if __name__ == "__main__":
     permutations = [
-        [True, True],
-        # [False, True],
-        # [True, False],
+        [True, True, True],
+        [True, False, True],
+        [True, True, False],
+        [False, False, False],
     ]
     # seeds = [42, 43, 44]
     seeds = [42]
     # seeds = [43, 44]
     for seed in tqdm(seeds):
-        for enable_quality, enable_diversity in tqdm(permutations, leave=False):
-            train_session(seed, enable_quality, enable_diversity)
+        for enable_iterative, enable_quality, enable_diversity in tqdm(
+            permutations, leave=False
+        ):
+            train_session(seed, enable_iterative, enable_quality, enable_diversity)
