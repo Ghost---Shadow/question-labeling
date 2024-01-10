@@ -5,6 +5,7 @@ from training_loop_strategies.utils import (
     compute_cutoff_gain,
     compute_dissimilarities,
     compute_search_metrics,
+    pick_highest_scoring_new_document,
     record_pick,
     select_next_correct,
 )
@@ -79,7 +80,9 @@ def train_step(config, scaler, wrapped_model, optimizer, batch, loss_fn):
                     predictions = predictions * (1 - dissimilarities)
 
                 # Store the highest scoring document
-                actual_picks.append(predictions.argmax().item())
+                actual_picks.append(
+                    pick_highest_scoring_new_document(predictions, actual_picks)
+                )
 
                 labels = current_all_labels_mask.float()
                 loss = loss_fn(predictions, labels)

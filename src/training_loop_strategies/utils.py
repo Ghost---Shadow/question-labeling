@@ -20,6 +20,25 @@ def compute_dissimilarities(document_embeddings, current_picked_mask, similariti
     return dissimilarities
 
 
+def pick_highest_scoring_new_document(predictions, actual_picks):
+    """
+    Picks the highest scoring document that has not been picked yet.
+
+    :param predictions: A tensor of scores for each document.
+    :param actual_picks: A list of indices of documents that have already been picked.
+    :return: The index of the highest scoring new document.
+    """
+    # Create a mask for already picked documents
+    mask = torch.ones_like(predictions, dtype=torch.bool)
+    mask[actual_picks] = False
+
+    # Apply the mask to the predictions
+    masked_predictions = predictions.masked_fill(~mask, float("-inf"))
+
+    # Pick the highest scoring new document
+    return masked_predictions.argmax().item()
+
+
 def select_next_correct(
     predictions, paraphrase_lut, can_be_picked_set, current_picked_mask
 ):
