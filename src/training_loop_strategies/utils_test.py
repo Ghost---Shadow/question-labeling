@@ -93,18 +93,20 @@ class TestSelectNextCorrect(unittest.TestCase):
 
 # python -m unittest training_loop_strategies.utils_test.TestSearchMetrics -v
 class TestSearchMetrics(unittest.TestCase):
+    # python -m unittest training_loop_strategies.utils_test.TestSearchMetrics.test_compute_search_metrics -v
     def test_compute_search_metrics(self):
-        # Mock Config
         config = {"eval": {"k": [1, 2, 3]}}
 
-        # Mock Predictions (Tensor)
-        predictions = torch.tensor([0.9, 0.8, 0.1, 0.4, 0.2])
+        # Mock Predictions (Tensor) and convert to ranking indices
+        predictions = torch.tensor([0.9, 0.1, 0.4, 0.2, 0.8])
+        _, ranking_indices = torch.sort(predictions, descending=True)
+        ranking_indices = ranking_indices.tolist()  # [0, 4, 2, 3, 1]
 
         # Mock Paraphrase Lookup Table
-        paraphrase_lut = {1: 3, 2: 4}
+        paraphrase_lut = {0: 1, 1: 0, 2: 4, 4: 2}
 
         # Mock Set of Relevant Documents
-        can_be_picked_set = {0, 3}
+        relevant_doc_ids_without_paraphrase = {0, 2}
 
         # Expected Results
         expected_metrics = {
@@ -121,7 +123,7 @@ class TestSearchMetrics(unittest.TestCase):
 
         # Run the function
         actual_metrics = compute_search_metrics(
-            config, predictions, paraphrase_lut, can_be_picked_set
+            config, ranking_indices, paraphrase_lut, relevant_doc_ids_without_paraphrase
         )
 
         # Assert the results
@@ -135,14 +137,16 @@ class TestSearchMetrics(unittest.TestCase):
         # Mock Config with k larger than the number of predictions
         config = {"eval": {"k": [1, 5]}}
 
-        # Mock Predictions (Tensor) with only 3 items
+        # Mock Predictions (Tensor) with only 3 items and convert to ranking indices
         predictions = torch.tensor([0.9, 0.8, 0.7])
+        _, ranking_indices = torch.sort(predictions, descending=True)
+        ranking_indices = ranking_indices.tolist()  # [0, 1, 2]
 
         # Mock Paraphrase Lookup Table
-        paraphrase_lut = {0: 2, 1: 2}
+        paraphrase_lut = {0: 1, 1: 0}
 
         # Mock Set of Relevant Documents
-        can_be_picked_set = {0, 2}
+        relevant_doc_ids_without_paraphrase = {0, 2}
 
         expected_metrics = {
             "recall_at_1": 0.5,
@@ -155,7 +159,7 @@ class TestSearchMetrics(unittest.TestCase):
 
         # Run the function
         actual_metrics = compute_search_metrics(
-            config, predictions, paraphrase_lut, can_be_picked_set
+            config, ranking_indices, paraphrase_lut, relevant_doc_ids_without_paraphrase
         )
 
         # Assert the results

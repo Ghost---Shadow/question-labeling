@@ -58,7 +58,7 @@ def train_step(config, scaler, wrapped_model, optimizer, batch, loss_fn):
             picked_mask_list = [picked_mask]
             teacher_forcing = []
             cutoff_gains = []
-            search_metrics = []
+            actual_picks = []
 
             can_be_picked_set = set(no_paraphrase_relevant_question_indexes)
             num_correct_answers = len(can_be_picked_set)
@@ -78,21 +78,15 @@ def train_step(config, scaler, wrapped_model, optimizer, batch, loss_fn):
                 if enable_diversity:
                     predictions = predictions * (1 - dissimilarities)
 
+                # Store the highest scoring document
+                actual_picks.append(predictions.argmax().item())
+
                 labels = current_all_labels_mask.float()
                 loss = loss_fn(predictions, labels)
                 total_loss += loss
 
                 next_correct = select_next_correct(
                     predictions, paraphrase_lut, can_be_picked_set, current_picked_mask
-                )
-
-                search_metrics.append(
-                    compute_search_metrics(
-                        config,
-                        predictions,
-                        paraphrase_lut,
-                        can_be_picked_set,
-                    )
                 )
 
                 if not get(config, "eval.disable_cutoff_gains", False):
@@ -119,7 +113,12 @@ def train_step(config, scaler, wrapped_model, optimizer, batch, loss_fn):
 
         cutoff_gains = torch.tensor(cutoff_gains)
 
-        search_metrics = average_metrics(search_metrics)
+        search_metrics = compute_search_metrics(
+            config,
+            actual_picks,
+            paraphrase_lut,
+            no_paraphrase_relevant_question_indexes,
+        )
 
         all_metrics.append(
             {

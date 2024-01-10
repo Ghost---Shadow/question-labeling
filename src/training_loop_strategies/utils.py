@@ -44,34 +44,38 @@ def select_next_correct(
     return next_correct
 
 
-def compute_search_metrics(config, predictions, paraphrase_lut, can_be_picked_set):
+def compute_search_metrics(
+    config, ranking_indices, paraphrase_lut, relevant_doc_ids_without_paraphrase
+):
     new_metrics = {}
 
-    total_relevant_items = len(can_be_picked_set)
-    num_predictions = predictions.size(0)  # Number of items in the predictions tensor
-
     for k in config["eval"]["k"]:
-        # Check if k is greater than the number of predictions
+        # Make a copy of the relevant documents set to track picked items
+        remaining_relevant_docs = set(relevant_doc_ids_without_paraphrase)
+
+        # Ensure k is not greater than the length of ranking_indices
         original_k = k
-        k = min(k, num_predictions)
+        k = min(k, len(ranking_indices))
 
-        # Get the top k indices from the predictions
-        top_k_indices = torch.topk(predictions, k).indices
+        # Get the top k indices from the ranking indices
+        top_k_indices = ranking_indices[:k]
 
-        # Use a set to track unique relevant documents
-        relevant_documents = set()
+        # Use a counter to track the number of relevant documents picked
+        relevant_documents_count = 0
 
         for idx in top_k_indices:
-            idx_int = idx.item()  # Convert to Python integer
-            # Check if the document is relevant
-            if idx_int in can_be_picked_set:
-                relevant_documents.add(idx_int)
-            elif paraphrase_lut.get(idx_int) in can_be_picked_set:
-                relevant_documents.add(paraphrase_lut.get(idx_int))
-
-        relevant_documents_count = len(relevant_documents)
+            # Check if the document or its paraphrase is relevant and not already picked
+            if (
+                idx in remaining_relevant_docs
+                or paraphrase_lut.get(idx) in remaining_relevant_docs
+            ):
+                relevant_documents_count += 1
+                # Remove the picked document and its paraphrase from the remaining set
+                remaining_relevant_docs.discard(idx)
+                remaining_relevant_docs.discard(paraphrase_lut.get(idx))
 
         # Compute recall and precision at k
+        total_relevant_items = len(relevant_doc_ids_without_paraphrase)
         recall_at_k = (
             relevant_documents_count / total_relevant_items
             if total_relevant_items > 0
@@ -127,38 +131,6 @@ def record_pick(
     teacher_forcing.append(next_correct)
 
 
-def compute_metrics_non_iterative(similarity, relevant_sentence_indexes, k):
-    # Sort the similarity array while keeping track of the original indices
-    sorted_indices = sorted(
-        range(len(similarity)), key=lambda i: similarity[i], reverse=True
-    )
-
-    # Select the top k indices
-    top_k_indices = sorted_indices[:k]
-
-    # Count the number of relevant documents in the top k picks
-    relevant_found = sum(idx in relevant_sentence_indexes for idx in top_k_indices)
-
-    # Calculating metrics
-    precision_at_k = relevant_found / k if k != 0 else 0
-    recall_at_k = (
-        relevant_found / len(relevant_sentence_indexes)
-        if relevant_sentence_indexes
-        else 0
-    )
-    f1_at_k = (
-        2 * (precision_at_k * recall_at_k) / (precision_at_k + recall_at_k)
-        if (precision_at_k + recall_at_k) != 0
-        else 0
-    )
-
-    return {
-        f"precision_at_{k}": precision_at_k,
-        f"recall_at_{k}": recall_at_k,
-        f"f1_at_{k}": f1_at_k,
-    }
-
-
 def average_metrics(metrics_array):
     # Initialize a dictionary to store the sum of values for each key
     sum_dict = {}
@@ -176,25 +148,6 @@ def average_metrics(metrics_array):
     avg_dict = {key: value / len(metrics_array) for key, value in sum_dict.items()}
 
     return avg_dict
-
-
-def compute_recall_non_iterative(
-    predictions, no_paraphrase_relevant_question_indexes, paraphrase_lut
-):
-    sorted_indices = torch.argsort(predictions, descending=True)
-
-    top_indices = sorted_indices[
-        : len(no_paraphrase_relevant_question_indexes)
-    ].tolist()
-
-    num_items_found = sum(
-        index in top_indices or paraphrase_lut.get(index) in top_indices
-        for index in no_paraphrase_relevant_question_indexes
-    )
-
-    recall_at_1 = num_items_found / len(no_paraphrase_relevant_question_indexes)
-
-    return recall_at_1
 
 
 def compute_cutoff_gain(
