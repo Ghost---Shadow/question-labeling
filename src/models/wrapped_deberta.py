@@ -28,6 +28,8 @@ class WrappedDebertaModel:
         features = batch_to_device(features, self.device)
 
         model_output = self.model(**features)
+        # [batch_size, sequence_length, embedding_dim]
+        # CLS_TOKEN is at 0 index
         all_embeddings = model_output.last_hidden_state[:, 0, :]
 
         # Extract query and document embeddings
