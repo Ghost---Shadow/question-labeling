@@ -34,4 +34,4 @@ training:
 
 eval:
   k: [1, 5]
-  disable_cutoff_gains: true
+  disable_cutoff_gains: false
