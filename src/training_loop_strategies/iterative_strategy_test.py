@@ -6,7 +6,6 @@ from models.wrapped_mpnet import WrappedMpnetModel
 from training_loop_strategies.iterative_strategy import (
     eval_step,
     train_step,
-    train_step_full_precision,
 )
 from torch.cuda.amp import GradScaler
 
@@ -23,7 +22,7 @@ class TestTrainStepMixedPrecision(unittest.TestCase):
                     "device": "cuda:0",
                 },
             },
-            "eval": {"k": [1, 5, 10]},
+            "eval": {"k": [5, 10]},
         }
         wrapped_model = WrappedMpnetModel(config)
         optimizer = optim.AdamW(wrapped_model.model.parameters(), lr=1e-5)

@@ -63,9 +63,10 @@ def train_step(config, scaler, wrapped_model, optimizer, batch, loss_fn):
 
             can_be_picked_set = set(no_paraphrase_relevant_question_indexes)
             num_correct_answers = len(can_be_picked_set)
+            num_hops = len(flat_questions)
             total_loss = torch.zeros([], device=similarities.device)
 
-            for _ in range(num_correct_answers):
+            for _ in range(num_hops):
                 current_all_labels_mask = labels_mask_list[-1]
                 current_picked_mask = picked_mask_list[-1]
 
@@ -84,32 +85,46 @@ def train_step(config, scaler, wrapped_model, optimizer, batch, loss_fn):
                     pick_highest_scoring_new_document(predictions, actual_picks)
                 )
 
-                labels = current_all_labels_mask.float()
-                loss = loss_fn(predictions, labels)
-                total_loss += loss
+                if len(can_be_picked_set) > 0:
+                    labels = current_all_labels_mask.float()
+                    loss = loss_fn(predictions, labels)
+                    total_loss += loss
 
-                next_correct = select_next_correct(
-                    predictions, paraphrase_lut, can_be_picked_set, current_picked_mask
-                )
-
-                if not get(config, "eval.disable_cutoff_gains", False):
-                    cutoff_gains.append(
-                        compute_cutoff_gain(
-                            predictions,
-                            labels_mask_list[0].clone(),
-                            current_picked_mask,
-                            paraphrase_lut,
-                        )
+                    # Teacher forcing if model picked incorrect document
+                    next_correct = select_next_correct(
+                        predictions,
+                        paraphrase_lut,
+                        can_be_picked_set,
+                        current_picked_mask,
                     )
 
-                record_pick(
-                    next_correct,
-                    can_be_picked_set,
-                    paraphrase_lut,
-                    labels_mask_list,
-                    picked_mask_list,
-                    teacher_forcing,
-                )
+                    if not get(config, "eval.disable_cutoff_gains", False):
+                        cutoff_gains.append(
+                            compute_cutoff_gain(
+                                predictions,
+                                labels_mask_list[0].clone(),
+                                current_picked_mask,
+                                paraphrase_lut,
+                            )
+                        )
+
+                    # Update bookkeeping
+                    record_pick(
+                        next_correct,
+                        can_be_picked_set,
+                        paraphrase_lut,
+                        labels_mask_list,
+                        picked_mask_list,
+                        teacher_forcing,
+                    )
+                else:
+                    # No training needs to be done here
+                    # Just update bookkeeping and continue
+                    # in order to get eval metrics
+                    picked_doc_idx = actual_picks[-1]
+                    next_picked_mask = current_picked_mask.clone()
+                    next_picked_mask[picked_doc_idx] = True
+                    picked_mask_list.append(next_picked_mask)
 
         avg_loss = total_loss / num_correct_answers
         scaler.scale(avg_loss).backward()
