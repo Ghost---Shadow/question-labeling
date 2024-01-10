@@ -1,3 +1,4 @@
+import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
@@ -19,8 +20,19 @@ class TripletLoss(nn.Module):
         Returns:
             torch.Tensor: The computed triplet loss.
         """
+        assert len(similarity.shape) == 1, "TODO: Batch support"
+        assert len(labels.shape) == 1, "TODO: Batch support"
+
         # Convert float32 to bool mask
         labels = labels > 0
+
+        # If all negative, just dont crash
+        if labels.sum() == 0:
+            return torch.tensor(0.0, requires_grad=True)
+
+        # if all positive, just dont crash
+        if labels.sum() == labels.shape[-1]:
+            return torch.tensor(0.0, requires_grad=True)
 
         # Extract positive and negative similarities
         positive_similarities = similarity[labels]
