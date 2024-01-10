@@ -58,8 +58,6 @@ def validate_one_epoch(
             step=samples_consumed,
         )
 
-    return avg_metrics["loss"]
-
 
 def train_one_epoch(
     config,
@@ -75,7 +73,6 @@ def train_one_epoch(
 ):
     wrapped_model.model.train()
 
-    total_loss = 0
     num_steps = 0
 
     steps_per_epoch = len(train_loader)
@@ -90,7 +87,6 @@ def train_one_epoch(
         metrics["step_time"] = time.time() - start_time
 
         step_loss = metrics["loss"]
-        total_loss += metrics["loss"]
 
         pbar.set_description(f"Loss: {step_loss:.4f}")
 
@@ -105,7 +101,7 @@ def train_one_epoch(
         if not debug:
             wandb.log({"train": {train_dataset_name: metrics}}, step=samples_consumed)
 
-    return total_loss / num_steps, samples_consumed
+    return samples_consumed
 
 
 def get_all_loaders(config):

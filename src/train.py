@@ -76,7 +76,7 @@ def main(config, debug):
             print(f"Start training for epoch {epoch}")
             for train_dataset_name in train_loaders:
                 train_loader = train_loaders[train_dataset_name]
-                train_loss, samples_consumed = train_one_epoch(
+                samples_consumed = train_one_epoch(
                     config,
                     train_dataset_name,
                     train_loader,
@@ -90,10 +90,9 @@ def main(config, debug):
                 )
 
             print("Starting validation")
-            total_val_loss = 0
             for validation_dataset_name in validation_loaders:
                 validation_loader = validation_loaders[validation_dataset_name]
-                val_loss = validate_one_epoch(
+                validate_one_epoch(
                     config,
                     validation_dataset_name,
                     validation_loader,
@@ -105,12 +104,6 @@ def main(config, debug):
                     debug,
                     samples_consumed,
                 )
-                total_val_loss += val_loss
-            avg_val_loss = total_val_loss / len(validation_loaders)
-
-            print(
-                f"Epoch {epoch} Train Loss: {train_loss} Validation Loss {avg_val_loss}"
-            )
 
             if not debug:
                 checkpoint_manager.save(epoch)
