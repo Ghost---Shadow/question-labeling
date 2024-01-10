@@ -43,11 +43,13 @@ def train_step(config, scaler, wrapped_model, optimizer, batch, loss_fn):
 
         scaler.scale(loss).backward()
 
+        ranking_indices = predictions.argsort(descending=True).tolist()
+
         search_metrics = compute_search_metrics(
             config,
-            predictions,
+            ranking_indices,
             paraphrase_lut,
-            set(no_paraphrase_relevant_question_indexes),
+            no_paraphrase_relevant_question_indexes,
         )
 
         all_metrics.append(
@@ -98,11 +100,13 @@ def eval_step(config, scaler, wrapped_model, optimizer, batch, loss_fn):
             labels = labels_mask.float()
             loss = loss_fn(predictions, labels)
 
+            ranking_indices = predictions.argsort(descending=True).tolist()
+
             search_metrics = compute_search_metrics(
                 config,
-                predictions,
+                ranking_indices,
                 paraphrase_lut,
-                set(no_paraphrase_relevant_question_indexes),
+                no_paraphrase_relevant_question_indexes,
             )
 
             all_metrics.append(

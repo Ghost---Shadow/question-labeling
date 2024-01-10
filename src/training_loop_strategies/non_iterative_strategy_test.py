@@ -1,5 +1,5 @@
 import unittest
-from dataloaders.hotpot_qa_with_q_loader import get_loader
+from dataloaders.hotpot_qa_with_q_loader import get_train_loader, get_validation_loader
 from losses.triplet_loss import TripletLoss
 import torch.optim as optim
 from models.wrapped_mpnet import WrappedMpnetModel
@@ -29,7 +29,7 @@ class TestTrainStep(unittest.TestCase):
 
         batch_size = 2
 
-        train_loader, _ = get_loader(batch_size)
+        train_loader = get_train_loader(batch_size)
 
         batch = next(iter(train_loader))
         scaler = GradScaler()
@@ -56,22 +56,22 @@ class TestEvalStep(unittest.TestCase):
                     "device": "cuda:0",
                 },
             },
-            # "eval": {"k": [1, 2]},
+            "eval": {"k": [1, 2]},
         }
         wrapped_model = WrappedMpnetModel(config)
 
         batch_size = 2
 
-        _, eval_loader = get_loader(batch_size)
+        eval_loader = get_validation_loader(batch_size)
 
         batch = next(iter(eval_loader))
         scaler = None
         optimizer = None
         loss_fn = TripletLoss(config)
 
-        loss = eval_step(config, scaler, wrapped_model, optimizer, batch, loss_fn)
+        metrics = eval_step(config, scaler, wrapped_model, optimizer, batch, loss_fn)
 
-        print(loss)
+        print(metrics)
 
 
 if __name__ == "__main__":
