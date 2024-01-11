@@ -33,10 +33,8 @@ def train_step(config, scaler, wrapped_model, optimizer, batch, loss_fn):
             ) = wrapped_model.get_query_and_document_embeddings(
                 question, flat_questions
             )
+            similarities = (query_embedding @ document_embeddings.T).squeeze()
 
-            similarities = torch.matmul(
-                document_embeddings, query_embedding.T
-            ).squeeze()
             similarities = torch.clamp(similarities, min=0, max=1)
             predictions = similarities
             labels_mask = torch.tensor(labels_mask, device=similarities.device)
@@ -104,10 +102,8 @@ def eval_step(config, scaler, wrapped_model, optimizer, batch, loss_fn):
             ) = wrapped_model.get_query_and_document_embeddings(
                 question, flat_questions
             )
+            similarities = (query_embedding @ document_embeddings.T).squeeze()
 
-            similarities = torch.matmul(
-                document_embeddings, query_embedding.T
-            ).squeeze()
             similarities = torch.clamp(similarities, min=0, max=1)
             predictions = similarities
             labels_mask = torch.tensor(labels_mask, device=similarities.device)

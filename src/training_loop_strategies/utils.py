@@ -264,7 +264,7 @@ def rerank_documents(
         document_embeddings,
     ) = wrapped_model.get_query_and_document_embeddings(question, flat_questions)
 
-    similarities = torch.matmul(document_embeddings, query_embedding.T).squeeze()
+    similarities = (query_embedding @ document_embeddings.T).squeeze()
     similarities = torch.clamp(similarities, min=0, max=1)
 
     picked_mask = torch.zeros(
