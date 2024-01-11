@@ -210,6 +210,48 @@ def compute_cutoff_gain(
     return least_similar_correct_score - most_similar_incorrect_score
 
 
+def compute_cutoff_gain_histogram(
+    actual_picks,
+    actual_pick_prediction,
+    paraphrase_lut,
+    no_paraphrase_relevant_question_indexes,
+    resolution,
+):
+    predictions_so_far = [1]
+    picks_so_far = []
+
+    result = {}
+
+    for pick, prediction in zip(actual_picks, actual_pick_prediction):
+        last_prediction = predictions_so_far[-1]
+        prediction = int(prediction / resolution) * resolution
+        gain = last_prediction - prediction
+        rounded_gain = round(gain / resolution)
+
+        predictions_so_far.append(prediction)
+        picks_so_far.append(pick)
+
+        result[rounded_gain] = compute_search_metrics(
+            {"eval": {"k": [6969]}},  # Hack
+            picks_so_far,
+            paraphrase_lut,
+            no_paraphrase_relevant_question_indexes,
+        )
+        result[rounded_gain]["real_k"] = len(picks_so_far)
+
+    return result
+
+
+def accumulate_gain_cutoff(gain_histogram_accumulator, cutoff_gain_histogram):
+    for gain, metrics in cutoff_gain_histogram.items():
+        assert type(gain) == int, gain  # quantized
+        assert type(metrics) == dict, metrics
+        if gain in gain_histogram_accumulator:
+            gain_histogram_accumulator[gain].append(metrics)
+        else:
+            gain_histogram_accumulator[gain] = [metrics]
+
+
 def rerank_documents(
     wrapped_model,
     question,

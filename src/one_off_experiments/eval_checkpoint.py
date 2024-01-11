@@ -7,15 +7,18 @@ from dataloaders import DATA_LOADER_LUT
 from models import MODEL_LUT
 from tqdm import tqdm
 from training_loop_strategies.utils import (
+    accumulate_gain_cutoff,
     average_metrics,
     compute_cutoff_gain,
+    compute_cutoff_gain_histogram,
     compute_search_metrics,
     rerank_documents,
 )
 
 
-def main(wrapped_model, validation_loader, debug):
+def main(wrapped_model, validation_loader, gain_histogram_resolution, debug):
     all_metrics = []
+    gain_histogram_accumulator = {}
     with torch.no_grad():
         for batch in tqdm(validation_loader):
             for (
@@ -51,6 +54,18 @@ def main(wrapped_model, validation_loader, debug):
                     no_paraphrase_relevant_question_indexes,
                 )
 
+                cutoff_gain_histogram = compute_cutoff_gain_histogram(
+                    actual_picks,
+                    actual_pick_prediction,
+                    paraphrase_lut,
+                    no_paraphrase_relevant_question_indexes,
+                    resolution=gain_histogram_resolution,
+                )
+
+                accumulate_gain_cutoff(
+                    gain_histogram_accumulator, cutoff_gain_histogram
+                )
+
                 all_metrics.append(
                     {
                         **search_metrics,
@@ -63,7 +78,7 @@ def main(wrapped_model, validation_loader, debug):
 
     avg_metrics = average_metrics(all_metrics)
 
-    return avg_metrics
+    return avg_metrics, gain_histogram_accumulator
 
 
 if __name__ == "__main__":
@@ -97,6 +112,13 @@ if __name__ == "__main__":
         default="./artifacts/checkpoint_evals",
         help="Device to load search model e.g. cuda:0 or cpu",
     )
+    parser.add_argument(
+        "--gain_histogram_resolution",
+        type=float,
+        required=False,
+        default=1e-2,
+        help="Resolution of gain histogram",
+    )
     parser.add_argument("--debug", action="store_true")
     args = parser.parse_args()
 
@@ -105,6 +127,7 @@ if __name__ == "__main__":
     dataset_name = args.dataset_name
     device = args.device
     output_dir = args.output_dir
+    gain_histogram_resolution = args.gain_histogram_resolution
     debug = args.debug
 
     config = {
@@ -124,13 +147,17 @@ if __name__ == "__main__":
     wrapped_model = MODEL_LUT[model_type](config)
     wrapped_model.model.eval()
 
-    metrics = main(wrapped_model, validation_loader, debug)
+    metrics, gain_cutoff_histogram = main(
+        wrapped_model, validation_loader, gain_histogram_resolution, debug
+    )
 
     result = {
         "config": config,
         "metrics": metrics,
         "debug": debug,
         "dataset_name": dataset_name,
+        "gain_cutoff_histogram": gain_cutoff_histogram,
+        "gain_histogram_resolution": gain_histogram_resolution,
     }
     hashstr = generate_md5_hash(result)
     output_dir = Path(output_dir)
