@@ -130,11 +130,16 @@ if __name__ == "__main__":
     gain_histogram_resolution = args.gain_histogram_resolution
     debug = args.debug
 
+    base_hf_checkpoint = {
+        "mpnet": "sentence-transformers/all-mpnet-base-v2",
+    }[model_type]
+
     config = {
         "architecture": {
             "semantic_search_model": {
                 "name": model_type,
-                "checkpoint": checkpoint_path,
+                "checkpoint": base_hf_checkpoint,
+                "real_checkpoint": checkpoint_path,
                 "device": device,
             }
         },
@@ -144,7 +149,10 @@ if __name__ == "__main__":
     _, get_validation_loader = DATA_LOADER_LUT[dataset_name]
     validation_loader = get_validation_loader(batch_size=1)
 
+    print("Loading model")
     wrapped_model = MODEL_LUT[model_type](config)
+    checkpoint = torch.load(checkpoint_path)
+    wrapped_model.model.load_state_dict(checkpoint["model_state_dict"])
     wrapped_model.model.eval()
 
     metrics, gain_cutoff_histogram = main(
