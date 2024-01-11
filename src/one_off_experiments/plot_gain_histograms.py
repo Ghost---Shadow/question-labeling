@@ -16,8 +16,14 @@ args = parser.parse_args()
 with open(args.json_file, "r") as file:
     data = json.load(file)
 
+experiment_name = data["config"]["architecture"]["semantic_search_model"][
+    "real_checkpoint"
+]
+experiment_name = experiment_name.split("/")
+experiment_name = experiment_name[min(2, len(experiment_name) - 1)]
+
 # Ensure the output directory exists
-output_dir = "./artifacts/gain_histogram"
+output_dir = f"./artifacts/gain_histogram/{experiment_name}"
 os.makedirs(output_dir, exist_ok=True)
 
 # Extract data from 'gain_cutoff_histogram' key
@@ -53,7 +59,7 @@ for metric in metric_names:
     # sns.barplot(df, x="gain", y=metric)
     sns.lineplot(df, x="gain", y=metric)
     metric_name = name_map[metric]
-    plt.title(f"{metric_name} by Gain")
+    plt.title(f"{experiment_name}: {metric_name} by gain")
     plt.xlabel("Gain")
     plt.ylabel(metric_name)
 

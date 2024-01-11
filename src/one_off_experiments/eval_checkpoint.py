@@ -151,8 +151,9 @@ if __name__ == "__main__":
 
     print("Loading model")
     wrapped_model = MODEL_LUT[model_type](config)
-    checkpoint = torch.load(checkpoint_path)
-    wrapped_model.model.load_state_dict(checkpoint["model_state_dict"])
+    if checkpoint_path != "baseline":
+        checkpoint = torch.load(checkpoint_path)
+        wrapped_model.model.load_state_dict(checkpoint["model_state_dict"])
     wrapped_model.model.eval()
 
     metrics, gain_cutoff_histogram = main(
