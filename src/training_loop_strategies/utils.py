@@ -208,3 +208,52 @@ def compute_cutoff_gain(
 
     # Calculate the difference
     return least_similar_correct_score - most_similar_incorrect_score
+
+
+def rerank_documents(
+    wrapped_model,
+    question,
+    flat_questions,
+    enable_quality=True,
+    enable_diversity=True,
+):
+    (
+        query_embedding,
+        document_embeddings,
+    ) = wrapped_model.get_query_and_document_embeddings(question, flat_questions)
+
+    similarities = torch.matmul(document_embeddings, query_embedding.T).squeeze()
+    similarities = torch.clamp(similarities, min=0, max=1)
+
+    picked_mask = torch.zeros(
+        len(flat_questions), device=similarities.device, dtype=torch.bool
+    )
+    picked_mask_list = [picked_mask]
+    actual_picks = []
+    actual_pick_prediction = []
+
+    num_hops = len(flat_questions)
+
+    for _ in range(num_hops):
+        current_picked_mask = picked_mask_list[-1]
+        dissimilarities = compute_dissimilarities(
+            document_embeddings, current_picked_mask, similarities
+        )
+
+        predictions = torch.ones_like(similarities, device=similarities.device)
+        if enable_quality:
+            predictions = predictions * similarities
+        if enable_diversity:
+            predictions = predictions * (1 - dissimilarities)
+
+        # Store the highest scoring document
+        picked_doc_idx = pick_highest_scoring_new_document(predictions, actual_picks)
+        actual_picks.append(picked_doc_idx)
+        actual_pick_prediction.append(predictions[picked_doc_idx].item())
+
+        picked_doc_idx = actual_picks[-1]
+        next_picked_mask = current_picked_mask.clone()
+        next_picked_mask[picked_doc_idx] = True
+        picked_mask_list.append(next_picked_mask)
+
+    return actual_picks, actual_pick_prediction
