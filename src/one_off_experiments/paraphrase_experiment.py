@@ -20,7 +20,6 @@ def load_paraphrased_row():
         item = json.load(f)
 
     flat_questions = []
-    flat_questions_paraphrased = []
 
     index_lut = {}
     for title, questions in zip(
@@ -45,42 +44,36 @@ def load_paraphrased_row():
     for index in relevant_sentence_indexes:
         labels_mask[index] = True
 
-    flat_questions_paraphrased = item["context"]["questions_paraphrased"]
-    paraphrased_vector = [True] * len(flat_questions_paraphrased)
+    flat_questions_paraphrased = []
+    for paraphrased_question_block in item["context"]["questions_paraphrased"]:
+        for question in paraphrased_question_block:
+            flat_questions_paraphrased.append(question)
 
+    paraphrased_relevant_sentence_idxs = []
+    offset = len(flat_questions)
     paraphrase_lut = {}
-    for right, left in enumerate(relevant_sentence_indexes):
-        right = right + len(flat_questions)
-        paraphrase_lut[left] = right
-        paraphrase_lut[right] = left
+    for idx in relevant_sentence_indexes:
+        paraphrase_idx = offset + idx
+        paraphrased_relevant_sentence_idxs.append(paraphrase_idx)
+
+        paraphrase_lut[paraphrase_idx] = idx
+        paraphrase_lut[idx] = paraphrase_idx
 
     all_questions = [*flat_questions, *flat_questions_paraphrased]
-    all_labels_mask = [*labels_mask, *paraphrased_vector]
-
-    all_labels_mask = torch.tensor(all_labels_mask, device="cuda:0")
+    all_labels_mask = [*labels_mask, *labels_mask]
+    all_relevant_sentence_idxs = [
+        *relevant_sentence_indexes,
+        *paraphrased_relevant_sentence_idxs,
+    ]
 
     query = item["question"]
-
-    left_labels_mask = all_labels_mask.clone()
-    left_labels_mask[len(labels_mask) :] = 0
-
-    right_labels_mask = all_labels_mask.clone()
-    right_labels_mask[: len(labels_mask)] = 0
-
-    assert left_labels_mask.sum() == right_labels_mask.sum()
-
-    left_labels_mask = left_labels_mask.bool()
-    right_labels_mask = right_labels_mask.bool()
-
-    labels_masks = (left_labels_mask, right_labels_mask)
 
     return (
         query,
         all_questions,
         all_labels_mask,
-        relevant_sentence_indexes,
+        all_relevant_sentence_idxs,
         paraphrase_lut,
-        labels_masks,
     )
 
 
@@ -259,6 +252,22 @@ def train_session(seed, enable_inward, enable_outward, enable_local_inward):
 
 
 if __name__ == "__main__":
+    # (
+    #     query,
+    #     all_questions,
+    #     all_labels_mask,
+    #     relevant_sentence_indexes,
+    #     paraphrase_lut,
+    # ) = load_paraphrased_row()
+
+    # for idx in relevant_sentence_indexes:
+    #     left = idx
+    #     right = paraphrase_lut[left]
+
+    #     print(all_questions[left])
+    #     print(all_questions[right])
+    #     print("-" * 80)
+
     permutations = [
         [True, True, True],
         [False, True, True],
