@@ -91,6 +91,8 @@ def plot_df(df):
 if __name__ == "__main__":
     df = json_dir_to_df("artifacts/checkpoint_evals")
     df = df[df["gain"] <= 0.5]
+    max_df = df.groupby(["gain", "experiment"]).mean().reset_index()
+    max_df = max_df.groupby(["experiment"]).max()
+    print(max_df)
+
     plot_df(df)
-    # max_df = df.groupby("experiment").max()
-    # print(max_df)
