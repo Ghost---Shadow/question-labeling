@@ -162,6 +162,7 @@ cython_debug/
 # custom
 scratch
 wandb/*
+artifacts
 artifacts/*
 !artifacts/.gitkeep
 experiments/completions/*.done
