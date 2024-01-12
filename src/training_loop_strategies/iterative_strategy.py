@@ -120,6 +120,10 @@ def train_step(config, scaler, wrapped_model, optimizer, batch, loss_fn):
         avg_loss = total_loss / num_correct_answers
         scaler.scale(avg_loss).backward()
 
+        # print_picks(
+        #     actual_picks, no_paraphrase_relevant_question_indexes, paraphrase_lut
+        # )
+
         search_metrics = compute_search_metrics(
             config,
             actual_picks,

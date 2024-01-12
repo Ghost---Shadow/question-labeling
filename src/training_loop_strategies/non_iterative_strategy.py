@@ -47,6 +47,10 @@ def train_step(config, scaler, wrapped_model, optimizer, batch, loss_fn):
         ranking_predictions = sorted_predictions.tolist()
         ranking_indices = sorted_indices.tolist()
 
+        # print_picks(
+        #     ranking_indices, no_paraphrase_relevant_question_indexes, paraphrase_lut
+        # )
+
         search_metrics = compute_search_metrics(
             config,
             ranking_indices,

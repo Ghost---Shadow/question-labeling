@@ -299,3 +299,31 @@ def rerank_documents(
         picked_mask_list.append(next_picked_mask)
 
     return actual_picks, actual_pick_prediction
+
+
+def print_picks(actual_picks, no_paraphrase_relevant_question_indexes, paraphrase_lut):
+    GREEN = "\033[92m"
+    YELLOW = "\033[93m"
+    RESET = "\033[0m"
+    already_picked = set()
+
+    for pick in actual_picks:
+        # Determine the color based on the conditions
+        if pick in already_picked:
+            color = YELLOW
+        elif (
+            pick in no_paraphrase_relevant_question_indexes
+            or paraphrase_lut.get(pick) in no_paraphrase_relevant_question_indexes
+        ):
+            color = GREEN
+        else:
+            color = ""
+
+        print(f"{color}{pick}{RESET}", end=" ")
+
+        # Add pick and its paraphrase (if exists) to already_picked
+        already_picked.add(pick)
+        if pick in paraphrase_lut:
+            already_picked.add(paraphrase_lut[pick])
+
+    print()  # For a new line after printing all picks
