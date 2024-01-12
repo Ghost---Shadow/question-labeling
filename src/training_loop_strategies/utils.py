@@ -118,6 +118,60 @@ def compute_search_metrics(
     return new_metrics
 
 
+def compute_natural_search_metrics(
+    ranking_indices, paraphrase_lut, relevant_doc_ids_without_paraphrase
+):
+    new_metrics = {}
+
+    # Make a copy of the relevant documents set to track picked items
+    remaining_relevant_docs = set(relevant_doc_ids_without_paraphrase)
+    # Max value of true positive
+    num_correct_answers = min(len(remaining_relevant_docs), len(ranking_indices))
+    k = num_correct_answers
+
+    # Get the top k indices from the ranking indices
+    top_k_indices = ranking_indices[:k]
+
+    # Use a counter to track the number of relevant documents picked
+    true_positive = 0
+
+    for idx in top_k_indices:
+        # Check if the document or its paraphrase is relevant and not already picked
+        if (
+            idx in remaining_relevant_docs
+            or paraphrase_lut.get(idx) in remaining_relevant_docs
+        ):
+            true_positive += 1
+            # Remove the picked document and its paraphrase from the remaining set
+            remaining_relevant_docs.discard(idx)
+            remaining_relevant_docs.discard(paraphrase_lut.get(idx))
+
+    false_positive = num_correct_answers - true_positive
+    false_negative = num_correct_answers - true_positive
+
+    if (true_positive + false_positive) > 0:
+        precision = true_positive / (true_positive + false_positive)
+    else:
+        precision = 0
+
+    if (true_positive + false_negative) > 0:
+        recall = true_positive / (true_positive + false_negative)
+    else:
+        recall = 0
+
+    if (precision + recall) > 0:
+        f1 = 2 * (precision * recall) / (precision + recall)
+    else:
+        f1 = 0
+
+    # Update the metrics dictionary
+    new_metrics[f"recall"] = recall
+    new_metrics[f"precision"] = precision
+    new_metrics[f"f1"] = f1
+
+    return new_metrics
+
+
 def record_pick(
     next_correct,
     can_be_picked_set,
@@ -231,8 +285,7 @@ def compute_cutoff_gain_histogram(
         predictions_so_far.append(prediction)
         picks_so_far.append(pick)
 
-        result[rounded_gain] = compute_search_metrics(
-            {"eval": {"k": [6969]}},  # Hack
+        result[rounded_gain] = compute_natural_search_metrics(
             picks_so_far,
             paraphrase_lut,
             no_paraphrase_relevant_question_indexes,

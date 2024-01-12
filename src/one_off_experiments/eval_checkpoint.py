@@ -84,7 +84,10 @@ def main(wrapped_model, validation_loader, gain_histogram_resolution, debug):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "--checkpoint_path", type=str, required=True, help="Path to checkpoint"
+        "--checkpoint_path",
+        type=str,
+        required=True,
+        help="Path to checkpoint. Type 'baseline' to ignore this",
     )
     parser.add_argument(
         "--model_type",
