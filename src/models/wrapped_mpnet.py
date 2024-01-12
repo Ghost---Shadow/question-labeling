@@ -38,3 +38,65 @@ class WrappedMpnetModel:
         document_embeddings = torch.nn.functional.normalize(document_embeddings, dim=-1)
 
         return query_embedding, document_embeddings
+
+    def get_query_and_document_embeddings_streaming(
+        self, query, documents, batch_size=16
+    ):
+        # Process the query separately
+        query_features = self.tokenizer(
+            query, padding=True, truncation=True, return_tensors="pt"
+        )
+        query_features = batch_to_device(query_features, self.device)
+
+        # Compute and normalize the query embedding
+        query_model_output = self.model(**query_features)
+        query_embedding = torch.nn.functional.normalize(
+            query_model_output.pooler_output, dim=-1
+        )
+
+        # Initialize list to hold document embeddings
+        document_embeddings_list = []
+
+        # Process documents in batches
+        for i in range(0, len(documents), batch_size):
+            # Prepare the batch
+            batch_documents = documents[i : i + batch_size]
+            document_features = self.tokenizer(
+                batch_documents, padding=True, truncation=True, return_tensors="pt"
+            )
+            document_features = batch_to_device(document_features, self.device)
+
+            # Compute and normalize document embeddings
+            document_model_output = self.model(**document_features)
+            document_embeddings = torch.nn.functional.normalize(
+                document_model_output.pooler_output, dim=-1
+            )
+
+            # Move normalized embeddings to CPU (if necessary)
+            document_embeddings_list.append(document_embeddings.cpu())
+
+        # Concatenate all batched document embeddings
+        document_embeddings = torch.cat(document_embeddings_list)
+
+        return query_embedding.cpu(), document_embeddings
+
+    @staticmethod
+    def streaming_inner_product(question_embedding, document_embeddings, batch_size=16):
+        # Ensure the question embedding is on the GPU
+        question_embedding_gpu = question_embedding.to("cuda")
+
+        # Initialize a list to store inner product results
+        inner_product_results = []
+
+        # Process document embeddings in batches
+        for i in range(0, len(document_embeddings), batch_size):
+            # Extract a batch of document embeddings
+            document_batch = document_embeddings[i : i + batch_size].to("cuda")
+
+            # Compute the inner product and keep the result on the GPU
+            inner_product = (question_embedding_gpu @ document_batch.T).squeeze()
+
+            # Store the result
+            inner_product_results.append(inner_product)
+
+        return torch.cat(inner_product_results)
