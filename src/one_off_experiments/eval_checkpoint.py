@@ -16,7 +16,14 @@ from training_loop_strategies.utils import (
 )
 
 
-def main(wrapped_model, validation_loader, gain_histogram_resolution, debug):
+def main(
+    wrapped_model,
+    validation_loader,
+    gain_histogram_resolution,
+    disable_quality,
+    disable_diversity,
+    debug,
+):
     all_metrics = []
     gain_histogram_accumulator = {}
     with torch.no_grad():
@@ -38,6 +45,8 @@ def main(wrapped_model, validation_loader, gain_histogram_resolution, debug):
                     wrapped_model,
                     question,
                     flat_questions,
+                    not disable_quality,
+                    not disable_diversity,
                 )
 
                 cutoff_gain = compute_cutoff_gain(
@@ -122,6 +131,8 @@ if __name__ == "__main__":
         default=1e-2,
         help="Resolution of gain histogram",
     )
+    parser.add_argument("--disable_quality", action="store_true")
+    parser.add_argument("--disable_diversity", action="store_true")
     parser.add_argument("--debug", action="store_true")
     args = parser.parse_args()
 
