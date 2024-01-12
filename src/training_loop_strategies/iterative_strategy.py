@@ -26,6 +26,14 @@ def train_step(config, scaler, wrapped_model, optimizer, batch, loss_fn):
         config, "architecture.quality_diversity.disable_diversity", False
     )
 
+    oom_prevention_limit = get(
+        config,
+        "training.oom_prevention_limit",
+        None,
+    )
+
+    effective_batch_size = 0
+
     for (
         question,
         flat_questions,
@@ -39,6 +47,15 @@ def train_step(config, scaler, wrapped_model, optimizer, batch, loss_fn):
         batch["relevant_sentence_indexes"],
         batch["paraphrase_lut"],
     ):
+        if (
+            oom_prevention_limit is not None
+            and len(flat_questions) > oom_prevention_limit
+        ):
+            # OOM Hack
+            continue
+
+        effective_batch_size += 1
+
         with autocast(dtype=torch.float16):
             (
                 query_embedding,
@@ -152,6 +169,7 @@ def train_step(config, scaler, wrapped_model, optimizer, batch, loss_fn):
     scaler.update()
 
     avg_metrics = average_metrics(all_metrics)
+    avg_metrics["effective_batch_size"] = effective_batch_size
 
     return avg_metrics
 
