@@ -26,7 +26,7 @@ datasets:
 training:
   strategy:
     name: 'iterative_strategy'
-  epochs: 14
+  epochs: 7
   batch_size: 32
   learning_rate: 3e-5
   weight_decay: 0.01
@@ -34,6 +34,7 @@ training:
   seeds: [42]
   warmup_ratio: 0.06
   # seeds: [42, 43, 44, 45, 46]
+  oom_prevention_limit: 120
 
 eval:
   k: [1, 5, 10]
