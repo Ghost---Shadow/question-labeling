@@ -9,38 +9,32 @@ from tqdm import tqdm
 
 def add_paraphrased_question_to_row(model, row):
     # Already computed
-    if "paraphrased_questions" in row["context"]:
-        return row
+    # if "paraphrased_questions" in row["context"]:
+    #     return row
 
     def generate_paraphrase(sentence):
         return model.generate_paraphrase(sentence)
 
-    question_lut = {}
-    for title, questions in zip(row["context"]["title"], row["context"]["questions"]):
-        sent_counter = 0
+    all_questions = []
 
-        for question in questions:
-            question_lut[(title, sent_counter)] = question
-            sent_counter += 1
-
-    paraphrased_questions = []
+    # Create a single ThreadPoolExecutor
     with ThreadPoolExecutor(max_workers=100) as executor:
-        futures = []
-        for title, sent_id in zip(
-            row["supporting_facts"]["title"], row["supporting_facts"]["sent_id"]
-        ):
-            key = (title, sent_id)
-            if key not in question_lut:
-                # There are many bad pointers
-                continue
-            question = question_lut[key]
-            future = executor.submit(generate_paraphrase, question)
-            futures.append(future)
+        # Store futures for each sentence in a dictionary to maintain order
+        futures_dict = {}
+        for paragraph_index, paragraph in enumerate(row["context"]["sentences"]):
+            for sentence_index, sentence in enumerate(paragraph):
+                future = executor.submit(generate_paraphrase, sentence)
+                futures_dict[(paragraph_index, sentence_index)] = future
 
-        for future in futures:
-            paraphrased_questions.append(future.result())
+        # Organize the results into the structure of paragraphs and sentences
+        for paragraph_index, paragraph in enumerate(row["context"]["sentences"]):
+            paragraph_questions = []
+            for sentence_index, _ in enumerate(paragraph):
+                future = futures_dict[(paragraph_index, sentence_index)]
+                paragraph_questions.append(future.result())
+            all_questions.append(paragraph_questions)
 
-    row["context"]["paraphrased_questions"] = paraphrased_questions
+    row["context"]["paraphrased_questions"] = all_questions
 
     return row
 

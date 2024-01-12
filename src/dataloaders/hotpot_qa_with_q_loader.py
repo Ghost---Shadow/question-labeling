@@ -19,37 +19,35 @@ def collate_fn(batch):
         batch, batch_upstream_relevant_sentence_indexes, batch_upstream_labels_mask
     ):
         flat_questions = []
-
         for paragraph_questions in item["context"]["questions"]:
             for question in paragraph_questions:
                 flat_questions.append(question)
 
-        paraphrased_questions = item["context"]["paraphrased_questions"]
+        paraphrased_questions = []
+        for paragraph_questions in item["context"]["paraphrased_questions"]:
+            for question in paragraph_questions:
+                paraphrased_questions.append(question)
+
         all_flat_question = [*flat_questions, *paraphrased_questions]
         batch_flat_questions.append(all_flat_question)
 
-        # Merge relevant_question_indexes
-        downstream_relevant_question_indexes = [
-            len(flat_questions) + i for i in range(len(paraphrased_questions))
-        ]
-        relevant_question_indexes = [
-            *upstream_relevant_sentence_indexes,
-            *downstream_relevant_question_indexes,
-        ]
+        # No paraphrase
+        relevant_question_indexes = upstream_relevant_sentence_indexes
         batch_relevant_question_indexes.append(relevant_question_indexes)
 
         # Merge selection vector
-        downstream_labels_mask = [True] * len(paraphrased_questions)
+        downstream_labels_mask = upstream_labels_mask
         labels_mask = [*upstream_labels_mask, *downstream_labels_mask]
         batch_labels_mask.append(labels_mask)
 
         # Paraphrase look up table
+        offset = len(flat_questions)
         paraphrase_lut = {}
-        for left, right in zip(
-            upstream_relevant_sentence_indexes, downstream_relevant_question_indexes
-        ):
-            paraphrase_lut[left] = right
-            paraphrase_lut[right] = left
+        for idx in relevant_question_indexes:
+            paraphrase_idx = offset + idx
+
+            paraphrase_lut[paraphrase_idx] = idx
+            paraphrase_lut[idx] = paraphrase_idx
         batch_paraphrase_lut.append(paraphrase_lut)
 
     return {
@@ -63,6 +61,7 @@ def collate_fn(batch):
 
 def get_train_loader(batch_size):
     dataset = load_dataset("scholarly-shadows-syndicate/hotpotqa_with_qa_gpt35")
+    # dataset = load_dataset("./data/hotpotqa_with_qa_gpt35")
 
     train_loader = DataLoader(
         dataset["train"],
@@ -76,6 +75,7 @@ def get_train_loader(batch_size):
 
 def get_validation_loader(batch_size):
     dataset = load_dataset("scholarly-shadows-syndicate/hotpotqa_with_qa_gpt35")
+    # dataset = load_dataset("./data/hotpotqa_with_qa_gpt35")
 
     val_loader = DataLoader(
         dataset["validation"],
