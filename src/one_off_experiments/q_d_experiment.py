@@ -69,8 +69,8 @@ def train_session(seed, enable_iterative, enable_quality, enable_diversity):
                 "disable_diversity": not enable_diversity,
             },
         },
-        "eval": {"k": [1, 5, 10]},
-        # "eval": {"k": [1]},
+        # "eval": {"k": [1, 5, 10]},
+        "eval": {"k": [8]},  # len(relevant_sentence_indexes)
     }
     wrapped_model = WrappedMpnetModel(config)
     # wrapped_model = WrappedDebertaModel(config)
@@ -86,8 +86,8 @@ def train_session(seed, enable_iterative, enable_quality, enable_diversity):
             labels_mask,
             relevant_sentence_indexes,
             paraphrase_lut,
-            labels_masks,
         ) = load_paraphrased_row()
+
         batch = {
             "questions": [question],
             "flat_questions": [flat_questions],
@@ -103,10 +103,10 @@ def train_session(seed, enable_iterative, enable_quality, enable_diversity):
 
 if __name__ == "__main__":
     permutations = [
-        [True, True, True],
-        [True, False, True],
-        [True, True, False],
-        [False, False, False],
+        [True, True, True],  # QD
+        [True, False, True],  # D
+        [True, True, False],  # Q
+        [False, False, False],  # NI
     ]
     # seeds = [42, 43, 44]
     seeds = [42]

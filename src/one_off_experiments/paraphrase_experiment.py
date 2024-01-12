@@ -33,15 +33,15 @@ def load_paraphrased_row():
             flat_questions.append(question)
             sent_counter += 1
 
-    relevant_sentence_indexes = []
+    no_paraphrase_relevant_question_indexes = []
     for title, sent_id in zip(
         item["supporting_facts"]["title"], item["supporting_facts"]["sent_id"]
     ):
         flat_index = index_lut[(title, sent_id)]
-        relevant_sentence_indexes.append(flat_index)
+        no_paraphrase_relevant_question_indexes.append(flat_index)
 
     labels_mask = [False] * len(flat_questions)
-    for index in relevant_sentence_indexes:
+    for index in no_paraphrase_relevant_question_indexes:
         labels_mask[index] = True
 
     flat_questions_paraphrased = []
@@ -49,22 +49,24 @@ def load_paraphrased_row():
         for question in paraphrased_question_block:
             flat_questions_paraphrased.append(question)
 
-    paraphrased_relevant_sentence_idxs = []
     offset = len(flat_questions)
     paraphrase_lut = {}
-    for idx in relevant_sentence_indexes:
+    for idx in no_paraphrase_relevant_question_indexes:
         paraphrase_idx = offset + idx
-        paraphrased_relevant_sentence_idxs.append(paraphrase_idx)
 
         paraphrase_lut[paraphrase_idx] = idx
         paraphrase_lut[idx] = paraphrase_idx
 
     all_questions = [*flat_questions, *flat_questions_paraphrased]
     all_labels_mask = [*labels_mask, *labels_mask]
-    all_relevant_sentence_idxs = [
-        *relevant_sentence_indexes,
-        *paraphrased_relevant_sentence_idxs,
-    ]
+
+    # Each question must have a paraphrase
+    assert len(flat_questions) == len(flat_questions_paraphrased)
+    assert (
+        len(no_paraphrase_relevant_question_indexes) * 2
+        == np.array(all_labels_mask).sum()
+    )
+    assert len(paraphrase_lut.keys()) == np.array(all_labels_mask).sum()
 
     query = item["question"]
 
@@ -72,7 +74,7 @@ def load_paraphrased_row():
         query,
         all_questions,
         all_labels_mask,
-        all_relevant_sentence_idxs,
+        no_paraphrase_relevant_question_indexes,
         paraphrase_lut,
     )
 
@@ -145,7 +147,7 @@ def train_session(seed, enable_inward, enable_outward, enable_local_inward):
             query,
             all_questions,
             all_labels_mask,
-            relevant_sentence_indexes,
+            no_paraphrase_relevant_question_indexes,
             paraphrase_lut,
             labels_masks,
         ) = load_paraphrased_row()
@@ -166,8 +168,8 @@ def train_session(seed, enable_inward, enable_outward, enable_local_inward):
 
         original_all_labels_mask = all_labels_mask_list[0]
 
-        num_correct_answers = len(relevant_sentence_indexes)
-        can_be_picked_set = set(relevant_sentence_indexes)
+        num_correct_answers = len(no_paraphrase_relevant_question_indexes)
+        can_be_picked_set = set(no_paraphrase_relevant_question_indexes)
         for _ in range(num_correct_answers):
             current_all_labels_mask = all_labels_mask_list[-1]
             current_picked_mask = picked_mask_list[-1]
@@ -246,7 +248,7 @@ def train_session(seed, enable_inward, enable_outward, enable_local_inward):
         optimizer.step()
         optimizer.zero_grad()
 
-        # recall_at_1 = recall_at_1 / len(relevant_sentence_indexes)
+        # recall_at_1 = recall_at_1 / len(no_paraphrase_relevant_question_indexes)
 
     wandb.finish()
 
@@ -256,11 +258,11 @@ if __name__ == "__main__":
     #     query,
     #     all_questions,
     #     all_labels_mask,
-    #     relevant_sentence_indexes,
+    #     no_paraphrase_relevant_question_indexes,
     #     paraphrase_lut,
     # ) = load_paraphrased_row()
 
-    # for idx in relevant_sentence_indexes:
+    # for idx in no_paraphrase_relevant_question_indexes:
     #     left = idx
     #     right = paraphrase_lut[left]
 
