@@ -6,7 +6,7 @@ from tqdm import tqdm
 def check_ids_in_jsonl(file_path, split):
     dataset = load_dataset("hotpot_qa", "distractor", split=split)
     seen_rows = 0
-    expected_length = min(10000, len(dataset))
+    expected_length = min(15000, len(dataset))
     with open(file_path, "r") as f:
         for line, actual_row in tqdm(zip(f, dataset), total=expected_length):
             row = json.loads(line)
