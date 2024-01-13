@@ -34,6 +34,7 @@ class TestComputeDissimilarities(unittest.TestCase):
         self.assertEqual(output.shape, (10,))
 
 
+# python -m unittest training_loop_strategies.utils_test.TestComputeDissimilaritiesStreaming -v
 class TestComputeDissimilaritiesStreaming(unittest.TestCase):
     # python -m unittest training_loop_strategies.utils_test.TestComputeDissimilaritiesStreaming.test_no_picked_documents -v
     def test_no_picked_documents(self):
@@ -56,7 +57,7 @@ class TestComputeDissimilaritiesStreaming(unittest.TestCase):
         )
         similarities = torch.randn(10, 5, device="cuda:0")
 
-        output_streaming = compute_dissimilarities_streaming_gen(16)(
+        output_streaming = compute_dissimilarities_streaming_gen(2)(
             embeddings, picked_mask, similarities
         )
         output_non_streaming = compute_dissimilarities(
@@ -65,6 +66,26 @@ class TestComputeDissimilaritiesStreaming(unittest.TestCase):
 
         self.assertTrue(
             torch.allclose(output_streaming, output_non_streaming, atol=1e-6)
+        )
+
+    # python -m unittest training_loop_strategies.utils_test.TestComputeDissimilaritiesStreaming.test_with_picked_documents_large_enough -v
+    def test_with_picked_documents_large_enough(self):
+        embeddings = torch.randn(10, 5, device="cuda:0")
+        picked_mask = torch.tensor(
+            [True, False, True, False, False, False, False, False, False, False],
+            device="cuda:0",
+        )
+        similarities = torch.randn(10, 5, device="cuda:0")
+
+        output_streaming_large = compute_dissimilarities_streaming_gen(5000)(
+            embeddings, picked_mask, similarities
+        )
+        output_streaming_small = compute_dissimilarities_streaming_gen(2)(
+            embeddings, picked_mask, similarities
+        )
+
+        self.assertTrue(
+            torch.allclose(output_streaming_large, output_streaming_small, atol=1e-6)
         )
 
 

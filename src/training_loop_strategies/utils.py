@@ -25,23 +25,31 @@ def compute_dissimilarities_streaming_gen(batch_size):
         document_embeddings, current_picked_mask, similarities
     ):
         num_documents = document_embeddings.shape[0]
+        target_device = similarities.device
+
+        if batch_size >= num_documents:
+            # No need to stream
+            return compute_dissimilarities(
+                document_embeddings, current_picked_mask, similarities
+            )
 
         # Assuming similarities and current_picked_mask are already on GPU
         # Initialize dissimilarities tensor on GPU
-        dissimilarities = torch.zeros(num_documents, device=similarities.device)
+        dissimilarities = torch.zeros(num_documents, device=target_device)
 
         if current_picked_mask.sum() > 0:
             # Only work with the embeddings that have been picked
             # Assuming picked_embeddings need to be on GPU
+            # TODO: Stream picked_embeddings too
             picked_embeddings = document_embeddings[current_picked_mask.cpu()].to(
-                similarities.device
+                target_device
             )
 
             # Process in batches
             for i in range(0, num_documents, batch_size):
                 # Extract a batch of document embeddings and move to GPU
                 batch_embeddings = document_embeddings[i : i + batch_size].to(
-                    similarities.device
+                    target_device
                 )
 
                 # Compute dissimilarities for the batch on GPU
