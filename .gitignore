@@ -159,17 +159,19 @@ cython_debug/
 #  option (not recommended) you can uncomment the following to ignore the entire idea folder.
 #.idea/
 
-# custom
-scratch
-wandb/*
+# Generated binaries
 artifacts
 artifacts/*
-!artifacts/.gitkeep
-experiments/completions/*.done
+wandb/*
 checkpoints
 checkpoints/*
-!checkpoints/.gitkeep
-install_gpu_driver.py
-dump
 NVIDIA-Linux-x86_64-*
-upload_checkpoints.sh
+
+# Generated scripts
+experiments/gain_histogram/compute_gain_histogram.sh
+devops/upload_checkpoints.sh
+install_gpu_driver.py
+
+# custom
+scratch
+dump
