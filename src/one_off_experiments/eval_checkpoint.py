@@ -2,6 +2,7 @@ import argparse
 import json
 from pathlib import Path
 from models.checkpoint_manager import generate_md5_hash
+from pydash import get
 import torch
 from dataloaders import DATA_LOADER_LUT
 from models import MODEL_LUT
@@ -170,8 +171,21 @@ if __name__ == "__main__":
         wrapped_model.model.load_state_dict(checkpoint["model_state_dict"])
     wrapped_model.model.eval()
 
+    config = checkpoint["config"]
+    disable_quality = get(
+        config, "architecture.quality_diversity.disable_quality", False
+    )
+    disable_diversity = get(
+        config, "architecture.quality_diversity.disable_diversity", False
+    )
+
     metrics, gain_cutoff_histogram = main(
-        wrapped_model, validation_loader, gain_histogram_resolution, debug
+        wrapped_model,
+        validation_loader,
+        gain_histogram_resolution,
+        disable_quality,
+        disable_diversity,
+        debug,
     )
 
     result = {
