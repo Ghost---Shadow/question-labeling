@@ -4,6 +4,7 @@ from train_utils import set_seed
 from training_loop_strategies.utils import (
     compute_cutoff_gain,
     compute_dissimilarities,
+    compute_dissimilarities_streaming_gen,
     compute_search_metrics,
     record_pick,
     select_next_correct,
@@ -31,6 +32,40 @@ class TestComputeDissimilarities(unittest.TestCase):
 
         output = compute_dissimilarities(embeddings, picked_mask, similarities)
         self.assertEqual(output.shape, (10,))
+
+
+class TestComputeDissimilaritiesStreaming(unittest.TestCase):
+    # python -m unittest training_loop_strategies.utils_test.TestComputeDissimilaritiesStreaming.test_no_picked_documents -v
+    def test_no_picked_documents(self):
+        embeddings = torch.randn(10, 5, device="cpu")
+        picked_mask = torch.zeros(10, dtype=torch.bool, device="cuda:0")
+        similarities = torch.randn(10, 5, device="cuda:0")
+        expected_output = torch.zeros(10, device="cuda:0")
+
+        output = compute_dissimilarities_streaming_gen(16)(
+            embeddings, picked_mask, similarities
+        )
+        self.assertTrue(torch.equal(output, expected_output))
+
+    # python -m unittest training_loop_strategies.utils_test.TestComputeDissimilaritiesStreaming.test_with_picked_documents -v
+    def test_with_picked_documents(self):
+        embeddings = torch.randn(10, 5, device="cpu")
+        picked_mask = torch.tensor(
+            [True, False, True, False, False, False, False, False, False, False],
+            device="cuda:0",
+        )
+        similarities = torch.randn(10, 5, device="cuda:0")
+
+        output_streaming = compute_dissimilarities_streaming_gen(16)(
+            embeddings, picked_mask, similarities
+        )
+        output_non_streaming = compute_dissimilarities(
+            embeddings.to("cuda:0"), picked_mask, similarities
+        )
+
+        self.assertTrue(
+            torch.allclose(output_streaming, output_non_streaming, atol=1e-6)
+        )
 
 
 # python -m unittest training_loop_strategies.utils_test.TestSelectNextCorrect -v

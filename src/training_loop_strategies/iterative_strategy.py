@@ -4,6 +4,7 @@ from training_loop_strategies.utils import (
     average_metrics,
     compute_cutoff_gain,
     compute_dissimilarities,
+    compute_dissimilarities_streaming_gen,
     compute_search_metrics,
     pick_highest_scoring_new_document,
     record_pick,
@@ -26,13 +27,21 @@ def train_step(config, scaler, wrapped_model, optimizer, batch, loss_fn):
         config, "architecture.quality_diversity.disable_diversity", False
     )
 
-    oom_prevention_limit = get(
-        config,
-        "training.oom_prevention_limit",
-        None,
-    )
+    enable_streaming = get(config, "training.streaming.enabled", False)
+    streaming_batch_size = get(config, "training.streaming.batch_size", None)
 
-    effective_batch_size = 0
+    compute_embeddings_fn, inner_product_fn, compute_dissimilarities_fn = {
+        True: (
+            wrapped_model.get_query_and_document_embeddings_streaming,
+            wrapped_model.inner_product_streaming,
+            compute_dissimilarities_streaming_gen(streaming_batch_size),
+        ),
+        False: (
+            wrapped_model.get_query_and_document_embeddings,
+            wrapped_model.inner_product,
+            compute_dissimilarities,
+        ),
+    }[enable_streaming]
 
     for (
         question,
@@ -47,23 +56,12 @@ def train_step(config, scaler, wrapped_model, optimizer, batch, loss_fn):
         batch["relevant_sentence_indexes"],
         batch["paraphrase_lut"],
     ):
-        if (
-            oom_prevention_limit is not None
-            and len(flat_questions) > oom_prevention_limit
-        ):
-            # OOM Hack
-            continue
-
-        effective_batch_size += 1
-
         with autocast(dtype=torch.float16):
             (
                 query_embedding,
                 document_embeddings,
-            ) = wrapped_model.get_query_and_document_embeddings(
-                question, flat_questions
-            )
-            similarities = (query_embedding @ document_embeddings.T).squeeze()
+            ) = compute_embeddings_fn(question, flat_questions)
+            similarities = inner_product_fn(query_embedding, document_embeddings)
 
             similarities = torch.clamp(similarities, min=0, max=1)
             labels_mask = torch.tensor(labels_mask, device=similarities.device)
@@ -86,7 +84,7 @@ def train_step(config, scaler, wrapped_model, optimizer, batch, loss_fn):
                 current_all_labels_mask = labels_mask_list[-1]
                 current_picked_mask = picked_mask_list[-1]
 
-                dissimilarities = compute_dissimilarities(
+                dissimilarities = compute_dissimilarities_fn(
                     document_embeddings, current_picked_mask, similarities
                 )
 
@@ -169,7 +167,6 @@ def train_step(config, scaler, wrapped_model, optimizer, batch, loss_fn):
     scaler.update()
 
     avg_metrics = average_metrics(all_metrics)
-    avg_metrics["effective_batch_size"] = effective_batch_size
 
     return avg_metrics
 

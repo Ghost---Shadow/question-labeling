@@ -39,9 +39,9 @@ class WrappedMpnetModel:
 
         return query_embedding, document_embeddings
 
-    def get_query_and_document_embeddings_streaming(
-        self, query, documents, batch_size=16
-    ):
+    def get_query_and_document_embeddings_streaming(self, query, documents):
+        batch_size = self.config["training"]["streaming"]["batch_size"]
+
         # Process the query separately
         query_features = self.tokenizer(
             query, padding=True, truncation=True, return_tensors="pt"
@@ -80,8 +80,12 @@ class WrappedMpnetModel:
 
         return query_embedding.cpu(), document_embeddings
 
-    @staticmethod
-    def streaming_inner_product(question_embedding, document_embeddings, batch_size=16):
+    def inner_product(self, question_embedding, document_embeddings):
+        return (question_embedding @ document_embeddings.T).squeeze()
+
+    def inner_product_streaming(self, question_embedding, document_embeddings):
+        batch_size = self.config["training"]["streaming"]["batch_size"]
+
         # Ensure the question embedding is on the GPU
         question_embedding_gpu = question_embedding.to("cuda")
 

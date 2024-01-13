@@ -20,6 +20,48 @@ def compute_dissimilarities(document_embeddings, current_picked_mask, similariti
     return dissimilarities
 
 
+def compute_dissimilarities_streaming_gen(batch_size):
+    def compute_dissimilarities_streaming(
+        document_embeddings, current_picked_mask, similarities
+    ):
+        num_documents = document_embeddings.shape[0]
+
+        # Assuming similarities and current_picked_mask are already on GPU
+        # Initialize dissimilarities tensor on GPU
+        dissimilarities = torch.zeros(num_documents, device=similarities.device)
+
+        if current_picked_mask.sum() > 0:
+            # Only work with the embeddings that have been picked
+            # Assuming picked_embeddings need to be on GPU
+            picked_embeddings = document_embeddings[current_picked_mask.cpu()].to(
+                similarities.device
+            )
+
+            # Process in batches
+            for i in range(0, num_documents, batch_size):
+                # Extract a batch of document embeddings and move to GPU
+                batch_embeddings = document_embeddings[i : i + batch_size].to(
+                    similarities.device
+                )
+
+                # Compute dissimilarities for the batch on GPU
+                batch_dissimilarities = torch.matmul(
+                    batch_embeddings, picked_embeddings.T
+                )
+                batch_dissimilarities = torch.clamp(batch_dissimilarities, min=0, max=1)
+
+                # Find the maximum similarity for each document in the batch to any of the picked documents
+                batch_max_dissimilarities = torch.max(batch_dissimilarities, dim=1)[0]
+
+                # Store the results in the corresponding positions on GPU
+                dissimilarities[i : i + batch_size] = batch_max_dissimilarities
+
+        # The final result is on GPU
+        return dissimilarities
+
+    return compute_dissimilarities_streaming
+
+
 def pick_highest_scoring_new_document(predictions, actual_picks):
     """
     Picks the highest scoring document that has not been picked yet.
