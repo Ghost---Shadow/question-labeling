@@ -165,19 +165,23 @@ if __name__ == "__main__":
     validation_loader = get_validation_loader(batch_size=1)
 
     print("Loading model")
+    disable_quality = False
+    disable_diversity = False
     wrapped_model = MODEL_LUT[model_type](config)
+
     if checkpoint_path != "baseline":
         checkpoint = torch.load(checkpoint_path)
         wrapped_model.model.load_state_dict(checkpoint["model_state_dict"])
-    wrapped_model.model.eval()
+        config = checkpoint["config"]
+        disable_quality = get(
+            config, "architecture.quality_diversity.disable_quality", False
+        )
+        disable_diversity = get(
+            config, "architecture.quality_diversity.disable_diversity", False
+        )
+        # print(config["wandb"]["name"], disable_quality, disable_diversity)
 
-    config = checkpoint["config"]
-    disable_quality = get(
-        config, "architecture.quality_diversity.disable_quality", False
-    )
-    disable_diversity = get(
-        config, "architecture.quality_diversity.disable_diversity", False
-    )
+    wrapped_model.model.eval()
 
     metrics, gain_cutoff_histogram = main(
         wrapped_model,
