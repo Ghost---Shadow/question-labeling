@@ -33,7 +33,7 @@ with open(shell_script_file, "w") as script:
         script.write(f"\n# {dataset}\n")
         # Add baseline evaluation for each dataset
         script.write(
-            f"python src/one_off_experiments/eval_checkpoint.py --dataset_name={dataset} --model_type=mpnet --checkpoint_path=baseline\n"
+            f"python src/run_analysis_scripts/eval_checkpoint.py --dataset_name={dataset} --model_type=mpnet --checkpoint_path=baseline\n"
         )
 
         for experiment_dir in glob.glob(f"{base_path}*/"):
@@ -45,12 +45,12 @@ with open(shell_script_file, "w") as script:
             # Add evaluations for each checkpoint
             for checkpoint in latest_checkpoints:
                 script.write(
-                    f"python src/one_off_experiments/eval_checkpoint.py --dataset_name={dataset} --model_type=mpnet --checkpoint_path={checkpoint}\n"
+                    f"python src/run_analysis_scripts/eval_checkpoint.py --dataset_name={dataset} --model_type=mpnet --checkpoint_path={checkpoint}\n"
                 )
 
     # Additional commands
     script.write(f"\n")
-    script.write("python src/one_off_experiments/plot_gain_histograms.py\n")
+    script.write("python src/run_analysis_scripts/plot_gain_histograms.py\n")
     script.write("source devops/upload_artifacts.sh\n")
     script.write("source devops/stop_current_gcp_instance.sh\n")
 
