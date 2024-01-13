@@ -176,13 +176,14 @@ if __name__ == "__main__":
         checkpoint = torch.load(checkpoint_path)
         wrapped_model.model.load_state_dict(checkpoint["model_state_dict"])
         config = checkpoint["config"]
-        enable_quality = not get(
-            config, "architecture.quality_diversity.disable_quality", False
-        )
+        if config["training"]["strategy"]["name"] == "iterative_strategy":
+            enable_quality = not get(
+                config, "architecture.quality_diversity.disable_quality", False
+            )
 
-        enable_diversity = not get(
-            config, "architecture.quality_diversity.disable_diversity", False
-        )
+            enable_diversity = not get(
+                config, "architecture.quality_diversity.disable_diversity", False
+            )
         print(config["wandb"]["name"], enable_quality, enable_diversity)
 
     wrapped_model.model.eval()
