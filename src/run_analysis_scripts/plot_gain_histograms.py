@@ -11,9 +11,8 @@ METRICS = ["recall", "precision", "f1", "real_k"]
 
 EXPERIMENT_NAME_MAP = {
     "gpt35_mpnet_kldiv_qd": "quality_diversity",
-    "gpt35_mpnet_kldiv_only_q": "only_q",
-    "gpt35_mpnet_kldiv_only_d": "only_d",
-    "gpt35_mpnet_ni_kldiv": "non_iterative",
+    "gpt35_mpnet_ni_kldiv": "simple_finetuning",
+    "baseline": "baseline",
 }
 
 
@@ -57,23 +56,27 @@ def json_dir_to_df(base_path):
     return df
 
 
-def plot_df(df):
-    # Ensure the output directory exists
+def plot_df(df, max_df):
     output_dir = Path("./artifacts/gain_histogram")
     output_dir.mkdir(exist_ok=True, parents=True)
 
-    # for metric in tqdm(METRICS):
-    for metric in tqdm(["f1", "real_k"]):
+    for metric in tqdm(["f1"]):
         plt.figure()
 
-        sns.lineplot(df, x="gain", y=metric, hue="experiment")
+        sns.lineplot(data=df, x="gain", y=metric, hue="experiment")
         plt.title(f"{metric} by gain")
         plt.xlabel("Gain")
         plt.ylabel(metric)
         if metric != "real_k":
             plt.ylim(0, 1)
 
-        # Save the plot
+        # Draw horizontal lines for peak achievable gains
+        for experiment in df["experiment"].unique():
+            max_value = max_df.loc[experiment, metric]
+            plt.axhline(y=max_value, color="gray", linestyle="--")
+            # Adding text. Adjust the x position as needed.
+            plt.text(0.1, max_value, f"{max_value:.2f}", va="bottom", ha="left")
+
         plt.savefig(output_dir / f"{metric}_plot.png")
         plt.close()
 
@@ -86,4 +89,4 @@ if __name__ == "__main__":
     max_df = max_df.groupby(["experiment"]).max()
     print(max_df)
 
-    plot_df(df)
+    plot_df(df, max_df)
