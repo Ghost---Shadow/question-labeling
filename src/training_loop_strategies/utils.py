@@ -381,14 +381,14 @@ def rerank_documents(
 
     for _ in range(num_hops):
         current_picked_mask = picked_mask_list[-1]
-        dissimilarities = compute_dissimilarities(
-            document_embeddings, current_picked_mask, similarities
-        )
 
         predictions = torch.ones_like(similarities, device=similarities.device)
         if enable_quality:
             predictions = predictions * similarities
         if enable_diversity:
+            dissimilarities = compute_dissimilarities(
+                document_embeddings, current_picked_mask, similarities
+            )
             predictions = predictions * (1 - dissimilarities)
 
         # Store the highest scoring document
