@@ -1,3 +1,4 @@
+# import datetime
 import os
 import glob
 
@@ -10,6 +11,10 @@ def find_latest_checkpoint(experiment_dir):
     for seed_dir in glob.glob(f"{experiment_dir}seed_*/"):
         checkpoint_pattern = f"{seed_dir}epoch_*.pth"
         list_of_files = glob.glob(checkpoint_pattern)
+        # for file_path in list_of_files:
+        #     modification_time = os.path.getmtime(file_path)
+        #     readable_time = datetime.datetime.fromtimestamp(modification_time)
+        #     print(file_path, readable_time)
         if list_of_files:
             latest_checkpoint = max(list_of_files, key=os.path.getmtime)
             latest_checkpoints.append(latest_checkpoint)
