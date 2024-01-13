@@ -34,7 +34,7 @@ training:
   oom_prevention_limit: 120
   streaming:
     enabled: true
-    batch_size: 64
+    batch_size: 100
 
 eval:
   k: [1, 5, 10]
