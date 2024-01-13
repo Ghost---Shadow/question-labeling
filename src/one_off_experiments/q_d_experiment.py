@@ -71,6 +71,12 @@ def train_session(seed, enable_iterative, enable_quality, enable_diversity):
         },
         # "eval": {"k": [1, 5, 10]},
         "eval": {"k": [8]},  # len(relevant_sentence_indexes)
+        "training": {
+            "streaming": {
+                "enabled": False,
+                "batch_size": 64,
+            }
+        },
     }
     wrapped_model = WrappedMpnetModel(config)
     # wrapped_model = WrappedDebertaModel(config)
@@ -92,6 +98,10 @@ def train_session(seed, enable_iterative, enable_quality, enable_diversity):
             "questions": [question],
             "flat_questions": [flat_questions],
             "labels_mask": [labels_mask],
+            # "flat_questions": [
+            #     [*flat_questions, *flat_questions, *flat_questions, *flat_questions]
+            # ],
+            # "labels_mask": [[*labels_mask, *labels_mask, *labels_mask, *labels_mask]],
             "relevant_sentence_indexes": [relevant_sentence_indexes],
             "paraphrase_lut": [paraphrase_lut],
         }
