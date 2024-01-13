@@ -42,6 +42,10 @@ class WrappedMpnetModel:
     def get_query_and_document_embeddings_streaming(self, query, documents):
         batch_size = self.config["training"]["streaming"]["batch_size"]
 
+        if batch_size >= len(documents):
+            # No need to stream
+            return self.get_query_and_document_embeddings(query, documents)
+
         # Process the query separately
         query_features = self.tokenizer(
             query, padding=True, truncation=True, return_tensors="pt"
@@ -72,13 +76,13 @@ class WrappedMpnetModel:
                 document_model_output.pooler_output, dim=-1
             )
 
-            # Move normalized embeddings to CPU (if necessary)
+            # Move normalized embeddings to CPU
             document_embeddings_list.append(document_embeddings.cpu())
 
         # Concatenate all batched document embeddings
         document_embeddings = torch.cat(document_embeddings_list)
 
-        return query_embedding.cpu(), document_embeddings
+        return query_embedding, document_embeddings
 
     def inner_product(self, question_embedding, document_embeddings):
         return (question_embedding @ document_embeddings.T).squeeze()
@@ -86,8 +90,9 @@ class WrappedMpnetModel:
     def inner_product_streaming(self, question_embedding, document_embeddings):
         batch_size = self.config["training"]["streaming"]["batch_size"]
 
-        # Ensure the question embedding is on the GPU
-        question_embedding_gpu = question_embedding.to("cuda")
+        if batch_size >= len(document_embeddings):
+            # No need to stream
+            return self.inner_product(question_embedding, document_embeddings)
 
         # Initialize a list to store inner product results
         inner_product_results = []
@@ -95,10 +100,12 @@ class WrappedMpnetModel:
         # Process document embeddings in batches
         for i in range(0, len(document_embeddings), batch_size):
             # Extract a batch of document embeddings
-            document_batch = document_embeddings[i : i + batch_size].to("cuda")
+            document_batch = document_embeddings[i : i + batch_size].to(
+                question_embedding.device
+            )
 
             # Compute the inner product and keep the result on the GPU
-            inner_product = (question_embedding_gpu @ document_batch.T).squeeze()
+            inner_product = (question_embedding @ document_batch.T).squeeze()
 
             # Store the result
             inner_product_results.append(inner_product)
