@@ -44,8 +44,13 @@ with open(shell_script_file, "w") as script:
 
             # Add evaluations for each checkpoint
             for checkpoint in latest_checkpoints:
+                if "_ni_" in checkpoint:
+                    script_to_invoke = "src/run_analysis_scripts/eval_checkpoint_ni.py"
+                else:
+                    script_to_invoke = "src/run_analysis_scripts/eval_checkpoint.py"
+
                 script.write(
-                    f"python src/run_analysis_scripts/eval_checkpoint.py --dataset_name={dataset} --model_type=mpnet --checkpoint_path={checkpoint}\n"
+                    f"python {script_to_invoke} --dataset_name={dataset} --model_type=mpnet --checkpoint_path={checkpoint}\n"
                 )
 
     # Additional commands
