@@ -171,3 +171,4 @@ checkpoints/*
 !checkpoints/.gitkeep
 install_gpu_driver.py
 dump
+NVIDIA-Linux-x86_64-*
