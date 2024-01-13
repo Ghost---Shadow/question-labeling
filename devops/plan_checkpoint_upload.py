@@ -15,9 +15,9 @@ with open(shell_script_file, "w") as script:
             list_of_files = glob.glob(checkpoint_pattern)
             if list_of_files:
                 latest_checkpoint = max(list_of_files, key=os.path.getctime)
-                destination_blob_name = f"{bucket_name}/{experiment_name}/{seed}/{os.path.basename(latest_checkpoint)}"
+                destination_blob_name = f"{bucket_name}/checkpoints/{experiment_name}/{seed}/{os.path.basename(latest_checkpoint)}"
                 script.write(
-                    f'gsutil cp "{latest_checkpoint}" "gs://checkpoints/{destination_blob_name}"\n'
+                    f'gsutil cp "{latest_checkpoint}" "gs://{destination_blob_name}"\n'
                 )
 
 print(f"Written to {shell_script_file}")
