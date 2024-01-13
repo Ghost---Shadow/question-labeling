@@ -1,6 +1,6 @@
 #!/bin/bash
 
-python devops/find_most_recent_checkpoints.py
+python devops/plan_checkpoint_upload.py
 
 source upload_checkpoints.sh
 
