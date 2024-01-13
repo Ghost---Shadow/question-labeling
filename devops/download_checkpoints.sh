@@ -1,1 +1,1 @@
-gsutil -m cp -r "gs://q-labeling/checkpoints/" "./checkpoints"
+gsutil -m cp -r "gs://q-labeling/checkpoints/*" "./checkpoints"
