@@ -45,6 +45,7 @@ def main(config, debug):
                 name=config["wandb"]["name"] + f"_{seed}",
                 config={
                     **config,
+                    "checkpoint_dir": checkpoint_manager.checkpoint_dir,
                     "seed": seed,
                     "total_parameters": sum(
                         p.numel()
