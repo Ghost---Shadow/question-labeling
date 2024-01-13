@@ -13,6 +13,19 @@ def train_step(config, scaler, wrapped_model, optimizer, batch, loss_fn):
 
     all_metrics = []
 
+    enable_streaming = get(config, "training.streaming.enabled", False)
+
+    compute_embeddings_fn, inner_product_fn = {
+        True: (
+            wrapped_model.get_query_and_document_embeddings_streaming,
+            wrapped_model.inner_product_streaming,
+        ),
+        False: (
+            wrapped_model.get_query_and_document_embeddings,
+            wrapped_model.inner_product,
+        ),
+    }[enable_streaming]
+
     for (
         question,
         flat_questions,
@@ -30,10 +43,10 @@ def train_step(config, scaler, wrapped_model, optimizer, batch, loss_fn):
             (
                 query_embedding,
                 document_embeddings,
-            ) = wrapped_model.get_query_and_document_embeddings(
+            ) = compute_embeddings_fn(
                 question, flat_questions
             )
-            similarities = (query_embedding @ document_embeddings.T).squeeze()
+            similarities = inner_product_fn(query_embedding, document_embeddings)
 
             similarities = torch.clamp(similarities, min=0, max=1)
             predictions = similarities
