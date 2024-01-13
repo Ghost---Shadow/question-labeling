@@ -12,8 +12,8 @@ def add_paraphrased_question_to_row(model, row):
     # if "paraphrased_questions" in row["context"]:
     #     return row
 
-    def generate_paraphrase(sentence):
-        return model.generate_paraphrase(sentence)
+    def generate_paraphrase(question):
+        return model.generate_paraphrase(question)
 
     all_questions = []
 
@@ -21,13 +21,13 @@ def add_paraphrased_question_to_row(model, row):
     with ThreadPoolExecutor(max_workers=100) as executor:
         # Store futures for each sentence in a dictionary to maintain order
         futures_dict = {}
-        for paragraph_index, paragraph in enumerate(row["context"]["sentences"]):
+        for paragraph_index, paragraph in enumerate(row["context"]["questions"]):
             for sentence_index, sentence in enumerate(paragraph):
                 future = executor.submit(generate_paraphrase, sentence)
                 futures_dict[(paragraph_index, sentence_index)] = future
 
-        # Organize the results into the structure of paragraphs and sentences
-        for paragraph_index, paragraph in enumerate(row["context"]["sentences"]):
+        # Organize the results into the structure of paragraphs and questions
+        for paragraph_index, paragraph in enumerate(row["context"]["questions"]):
             paragraph_questions = []
             for sentence_index, _ in enumerate(paragraph):
                 future = futures_dict[(paragraph_index, sentence_index)]
@@ -111,10 +111,8 @@ def convert_to_question_for_split(dataset, model, split, debug):
 
             # Check and add missing components
             row = original_data.get(row["id"], row)
-            if "question" not in row["context"]:
-                row = add_question_to_row(model, row)
-            if "paraphrased_question" not in row["context"]:
-                row = add_paraphrased_question_to_row(model, row)
+            row = add_question_to_row(model, row)
+            row = add_paraphrased_question_to_row(model, row)
 
             new_file.write(json.dumps(row) + "\n")
             new_file.flush()
