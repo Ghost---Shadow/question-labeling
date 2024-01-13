@@ -172,3 +172,4 @@ checkpoints/*
 install_gpu_driver.py
 dump
 NVIDIA-Linux-x86_64-*
+upload_checkpoints.sh
