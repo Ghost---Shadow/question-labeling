@@ -32,8 +32,8 @@ training:
   warmup_ratio: 0.06
   # seeds: [42, 43, 44, 45, 46]
   streaming:
-    enabled: false # TODO
-    batch_size: 64
+    enabled: true
+    batch_size: 100
 
 eval:
   k: [1, 5, 10]
