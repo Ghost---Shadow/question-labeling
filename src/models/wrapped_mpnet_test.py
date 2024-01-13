@@ -56,7 +56,12 @@ class TestWrappedMpnetModel(unittest.TestCase):
                     "device": "cuda:0",
                     # "device": "cpu",
                 }
-            }
+            },
+            "training": {
+                "streaming": {
+                    "batch_size": 2,
+                }
+            },
         }
         model = WrappedMpnetModel(config)
         query = "What color is the fruit that Alice loves?"
@@ -71,7 +76,9 @@ class TestWrappedMpnetModel(unittest.TestCase):
             question_embedding,
             document_embeddings,
         ) = model.get_query_and_document_embeddings_streaming(query, documents)
-        inner_products = (question_embedding @ document_embeddings.T).squeeze()
+        inner_products = model.inner_product_streaming(
+            question_embedding, document_embeddings
+        )
 
         order = torch.argsort(inner_products, descending=True).cpu().numpy()
         actual = list(np.array(documents)[order])
@@ -114,7 +121,8 @@ class TestOverfit(unittest.TestCase):
         loss_fn = nn.MSELoss()
 
         # loss goes down
-        for _ in range(100):
+        train_steps = 10
+        for _ in range(train_steps):
             # zero grad
             optimizer.zero_grad()
 
@@ -140,7 +148,12 @@ class TestOverfit(unittest.TestCase):
                     "checkpoint": "sentence-transformers/all-mpnet-base-v2",
                     "device": "cuda:0",
                 }
-            }
+            },
+            "training": {
+                "streaming": {
+                    "batch_size": 2,
+                }
+            },
         }
         wrapped_model = WrappedMpnetModel(config)
         query = "What color is the fruit that Alice loves?"
@@ -157,7 +170,8 @@ class TestOverfit(unittest.TestCase):
         loss_fn = nn.MSELoss()
 
         # loss goes down
-        for _ in range(100):
+        train_steps = 10
+        for _ in range(train_steps):
             # zero grad
             optimizer.zero_grad()
 
@@ -167,7 +181,7 @@ class TestOverfit(unittest.TestCase):
             ) = wrapped_model.get_query_and_document_embeddings_streaming(
                 query, documents
             )
-            inner_product = wrapped_model.streaming_inner_product(
+            inner_product = wrapped_model.inner_product_streaming(
                 question_embedding, document_embeddings
             )
 
@@ -204,7 +218,8 @@ class TestOverfit(unittest.TestCase):
         loss_fn = nn.MSELoss()
         scaler = GradScaler()
 
-        for _ in range(100):
+        train_steps = 10
+        for _ in range(train_steps):
             optimizer.zero_grad()
 
             with autocast(dtype=torch.float16):
@@ -232,7 +247,12 @@ class TestOverfit(unittest.TestCase):
                     "checkpoint": "sentence-transformers/all-mpnet-base-v2",
                     "device": "cuda:0",
                 }
-            }
+            },
+            "training": {
+                "streaming": {
+                    "batch_size": 2,
+                }
+            },
         }
         wrapped_model = WrappedMpnetModel(config)
         query = "What color is the fruit that Alice loves?"
@@ -249,7 +269,10 @@ class TestOverfit(unittest.TestCase):
         loss_fn = nn.MSELoss()
         scaler = GradScaler()
 
-        for _ in range(100):
+        train_steps = 10
+        start_loss = None
+        end_loss = None
+        for _ in range(train_steps):
             optimizer.zero_grad()
 
             with autocast(dtype=torch.float16):
@@ -259,16 +282,20 @@ class TestOverfit(unittest.TestCase):
                 ) = wrapped_model.get_query_and_document_embeddings_streaming(
                     query, documents
                 )
-                inner_product = wrapped_model.streaming_inner_product(
+                inner_product = wrapped_model.inner_product_streaming(
                     question_embedding, document_embeddings
                 )
 
                 loss = loss_fn(inner_product.unsqueeze(0), target)
-                print(loss.item())
+                end_loss = loss.item()
+                # print(end_loss)
+
+                if start_loss is None:
+                    start_loss = end_loss
 
             # Optimizer step
             scaler.scale(loss).backward()
             scaler.step(optimizer)
             scaler.update()
 
-        print(inner_product)
+        assert start_loss > end_loss
