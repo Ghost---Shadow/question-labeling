@@ -11,7 +11,7 @@ def find_latest_checkpoint(experiment_dir):
         checkpoint_pattern = f"{seed_dir}epoch_*.pth"
         list_of_files = glob.glob(checkpoint_pattern)
         if list_of_files:
-            latest_checkpoint = max(list_of_files, key=os.path.getctime)
+            latest_checkpoint = max(list_of_files, key=os.path.getmtime)
             latest_checkpoints.append(latest_checkpoint)
     return latest_checkpoints
 
