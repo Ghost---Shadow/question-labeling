@@ -170,6 +170,8 @@ if __name__ == "__main__":
 
     wrapped_model = MODEL_LUT[model_type](config)
 
+    enable_quality = False
+    enable_diversity = False
     if checkpoint_path != "baseline":
         checkpoint = torch.load(checkpoint_path)
         wrapped_model.model.load_state_dict(checkpoint["model_state_dict"])
