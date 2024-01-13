@@ -21,14 +21,15 @@ def main(
     wrapped_model,
     validation_loader,
     gain_histogram_resolution,
-    disable_quality,
-    disable_diversity,
+    enable_quality,
+    enable_diversity,
     debug,
 ):
     all_metrics = []
     gain_histogram_accumulator = {}
     with torch.no_grad():
-        for batch in tqdm(validation_loader):
+        pbar = tqdm(validation_loader)
+        for batch in pbar:
             for (
                 question,
                 flat_questions,
@@ -46,8 +47,8 @@ def main(
                     wrapped_model,
                     question,
                     flat_questions,
-                    not disable_quality,
-                    not disable_diversity,
+                    enable_quality,
+                    enable_diversity,
                 )
 
                 cutoff_gain = compute_cutoff_gain(
@@ -82,6 +83,9 @@ def main(
                         "cutoff_gain": cutoff_gain,
                     }
                 )
+                # running_average = average_metrics(all_metrics)
+                # f1_at_5 = running_average["f1_at_5"]
+                # pbar.set_description(f"F1 {f1_at_5}")
 
             if debug and len(all_metrics) > 5:
                 break
@@ -132,8 +136,6 @@ if __name__ == "__main__":
         default=1e-2,
         help="Resolution of gain histogram",
     )
-    parser.add_argument("--disable_quality", action="store_true")
-    parser.add_argument("--disable_diversity", action="store_true")
     parser.add_argument("--debug", action="store_true")
     args = parser.parse_args()
 
@@ -165,21 +167,21 @@ if __name__ == "__main__":
     validation_loader = get_validation_loader(batch_size=1)
 
     print("Loading model")
-    disable_quality = False
-    disable_diversity = False
+
     wrapped_model = MODEL_LUT[model_type](config)
 
     if checkpoint_path != "baseline":
         checkpoint = torch.load(checkpoint_path)
         wrapped_model.model.load_state_dict(checkpoint["model_state_dict"])
         config = checkpoint["config"]
-        disable_quality = get(
+        enable_quality = not get(
             config, "architecture.quality_diversity.disable_quality", False
         )
-        disable_diversity = get(
+
+        enable_diversity = not get(
             config, "architecture.quality_diversity.disable_diversity", False
         )
-        # print(config["wandb"]["name"], disable_quality, disable_diversity)
+        print(config["wandb"]["name"], enable_quality, enable_diversity)
 
     wrapped_model.model.eval()
 
@@ -187,8 +189,8 @@ if __name__ == "__main__":
         wrapped_model,
         validation_loader,
         gain_histogram_resolution,
-        disable_quality,
-        disable_diversity,
+        enable_quality,
+        enable_diversity,
         debug,
     )
 
@@ -197,6 +199,8 @@ if __name__ == "__main__":
         "metrics": metrics,
         "debug": debug,
         "dataset_name": dataset_name,
+        "enable_quality": enable_quality,
+        "enable_diversity": enable_diversity,
         "gain_cutoff_histogram": gain_cutoff_histogram,
         "gain_histogram_resolution": gain_histogram_resolution,
     }
