@@ -31,7 +31,6 @@ training:
   seeds: [42]
   warmup_ratio: 0.06
   # seeds: [42, 43, 44, 45, 46]
-  oom_prevention_limit: 120
   streaming:
     enabled: true
     batch_size: 100

@@ -17,20 +17,23 @@ architecture:
 
 datasets:
   train: 'wiki_multihop_qa_with_q'
-  validation: ['hotpot_qa_with_q', 'wiki_multihop_qa_with_q']
+  validation: ['hotpot_qa_with_q']
 
 # https://arxiv.org/pdf/2004.09297.pdf - Page 12
 training:
   strategy:
     name: 'iterative_strategy'
-  epochs: 7 # +3 to verify overfit
+  epochs: 7
   batch_size: 32
   learning_rate: 3e-5
   weight_decay: 0.01
   learning_rate_decay_strategy: 'linear'
-  seeds: [42]
   warmup_ratio: 0.06
+  seeds: [42]
   # seeds: [42, 43, 44, 45, 46]
+  streaming:
+    enabled: true
+    batch_size: 100
 
 eval:
   k: [1, 5, 10]
