@@ -19,13 +19,13 @@ datasets:
   train: 'hotpot_qa_with_q'
   validation: ['hotpot_qa_with_q']
 
-# https://arxiv.org/pdf/2004.09297.pdf - Page 12
+# https://arxiv.org/pdf/2308.08973.pdf - Page 5
 training:
   strategy:
     name: 'iterative_strategy'
-  epochs: 7
+  epochs: 7 # TODO: 16
   batch_size: 32
-  learning_rate: 3e-5
+  learning_rate: 2e-5
   weight_decay: 0.01
   learning_rate_decay_strategy: 'linear'
   seeds: [42]
