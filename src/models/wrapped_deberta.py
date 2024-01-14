@@ -1,4 +1,5 @@
 from models.wrapped_base_model import WrappedBaseModel
+from transformers import AutoTokenizer, AutoModel
 
 
 class WrappedDebertaModel(WrappedBaseModel):
@@ -8,7 +9,12 @@ class WrappedDebertaModel(WrappedBaseModel):
     """
 
     def __init__(self, config):
-        super().__init__(config)
+        self.config = config
+
+        checkpoint = config["architecture"]["semantic_search_model"]["checkpoint"]
+        self.device = config["architecture"]["semantic_search_model"]["device"]
+        self.tokenizer = AutoTokenizer.from_pretrained("microsoft/deberta-v3-large")
+        self.model = AutoModel.from_pretrained(checkpoint).to(self.device)
 
     def get_embeddings(self, features):
         model_output = self.model(**features)
