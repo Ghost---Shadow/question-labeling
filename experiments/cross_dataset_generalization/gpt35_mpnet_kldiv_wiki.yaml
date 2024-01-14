@@ -1,5 +1,6 @@
 wandb:
-  project: "question_labeling_cross_dataset"
+  # project: "question_labeling_cross_dataset"
+  project: "question_labeling_qd_ablation"
   name: "gpt35_mpnet_kldiv_wiki"
   # entity: "carml"
 
