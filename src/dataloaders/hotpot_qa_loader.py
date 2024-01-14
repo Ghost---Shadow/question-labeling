@@ -1,9 +1,10 @@
 from datasets import load_dataset
 from torch.utils.data import DataLoader
-from utils.decorators import dump_and_crash
+
+# from utils.decorators import dump_and_crash
 
 
-@dump_and_crash
+# @dump_and_crash # Should be fixed now
 def collate_fn(batch):
     batch_questions = []
     batch_flat_sentences = []

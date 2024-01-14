@@ -3,18 +3,15 @@ from torch.utils.data import DataLoader
 from dataloaders import hotpot_qa_loader
 
 
-def collate_fn(batch):
+def downstream_collate(batch, upstream_batch):
     batch_flat_questions = []
     batch_relevant_question_indexes = []
     batch_labels_mask = []
     batch_paraphrase_lut = []
-
-    upstream_batch = hotpot_qa_loader.collate_fn(batch)
     batch_upstream_relevant_sentence_indexes = upstream_batch[
         "relevant_sentence_indexes"
     ]
     batch_upstream_labels_mask = upstream_batch["labels_mask"]
-
     for item, upstream_relevant_sentence_indexes, upstream_labels_mask in zip(
         batch, batch_upstream_relevant_sentence_indexes, batch_upstream_labels_mask
     ):
@@ -51,11 +48,20 @@ def collate_fn(batch):
         batch_paraphrase_lut.append(paraphrase_lut)
 
     return {
-        **upstream_batch,
         "flat_questions": batch_flat_questions,
         "relevant_question_indexes": batch_relevant_question_indexes,
         "labels_mask": batch_labels_mask,
         "paraphrase_lut": batch_paraphrase_lut,
+    }
+
+
+def collate_fn(batch):
+    upstream_batch = hotpot_qa_loader.collate_fn(batch)
+    downstream_batch = downstream_collate(batch, upstream_batch)
+
+    return {
+        **upstream_batch,
+        **downstream_batch,
     }
 
 

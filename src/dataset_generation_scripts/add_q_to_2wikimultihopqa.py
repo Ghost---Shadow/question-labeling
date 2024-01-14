@@ -95,7 +95,7 @@ def convert_to_question_for_split(dataset, model, split, debug):
         for current_row, row in enumerate(
             tqdm(dataset[split], total=min(TRAIN_LIMIT, len(dataset[split])))
         ):
-            if debug and current_row >= 50:
+            if debug and current_row >= 5:
                 break
 
             if row["_id"] in processed_ids:
@@ -134,4 +134,4 @@ if __name__ == "__main__":
     }
     # model = T5ModelForQuestionGeneration(config)
     model = OpenAIChatModel(config)
-    convert_to_question_dataset(model, debug=True)
+    convert_to_question_dataset(model, debug=False)
