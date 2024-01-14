@@ -75,7 +75,7 @@ def add_paraphrased_question_to_row(model, row):
 
 def convert_to_question_for_split(dataset, model, split, debug):
     split_path = f"data/2wikimultihopqa_with_q_gpt35/{split}.jsonl"
-    old_split_path = f"./data/hotpotqa_with_qa_gpt35/{split}_old.jsonl"
+    old_split_path = f"data/2wikimultihopqa_with_q_gpt35/{split}_old.jsonl"
 
     TRAIN_LIMIT = 15000
 
