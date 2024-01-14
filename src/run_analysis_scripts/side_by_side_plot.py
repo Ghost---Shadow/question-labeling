@@ -30,6 +30,6 @@ for filename in os.listdir(directory_path):
 # Convert the list to a DataFrame
 df = pd.DataFrame(data_list)
 
-print(df[["name", "f1_at_1", "f1_at_5", "f1_at_10"]].sort_values(by="f1_at_1"))
-print(df[["name", "f1_at_1", "f1_at_5", "f1_at_10"]].sort_values(by="f1_at_5"))
-print(df[["name", "f1_at_1", "f1_at_5", "f1_at_10"]].sort_values(by="f1_at_10"))
+# print(df[["name", "f1_at_1", "f1_at_5", "f1_at_10"]].sort_values(by="f1_at_1"))
+print(df[["name", "f1_at_1", "f1_at_5", "f1_at_10"]].sort_values(by="f1_at_5").round(4))
+# print(df[["name", "f1_at_1", "f1_at_5", "f1_at_10"]].sort_values(by="f1_at_10"))
