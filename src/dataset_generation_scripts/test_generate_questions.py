@@ -1,4 +1,4 @@
-from dataset_generation_scripts.generate_questions import add_question_to_row
+from dataset_generation_scripts.process_hotpotqa import add_question_to_row
 from datasets import load_dataset
 from models.t5_model import T5ModelForQuestionGeneration
 import unittest
