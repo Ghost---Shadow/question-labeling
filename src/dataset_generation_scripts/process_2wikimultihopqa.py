@@ -4,6 +4,7 @@ import os
 from models.openai_chat_model import OpenAIChatModel
 from datasets import load_dataset
 from tqdm import tqdm
+from functools import lru_cache
 
 
 def add_question_to_row(model, row):
@@ -11,7 +12,8 @@ def add_question_to_row(model, row):
     if "questions" in row["context"]:
         return row
 
-    def generate_question(sentence):
+    @lru_cache(maxsize=1024)
+    def cached_generate_question(sentence):
         return model.generate_question(sentence)
 
     all_questions = []
@@ -22,7 +24,7 @@ def add_question_to_row(model, row):
         futures_dict = {}
         for paragraph_index, paragraph in enumerate(row["context"]["content"]):
             for sentence_index, sentence in enumerate(paragraph):
-                future = executor.submit(generate_question, sentence)
+                future = executor.submit(cached_generate_question, sentence)
                 futures_dict[(paragraph_index, sentence_index)] = future
 
         # Organize the results into the structure of paragraphs and sentences
@@ -43,8 +45,9 @@ def add_paraphrased_question_to_row(model, row):
     # if "paraphrased_questions" in row["context"]:
     #     return row
 
-    def generate_paraphrase(question):
-        return model.generate_paraphrase(question)
+    @lru_cache(maxsize=1024)
+    def cached_generate_paraphrase(sentence):
+        return model.generate_paraphrase(sentence)
 
     all_questions = []
 
@@ -54,7 +57,7 @@ def add_paraphrased_question_to_row(model, row):
         futures_dict = {}
         for paragraph_index, paragraph in enumerate(row["context"]["questions"]):
             for sentence_index, sentence in enumerate(paragraph):
-                future = executor.submit(generate_paraphrase, sentence)
+                future = executor.submit(cached_generate_paraphrase, sentence)
                 futures_dict[(paragraph_index, sentence_index)] = future
 
         # Organize the results into the structure of paragraphs and questions
