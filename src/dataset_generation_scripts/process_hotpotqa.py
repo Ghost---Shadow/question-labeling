@@ -10,8 +10,8 @@ from functools import lru_cache
 
 def add_paraphrased_question_to_row(model, row):
     # Already computed
-    # if "paraphrased_questions" in row["context"]:
-    #     return row
+    if "paraphrased_questions" in row["context"]:
+        return row
 
     @lru_cache(maxsize=1024)
     def cached_generate_paraphrase(sentence):
