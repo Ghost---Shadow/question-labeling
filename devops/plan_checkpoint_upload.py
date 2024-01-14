@@ -38,7 +38,7 @@ if __name__ == "__main__":
             for checkpoint in latest_checkpoints:
                 destination_blob_name = f"{bucket_name}/checkpoints/{experiment_name}/{os.path.basename(os.path.dirname(checkpoint))}/{os.path.basename(checkpoint)}"
                 script.write(
-                    f'gsutil cp "{checkpoint}" "gs://{destination_blob_name}"\n'
+                    f'gsutil -m cp "{checkpoint}" "gs://{destination_blob_name}"\n'
                 )
 
     print(f"Written to {shell_script_file}")
