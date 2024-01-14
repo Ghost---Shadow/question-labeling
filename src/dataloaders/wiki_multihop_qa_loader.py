@@ -37,6 +37,9 @@ def collate_fn(batch):
                 # All rows should be clean
                 assert False, item
 
+        # Sort it if necessary
+        relevant_sentence_indexes = sorted(relevant_sentence_indexes)
+
         labels_mask = [False] * len(flat_sentences)
         for index in relevant_sentence_indexes:
             labels_mask[index] = True

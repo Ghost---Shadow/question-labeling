@@ -40,6 +40,9 @@ def collate_fn(batch):
             # else:
             #     flag_for_error = True
 
+        # Sort if necessary
+        relevant_sentence_indexes = sorted(relevant_sentence_indexes)
+
         labels_mask = [False] * len(flat_sentences)
         for index in relevant_sentence_indexes:
             labels_mask[index] = True

@@ -21,23 +21,33 @@ class TestWikiMultihopQaWithQLoader(unittest.TestCase):
         val_loader = get_validation_loader(batch_size=batch_size)
 
         # Train loader
-        # batch = next(iter(train_loader))
-        # question = "Who was born first, William March or Richard Brautigan?"
-        # sentences = [
-        #     "William March (September 18, 1893 – May 15, 1954) was an American writer of psychological fiction and a highly decorated US Marine.",
-        #     "Richard Gary Brautigan (January 30, 1935 – ca.",
-        # ]
-        # no_paraphrase_question = [
-        #     "What were some notable achievements of William March as both a writer and a US Marine?",
-        #     "What is the significance of Richard Brautigan's work in the literary world?",
-        # ]
-        # paraphrased_questions = [
-        #     "What were William March's accomplishments and contributions as an American writer and US Marine?",
-        #     "Can you rephrase the question about Richard Gary Brautigan?",
-        # ]
-        # row_test_inner(
-        #     batch, question, sentences, no_paraphrase_question, paraphrased_questions
-        # )
+        batch = next(iter(train_loader))
+        question = "Are director of film All Square and director of film The Prize Fighter both from the same country?"
+        sentences = [
+            'Michael Preece( born September 15, 1936) is an American film and television director, script supervisor, producer, and actor best known for directing television series" Dallas" and" Walker, Texas Ranger" and films" The Prize Fighter" and.',
+            "All Square is a 2018 American drama film directed by John Hyams.",
+            "Directed by Michael Preece, it was written by Tim Conway and John Myhers, based on a story by Conway.",
+            'John Hyams is an American screenwriter, director and cinematographer, best known for his involvement in the" Universal Soldier" series, for which he has directed two installments.',
+        ]
+        no_paraphrase_question = [
+            "What are some of Michael Preece's notable works as a director, script supervisor, producer, and actor?",
+            'Who directed the 2018 American drama film "All Square"?',
+            "Who directed the film and who wrote the screenplay for it?",
+            "What is John Hyams best known for in his career as a filmmaker?",
+        ]
+        paraphrased_questions = [
+            "Which works by Michael Preece stand out in his career as a director, script supervisor, producer, and actor?",
+            'Which filmmaker was in charge of directing the American drama film "All Square" released in 2018?',
+            "Who was the director of the film and who was responsible for writing the screenplay?",
+            "What is John Hyams most notable achievement as a filmmaker?",
+        ]
+        row_test_inner(
+            batch,
+            question,
+            sentences,
+            no_paraphrase_question,
+            paraphrased_questions,
+        )
 
         # Validation loader
         batch = next(iter(val_loader))
