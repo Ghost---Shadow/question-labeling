@@ -7,6 +7,8 @@ import matplotlib.pyplot as plt
 import os
 from tqdm import tqdm
 
+sns.set_theme()
+
 METRICS = ["recall", "precision", "f1", "real_k"]
 
 EXPERIMENT_NAME_MAP = {
@@ -77,7 +79,7 @@ def plot_df(df, max_df):
             # Adding text. Adjust the x position as needed.
             plt.text(0.1, max_value, f"{max_value:.2f}", va="bottom", ha="left")
 
-        plt.savefig(output_dir / f"{metric}_plot.png")
+        plt.savefig(output_dir / f"{metric}_by_gain.png")
         plt.close()
 
 

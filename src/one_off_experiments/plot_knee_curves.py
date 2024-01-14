@@ -5,6 +5,8 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 from tqdm import tqdm
 
+sns.set_theme()
+
 directory = "./artifacts/knee_tensors"
 
 data_for_plot = []

@@ -6,6 +6,8 @@ from tqdm import tqdm
 import seaborn as sns
 import numpy as np
 
+sns.set_theme()
+
 
 def plot_similarity_graph(model_name, data_loader, output_dir):
     model = SentenceTransformer(model_name)
