@@ -39,6 +39,9 @@ def json_dir_to_df(base_path):
 
         experiment_name = get(data, "config.wandb.name", "baseline")
 
+        if experiment_name not in EXPERIMENT_NAME_MAP:
+            continue
+
         # Extract data from 'gain_cutoff_histogram' key
         data_dict = data["gain_cutoff_histogram"]
         gain_histogram_resolution = data["gain_histogram_resolution"]
@@ -58,7 +61,7 @@ def json_dir_to_df(base_path):
     return df
 
 
-def plot_df(df, max_df):
+def plot_df(df, max_df, idx_max_df, mean_df):
     output_dir = Path("./artifacts/gain_histogram")
     output_dir.mkdir(exist_ok=True, parents=True)
 
@@ -72,12 +75,32 @@ def plot_df(df, max_df):
         if metric != "real_k":
             plt.ylim(0, 1)
 
-        # Draw horizontal lines for peak achievable gains
+        # Draw lines for maximum F1 scores
         for experiment in df["experiment"].unique():
-            max_value = max_df.loc[experiment, metric]
-            plt.axhline(y=max_value, color="gray", linestyle="--")
-            # Adding text. Adjust the x position as needed.
-            plt.text(0.1, max_value, f"{max_value:.2f}", va="bottom", ha="left")
+            # Ensure that max_df has a row for each experiment
+            if experiment in max_df.index:
+                max_value = max_df.loc[experiment, metric]
+                # Assuming max_df has a 'gain' column with the gain value for max F1
+                max_f1_idx = idx_max_df.loc[experiment, "f1"]
+                gain_at_max_f1 = mean_df.iloc[max_f1_idx]["gain"]
+                print(experiment, gain_at_max_f1)
+
+                # Draw horizontal line at max F1 score
+                plt.axhline(y=max_value, color="gray", linestyle="--")
+
+                # Draw vertical line at the gain where max F1 was found
+                plt.axvline(
+                    x=gain_at_max_f1, ymax=max_value, color="gray", linestyle="--"
+                )
+
+                # Adding text for the F1 score. Adjust x and y positions as needed.
+                plt.text(
+                    1e-3,
+                    max_value,
+                    f" Gain: {gain_at_max_f1:.2f}, F1: {max_value:.2f}",
+                    va="bottom",
+                    ha="left",
+                )
 
         plt.savefig(output_dir / f"{metric}_by_gain.png")
         plt.close()
@@ -87,8 +110,8 @@ if __name__ == "__main__":
     df = json_dir_to_df("artifacts/checkpoint_evals")
     df = df[df["gain"] <= 0.6]
     # df.to_csv("./artifacts/gain_curves.csv")
-    max_df = df.groupby(["gain", "experiment"]).mean().reset_index()
-    max_df = max_df.groupby(["experiment"]).max()
-    print(max_df)
+    mean_df = df.groupby(["gain", "experiment"]).mean().reset_index()
+    max_df = mean_df.groupby(["experiment"]).max()
+    idx_max_df = mean_df.groupby(["experiment"]).idxmax()
 
-    plot_df(df, max_df)
+    plot_df(df, max_df, idx_max_df, mean_df)
