@@ -18,6 +18,7 @@ from training_loop_strategies.utils import (
 
 
 def main(
+    config,
     wrapped_model,
     validation_loader,
     gain_histogram_resolution,
@@ -151,7 +152,7 @@ if __name__ == "__main__":
         "mpnet": "sentence-transformers/all-mpnet-base-v2",
     }[model_type]
 
-    config = {
+    eval_config = {
         "architecture": {
             "semantic_search_model": {
                 "name": model_type,
@@ -168,7 +169,7 @@ if __name__ == "__main__":
 
     print("Loading model")
 
-    wrapped_model = MODEL_LUT[model_type](config)
+    wrapped_model = MODEL_LUT[model_type](eval_config)
 
     enable_quality = False
     enable_diversity = False
@@ -176,6 +177,8 @@ if __name__ == "__main__":
         checkpoint = torch.load(checkpoint_path)
         wrapped_model.model.load_state_dict(checkpoint["model_state_dict"])
         config = checkpoint["config"]
+        config["eval_train"] = config["eval"]
+        config["eval"] = eval_config["eval"]
         assert config["training"]["strategy"]["name"] == "iterative_strategy"
         enable_quality = not get(
             config, "architecture.quality_diversity.disable_quality", False
@@ -185,10 +188,13 @@ if __name__ == "__main__":
             config, "architecture.quality_diversity.disable_diversity", False
         )
         print(config["wandb"]["name"], enable_quality, enable_diversity)
+    else:
+        config = eval_config
 
     wrapped_model.model.eval()
 
     metrics, gain_cutoff_histogram = main(
+        config,
         wrapped_model,
         validation_loader,
         gain_histogram_resolution,
