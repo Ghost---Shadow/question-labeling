@@ -160,7 +160,7 @@ if __name__ == "__main__":
                 "device": device,
             }
         },
-        "eval": {"k": [1, 5, 10]},
+        "eval": {"k": list(range(1, 100))},
     }
 
     _, get_validation_loader = DATA_LOADER_LUT[dataset_name]
