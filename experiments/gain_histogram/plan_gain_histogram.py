@@ -55,7 +55,7 @@ with open(shell_script_file, "w") as script:
 
     # Additional commands
     script.write(f"\n")
-    script.write("python src/run_analysis_scripts/plot_gain_histograms.py\n")
+
     script.write("source devops/upload_artifacts.sh\n")
     script.write("source devops/stop_current_gcp_instance.sh\n")
 
