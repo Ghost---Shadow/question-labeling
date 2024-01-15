@@ -13,6 +13,7 @@ sns.set_theme()
 EXPERIMENT_NAME_MAP = {
     "gpt35_mpnet_kldiv_qd": "quality_diversity",
     "gpt35_mpnet_ni_kldiv": "simple_finetuning",
+    "gpt35_mpnet_kldiv_wiki": "quality_diversity",
     "baseline": "baseline",
 }
 
@@ -21,7 +22,7 @@ def format_experiment_name(raw_name):
     return EXPERIMENT_NAME_MAP[raw_name]
 
 
-def json_dir_to_df(base_path, wanted_test_dataset):
+def json_dir_to_df(base_path):
     base_path = Path(base_path)
     rows = []
 
@@ -36,21 +37,19 @@ def json_dir_to_df(base_path, wanted_test_dataset):
         if data["debug"] is True:
             continue
 
+        experiment_name = get(data, "config.wandb.name", "baseline")
+
         if len(data["config"]["eval"]["k"]) == 3:
             continue
 
-        experiment_name = get(data, "config.wandb.name", "baseline")
-
         if experiment_name not in EXPERIMENT_NAME_MAP:
+            print(experiment_name)
             continue
 
         experiment_name = EXPERIMENT_NAME_MAP[experiment_name]
 
         train_dataset_name = get(data, "config.datasets.train", None)
         test_dataset_name = data["dataset_name"]
-
-        if wanted_test_dataset != test_dataset_name:
-            continue
 
         if train_dataset_name is not None and train_dataset_name != test_dataset_name:
             experiment_name = "cross_dataset"
@@ -68,8 +67,8 @@ def json_dir_to_df(base_path, wanted_test_dataset):
                 "k": i,
                 "f1": metrics[key],
                 "experiment": experiment_name,
-                # "train_dataset_name": train_dataset_name,
-                # "test_dataset_name": test_dataset_name,
+                "train_dataset_name": train_dataset_name,
+                "test_dataset_name": test_dataset_name,
             }
             rows.append(row)
 
@@ -86,7 +85,7 @@ def plot_df(df, max_df, idx_max_df, test_dataset_name):
     metric = "f1"
 
     sns.lineplot(data=df, x="k", y=metric, hue="experiment")
-    plt.title(f"{metric} by k")
+    plt.title(f"{test_dataset_name}: {metric} by k")
     plt.xlabel("k")
     plt.ylabel(metric)
     plt.ylim(0, 1)
@@ -111,7 +110,7 @@ def plot_df(df, max_df, idx_max_df, test_dataset_name):
 
             # Adding text for the F1 score. Adjust x and y positions as needed.
             plt.text(
-                1e-1,
+                75,
                 max_value,
                 line,
                 va="bottom",
@@ -123,8 +122,11 @@ def plot_df(df, max_df, idx_max_df, test_dataset_name):
 
 
 if __name__ == "__main__":
-    for test_dataset_name in ["hotpot_qa_with_q", "wiki_multihop_qa_with_q"]:
-        df = json_dir_to_df("artifacts/checkpoint_evals", test_dataset_name)
-        max_df = df.groupby(["experiment"]).max()
-        idx_max_df = df.groupby(["experiment"]).idxmax()
-        plot_df(df, max_df, idx_max_df, test_dataset_name)
+    df = json_dir_to_df("artifacts/checkpoint_evals")
+    # for test_dataset_name in ["hotpot_qa_with_q", "wiki_multihop_qa_with_q"]:
+    for test_dataset_name in ["hotpot_qa_with_q"]:
+        ddf = df[df["test_dataset_name"] == test_dataset_name]
+        ddf = ddf[["k", "f1", "experiment"]]
+        max_df = ddf.groupby(["experiment"]).max()
+        idx_max_df = ddf.groupby(["experiment"]).idxmax()
+        plot_df(ddf, max_df, idx_max_df, test_dataset_name)
