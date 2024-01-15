@@ -12,4 +12,4 @@ python ./src/train.py --config=experiments/loss_fn_sweep/gpt35_mpnet_mse.yaml
 # python ./src/train.py --config=experiments/loss_fn_sweep/gpt35_mpnet_triplet.yaml --debug
 python ./src/train.py --config=experiments/loss_fn_sweep/gpt35_mpnet_triplet.yaml
 
-source devops/stop_current_gcp_instance.sh
+source devops/backup_checkpoints.sh
