@@ -152,13 +152,13 @@ def train_step(config, scaler, wrapped_model, optimizer, batch, loss_fn):
             )
 
             cutoff_gain = None
-            if not get(config, "eval.disable_cutoff_gains", False):
-                cutoff_gain = compute_cutoff_gain(
-                    actual_picks,
-                    actual_pick_prediction,
-                    paraphrase_lut,
-                    no_paraphrase_relevant_question_indexes,
-                )
+            # if not get(config, "eval.disable_cutoff_gains", False):
+            #     cutoff_gain = compute_cutoff_gain(
+            #         actual_picks,
+            #         actual_pick_prediction,
+            #         paraphrase_lut,
+            #         no_paraphrase_relevant_question_indexes,
+            #     )
 
             all_metrics.append(
                 {
@@ -167,6 +167,9 @@ def train_step(config, scaler, wrapped_model, optimizer, batch, loss_fn):
                     "cutoff_gain": cutoff_gain,
                 }
             )
+
+            # Fix OOM
+            torch.cuda.empty_cache()
         except RuntimeError as e:
             print("CUDA Out of Memory Error caught:", e)
             torch.cuda.empty_cache()
