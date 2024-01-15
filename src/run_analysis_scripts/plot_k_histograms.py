@@ -36,6 +36,9 @@ def json_dir_to_df(base_path, wanted_test_dataset):
         if data["debug"] is True:
             continue
 
+        if len(data["config"]["eval"]["k"]) == 3:
+            continue
+
         experiment_name = get(data, "config.wandb.name", "baseline")
 
         if experiment_name not in EXPERIMENT_NAME_MAP:
