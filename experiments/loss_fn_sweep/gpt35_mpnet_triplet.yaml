@@ -1,6 +1,6 @@
 wandb:
   project: "question_labeling_qd_ablation"
-  name: "gpt35_mpnet_triplet_qd"
+  name: "gpt35_mpnet_triplet"
   # entity: "carml"
 
 architecture:
