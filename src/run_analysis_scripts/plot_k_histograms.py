@@ -21,7 +21,7 @@ def format_experiment_name(raw_name):
     return EXPERIMENT_NAME_MAP[raw_name]
 
 
-def json_dir_to_df(base_path):
+def json_dir_to_df(base_path, wanted_test_dataset="hotpot_qa_with_q"):
     base_path = Path(base_path)
     rows = []
 
@@ -45,6 +45,9 @@ def json_dir_to_df(base_path):
 
         train_dataset_name = get(data, "config.datasets.train", None)
         test_dataset_name = data["dataset_name"]
+
+        if wanted_test_dataset != test_dataset_name:
+            continue
 
         if train_dataset_name is not None and train_dataset_name != test_dataset_name:
             experiment_name = "cross_dataset"
