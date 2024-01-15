@@ -25,7 +25,7 @@ def format_experiment_name(raw_name):
     return raw_name
 
 
-def json_dir_to_df(base_path, wanted_test_dataset="hotpot_qa_with_q"):
+def json_dir_to_df(base_path, wanted_test_dataset):
     base_path = Path(base_path)
     rows = []
 
@@ -70,7 +70,7 @@ def json_dir_to_df(base_path, wanted_test_dataset="hotpot_qa_with_q"):
     return df
 
 
-def plot_df(df, max_df, idx_max_df, mean_df):
+def plot_df(df, max_df, idx_max_df, mean_df, test_dataset_name):
     output_dir = Path("./artifacts/gain_histogram")
     output_dir.mkdir(exist_ok=True, parents=True)
 
@@ -113,16 +113,16 @@ def plot_df(df, max_df, idx_max_df, mean_df):
                     ha="left",
                 )
 
-        plt.savefig(output_dir / f"{metric}_by_gain.png")
+        plt.savefig(output_dir / f"{test_dataset_name}_{metric}_by_gain.png")
         plt.close()
 
 
 if __name__ == "__main__":
-    df = json_dir_to_df("artifacts/checkpoint_evals")
-    df = df[df["gain"] <= 0.6]
-    # df.to_csv("./artifacts/gain_curves.csv")
-    mean_df = df.groupby(["gain", "experiment"]).mean().reset_index()
-    max_df = mean_df.groupby(["experiment"]).max()
-    idx_max_df = mean_df.groupby(["experiment"]).idxmax()
+    for test_dataset_name in ["hotpot_qa_with_q", "wiki_multihop_qa_with_q"]:
+        df = json_dir_to_df("artifacts/checkpoint_evals", test_dataset_name)
+        df = df[df["gain"] <= 0.6]
+        mean_df = df.groupby(["gain", "experiment"]).mean().reset_index()
+        max_df = mean_df.groupby(["experiment"]).max()
+        idx_max_df = mean_df.groupby(["experiment"]).idxmax()
 
-    plot_df(df, max_df, idx_max_df, mean_df)
+        plot_df(df, max_df, idx_max_df, mean_df, test_dataset_name)
