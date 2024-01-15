@@ -42,6 +42,12 @@ def json_dir_to_df(base_path):
         if experiment_name not in EXPERIMENT_NAME_MAP:
             continue
 
+        train_dataset_name = get(data, "config.datasets.train", None)
+        test_dataset_name = data["dataset_name"]
+
+        if train_dataset_name is not None and train_dataset_name != test_dataset_name:
+            experiment_name = "cross_dataset"
+
         # Extract data from 'gain_cutoff_histogram' key
         data_dict = data["gain_cutoff_histogram"]
         gain_histogram_resolution = data["gain_histogram_resolution"]
@@ -83,7 +89,6 @@ def plot_df(df, max_df, idx_max_df, mean_df):
                 # Assuming max_df has a 'gain' column with the gain value for max F1
                 max_f1_idx = idx_max_df.loc[experiment, "f1"]
                 gain_at_max_f1 = mean_df.iloc[max_f1_idx]["gain"]
-                print(experiment, gain_at_max_f1)
 
                 # Draw horizontal line at max F1 score
                 plt.axhline(y=max_value, color="gray", linestyle="--")
@@ -93,11 +98,14 @@ def plot_df(df, max_df, idx_max_df, mean_df):
                     x=gain_at_max_f1, ymax=max_value, color="gray", linestyle="--"
                 )
 
+                line = f" Gain: {gain_at_max_f1:.2f}, F1: {max_value:.2f}"
+                print(experiment, line)
+
                 # Adding text for the F1 score. Adjust x and y positions as needed.
                 plt.text(
                     1e-3,
                     max_value,
-                    f" Gain: {gain_at_max_f1:.2f}, F1: {max_value:.2f}",
+                    line,
                     va="bottom",
                     ha="left",
                 )
