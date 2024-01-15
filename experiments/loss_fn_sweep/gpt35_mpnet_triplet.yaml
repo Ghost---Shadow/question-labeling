@@ -1,6 +1,6 @@
 wandb:
-  project: "question_labeling_loss_fn_ablations"
-  name: "gpt35_mpnet_triplet"
+  project: "question_labeling_qd_ablation"
+  name: "gpt35_mpnet_triplet_qd"
   # entity: "carml"
 
 architecture:
@@ -23,7 +23,7 @@ datasets:
 training:
   strategy:
     name: 'iterative_strategy'
-  epochs: 7 # +3 to verify overfit
+  epochs: 7
   batch_size: 32
   learning_rate: 3e-5
   weight_decay: 0.01
@@ -31,7 +31,10 @@ training:
   seeds: [42]
   warmup_ratio: 0.06
   # seeds: [42, 43, 44, 45, 46]
+  streaming:
+    enabled: true
+    batch_size: 100
 
 eval:
-  k: [1, 5]
-  disable_cutoff_gains: false
+  k: [1, 5, 10]
+  disable_cutoff_gains: true
