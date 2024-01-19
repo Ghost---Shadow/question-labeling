@@ -1,6 +1,6 @@
 wandb:
-  project: "question_labeling_cross_dataset"
-  name: "gpt35_debertav3_kldiv"
+  project: "question_labeling_qd_ablation"
+  name: "gpt35_deberta_ni_kldiv"
   # entity: "carml"
 
 architecture:
@@ -8,8 +8,8 @@ architecture:
     name: 'gpt-3.5-turbo'
   
   semantic_search_model:
-    name: 'deberta'
-    checkpoint: 'microsoft/deberta-v3-large'
+    name: 'mpnet'
+    checkpoint: 'microsoft/deberta-v3-base'
     device: "cuda:0"
 
   loss:
@@ -17,13 +17,13 @@ architecture:
 
 datasets:
   train: 'hotpot_qa_with_q'
-  validation: ['hotpot_qa_with_q']
+  validation: ['hotpot_qa_with_q','wiki_multihop_qa_with_q']
 
 # https://arxiv.org/pdf/2004.09297.pdf - Page 12
 training:
   strategy:
-    name: 'iterative_strategy'
-  epochs: 7 # +3 to verify overfit
+    name: 'non_iterative_strategy'
+  epochs: 7
   batch_size: 32
   learning_rate: 3e-5
   weight_decay: 0.01
@@ -31,7 +31,9 @@ training:
   seeds: [42]
   warmup_ratio: 0.06
   # seeds: [42, 43, 44, 45, 46]
+  streaming:
+    enabled: true
+    batch_size: 100
 
 eval:
   k: [1, 5, 10]
-  disable_cutoff_gains: false
