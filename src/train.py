@@ -58,11 +58,11 @@ def main(config, debug):
 
         if not debug and checkpoint_manager.last_epoch == -1:
             print("Starting warmup validation")
+            validation_metrics = {}
             for validation_dataset_name in validation_loaders:
                 validation_loader = validation_loaders[validation_dataset_name]
-                validate_one_epoch(
+                metrics = validate_one_epoch(
                     config,
-                    validation_dataset_name,
                     validation_loader,
                     checkpoint_manager.wrapped_model,
                     checkpoint_manager.scaler,
@@ -70,8 +70,13 @@ def main(config, debug):
                     eval_step_fn,
                     loss_fn,
                     debug,
-                    samples_consumed=0,
                 )
+                validation_metrics[validation_dataset_name] = metrics
+
+            wandb.log(
+                {"validation": validation_metrics},
+                step=0,
+            )
 
         for epoch in range(checkpoint_manager.last_epoch + 1, EPOCHS):
             print(f"Start training for epoch {epoch}")
