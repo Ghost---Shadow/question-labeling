@@ -14,6 +14,8 @@ METRICS = ["recall", "precision", "f1", "real_k"]
 EXPERIMENT_NAME_MAP = {
     "gpt35_mpnet_kldiv_qd": "quality_diversity",
     "gpt35_mpnet_ni_kldiv": "simple_finetuning",
+    "gpt35_minilm_kldiv_qd": "quality_diversity",
+    "gpt35_minilm_kldiv_ni": "simple_finetuning",
     "baseline": "baseline",
 }
 
@@ -42,6 +44,9 @@ def json_dir_to_df(base_path, wanted_test_dataset):
         if experiment_name not in EXPERIMENT_NAME_MAP:
             continue
 
+        model_name = get(data, "config.architecture.semantic_search_model.name")
+        assert model_name, model_name
+
         train_dataset_name = get(data, "config.datasets.train", None)
         test_dataset_name = data["dataset_name"]
 
@@ -61,6 +66,7 @@ def json_dir_to_df(base_path, wanted_test_dataset):
                     **metrics,
                     "gain": int(gain) * gain_histogram_resolution,
                     "experiment": format_experiment_name(experiment_name),
+                    "model_name": model_name,
                 }
                 row.update(metrics)
                 rows.append(row)
@@ -73,6 +79,8 @@ def json_dir_to_df(base_path, wanted_test_dataset):
 def plot_df(df, max_df, idx_max_df, mean_df, test_dataset_name):
     output_dir = Path("./artifacts/gain_histogram")
     output_dir.mkdir(exist_ok=True, parents=True)
+
+    model_name = df["model_name"].unique().tolist()[0]
 
     for metric in tqdm(["f1"]):
         plt.figure()
@@ -113,16 +121,20 @@ def plot_df(df, max_df, idx_max_df, mean_df, test_dataset_name):
                     ha="left",
                 )
 
-        plt.savefig(output_dir / f"{test_dataset_name}_{metric}_by_gain.png")
+        plt.savefig(
+            output_dir / f"{test_dataset_name}_{metric}_{model_name}_by_gain.png"
+        )
         plt.close()
 
 
 if __name__ == "__main__":
-    for test_dataset_name in ["hotpot_qa_with_q", "wiki_multihop_qa_with_q"]:
-        df = json_dir_to_df("artifacts/checkpoint_evals", test_dataset_name)
-        df = df[df["gain"] <= 0.6]
-        mean_df = df.groupby(["gain", "experiment"]).mean().reset_index()
-        max_df = mean_df.groupby(["experiment"]).max()
-        idx_max_df = mean_df.groupby(["experiment"]).idxmax()
+    for model_name in ["mpnet", "minilm"]:
+        for test_dataset_name in ["hotpot_qa_with_q", "wiki_multihop_qa_with_q"]:
+            df = json_dir_to_df("artifacts/checkpoint_evals", test_dataset_name)
+            df = df[df["gain"] <= 0.6]
+            df = df[df["model_name"] == model_name]
+            mean_df = df.groupby(["gain", "experiment"]).mean().reset_index()
+            max_df = mean_df.groupby(["experiment"]).max()
+            idx_max_df = mean_df.groupby(["experiment"]).idxmax()
 
-        plot_df(df, max_df, idx_max_df, mean_df, test_dataset_name)
+            plot_df(df, max_df, idx_max_df, mean_df, test_dataset_name)
