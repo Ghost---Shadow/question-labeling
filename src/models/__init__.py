@@ -7,5 +7,6 @@ MODEL_LUT = {
     "gpt-3.5-turbo": OpenAIChatModel,
     "t5": T5ModelForQuestionGeneration,
     "mpnet": WrappedMpnetModel,
+    "minilm": WrappedMpnetModel,
     "deberta": WrappedDebertaModel,
 }
