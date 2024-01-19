@@ -150,6 +150,7 @@ if __name__ == "__main__":
 
     base_hf_checkpoint = {
         "mpnet": "sentence-transformers/all-mpnet-base-v2",
+        "minilm": "sentence-transformers/all-MiniLM-L12-v2",
     }[model_type]
 
     eval_config = {
