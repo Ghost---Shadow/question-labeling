@@ -91,11 +91,11 @@ def main(config, debug):
                 )
 
             print("Starting validation")
+            validation_metrics = {}
             for validation_dataset_name in validation_loaders:
                 validation_loader = validation_loaders[validation_dataset_name]
-                validate_one_epoch(
+                metrics = validate_one_epoch(
                     config,
-                    validation_dataset_name,
                     validation_loader,
                     checkpoint_manager.wrapped_model,
                     checkpoint_manager.scaler,
@@ -103,7 +103,13 @@ def main(config, debug):
                     eval_step_fn,
                     loss_fn,
                     debug,
-                    samples_consumed,
+                )
+                validation_metrics[validation_dataset_name] = metrics
+
+            if not debug:
+                wandb.log(
+                    {"validation": validation_metrics},
+                    step=samples_consumed,
                 )
 
             if not debug:

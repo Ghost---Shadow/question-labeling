@@ -14,7 +14,6 @@ def set_seed(seed):
 
 def validate_one_epoch(
     config,
-    validation_dataset_name,
     validation_loader,
     wrapped_model,
     scaler,
@@ -22,7 +21,6 @@ def validate_one_epoch(
     eval_step_fn,
     loss_fn,
     debug,
-    samples_consumed,
 ):
     wrapped_model.model.eval()
 
@@ -51,12 +49,7 @@ def validate_one_epoch(
     average_inference_time = total_inference_time / len(all_metrics)
     avg_metrics["step_time"] = average_inference_time
 
-    # Log metrics if not in debug mode
-    if not debug:
-        wandb.log(
-            {"validation": {validation_dataset_name: avg_metrics}},
-            step=samples_consumed,
-        )
+    return avg_metrics
 
 
 def train_one_epoch(
