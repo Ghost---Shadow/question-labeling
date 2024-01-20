@@ -9,7 +9,6 @@ from tqdm import tqdm
 
 sns.set_theme()
 
-METRICS = ["recall", "precision", "f1", "real_k"]
 
 EXPERIMENT_NAME_MAP = {
     "gpt35_mpnet_kldiv_qd": "quality_diversity",
@@ -18,13 +17,6 @@ EXPERIMENT_NAME_MAP = {
     "gpt35_minilm_kldiv_ni": "simple_finetuning",
     "baseline": "baseline",
 }
-
-
-def format_experiment_name(raw_name):
-    if raw_name in EXPERIMENT_NAME_MAP:
-        return EXPERIMENT_NAME_MAP[raw_name]
-
-    return raw_name
 
 
 def json_dir_to_df(base_path, wanted_test_dataset):
@@ -65,7 +57,7 @@ def json_dir_to_df(base_path, wanted_test_dataset):
                 row = {
                     **metrics,
                     "gain": int(gain) * gain_histogram_resolution,
-                    "experiment": format_experiment_name(experiment_name),
+                    "experiment": experiment_name,
                     "model_name": model_name,
                 }
                 row.update(metrics)
@@ -80,13 +72,15 @@ def plot_df(df, max_df, idx_max_df, mean_df, test_dataset_name):
     output_dir = Path("./artifacts/gain_histogram")
     output_dir.mkdir(exist_ok=True, parents=True)
 
-    model_name = df["model_name"].unique().tolist()[0]
+    model_names = df["model_name"].unique().tolist()
+    assert len(model_names) == 1, model_names
+    model_name = model_names[0]
 
     for metric in tqdm(["f1"]):
         plt.figure()
 
         sns.lineplot(data=df, x="gain", y=metric, hue="experiment")
-        plt.title(f"{metric} by gain")
+        plt.title(f"{model_name} - {metric} by gain")
         plt.xlabel("Gain")
         plt.ylabel(metric)
         if metric != "real_k":
@@ -110,7 +104,7 @@ def plot_df(df, max_df, idx_max_df, mean_df, test_dataset_name):
                 )
 
                 line = f" Gain: {gain_at_max_f1:.2f}, F1: {max_value:.2f}"
-                print(experiment, line)
+                print(" ", model_name, test_dataset_name, experiment, line)
 
                 # Adding text for the F1 score. Adjust x and y positions as needed.
                 plt.text(
@@ -128,12 +122,18 @@ def plot_df(df, max_df, idx_max_df, mean_df, test_dataset_name):
 
 
 if __name__ == "__main__":
+    # df = json_dir_to_df("artifacts/checkpoint_evals", "hotpot_qa_with_q")
+    # print(df)
+
     for model_name in ["mpnet", "minilm"]:
         for test_dataset_name in ["hotpot_qa_with_q", "wiki_multihop_qa_with_q"]:
             df = json_dir_to_df("artifacts/checkpoint_evals", test_dataset_name)
             df = df[df["gain"] <= 0.6]
             df = df[df["model_name"] == model_name]
-            mean_df = df.groupby(["gain", "experiment"]).mean().reset_index()
+            df = df.reset_index()
+            mean_df = (
+                df.groupby(["gain", "experiment", "model_name"]).mean().reset_index()
+            )
             max_df = mean_df.groupby(["experiment"]).max()
             idx_max_df = mean_df.groupby(["experiment"]).idxmax()
 
