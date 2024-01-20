@@ -2,24 +2,13 @@ import json
 from pathlib import Path
 import pandas as pd
 from pydash import get
+from run_analysis_scripts.plot_gain_histograms import EXPERIMENT_NAME_MAP
 import seaborn as sns
 import matplotlib.pyplot as plt
 import os
 from tqdm import tqdm
 
 sns.set_theme()
-
-
-EXPERIMENT_NAME_MAP = {
-    "gpt35_mpnet_kldiv_qd": "quality_diversity",
-    "gpt35_mpnet_ni_kldiv": "simple_finetuning",
-    "gpt35_mpnet_kldiv_wiki": "quality_diversity",
-    "baseline": "baseline",
-}
-
-
-def format_experiment_name(raw_name):
-    return EXPERIMENT_NAME_MAP[raw_name]
 
 
 def json_dir_to_df(base_path):
@@ -39,14 +28,17 @@ def json_dir_to_df(base_path):
 
         experiment_name = get(data, "config.wandb.name", "baseline")
 
-        if len(data["config"]["eval"]["k"]) == 3:
-            continue
-
         if experiment_name not in EXPERIMENT_NAME_MAP:
-            print(experiment_name)
+            # print(experiment_name)
             continue
 
         experiment_name = EXPERIMENT_NAME_MAP[experiment_name]
+
+        model_name = get(data, "config.architecture.semantic_search_model.name")
+        assert model_name, model_name
+
+        if len(data["config"]["eval"]["k"]) == 3:
+            continue
 
         train_dataset_name = get(data, "config.datasets.train", None)
         test_dataset_name = data["dataset_name"]
@@ -69,6 +61,7 @@ def json_dir_to_df(base_path):
                 "experiment": experiment_name,
                 "train_dataset_name": train_dataset_name,
                 "test_dataset_name": test_dataset_name,
+                "model_name": model_name,
             }
             rows.append(row)
 
@@ -77,7 +70,7 @@ def json_dir_to_df(base_path):
     return df
 
 
-def plot_df(df, max_df, idx_max_df, test_dataset_name):
+def plot_df(df, max_df, idx_max_df, test_dataset_name, model_name):
     output_dir = Path("./artifacts/gain_histogram")
     output_dir.mkdir(exist_ok=True, parents=True)
 
@@ -85,13 +78,13 @@ def plot_df(df, max_df, idx_max_df, test_dataset_name):
     metric = "f1"
 
     sns.lineplot(data=df, x="k", y=metric, hue="experiment")
-    plt.title(f"{test_dataset_name}: {metric} by k")
+    plt.title(f"{model_name} - {test_dataset_name}: {metric} by k")
     plt.xlabel("k")
     plt.ylabel(metric)
     plt.ylim(0, 1)
 
     # Draw lines for maximum F1 scores
-    for experiment in df["experiment"].unique():
+    for experiment in tqdm(df["experiment"].unique()):
         # Ensure that max_df has a row for each experiment
         if experiment in max_df.index:
             max_value = max_df.loc[experiment, metric]
@@ -106,7 +99,7 @@ def plot_df(df, max_df, idx_max_df, test_dataset_name):
             plt.axvline(x=k_at_max_f1, ymax=max_value, color="gray", linestyle="--")
 
             line = f" k: {k_at_max_f1:.2f}, F1: {max_value:.2f}"
-            print(experiment, line)
+            print(" ", model_name, test_dataset_name, experiment, line)
 
             # Adding text for the F1 score. Adjust x and y positions as needed.
             plt.text(
@@ -117,16 +110,22 @@ def plot_df(df, max_df, idx_max_df, test_dataset_name):
                 ha="left",
             )
 
-    plt.savefig(output_dir / f"{test_dataset_name}_{metric}_by_k.png")
+    plt.savefig(output_dir / f"{test_dataset_name}_{metric}_{model_name}_by_k.png")
     plt.close()
 
 
 if __name__ == "__main__":
     df = json_dir_to_df("artifacts/checkpoint_evals")
-    # for test_dataset_name in ["hotpot_qa_with_q", "wiki_multihop_qa_with_q"]:
-    for test_dataset_name in ["hotpot_qa_with_q"]:
-        ddf = df[df["test_dataset_name"] == test_dataset_name]
-        ddf = ddf[["k", "f1", "experiment"]]
-        max_df = ddf.groupby(["experiment"]).max()
-        idx_max_df = ddf.groupby(["experiment"]).idxmax()
-        plot_df(ddf, max_df, idx_max_df, test_dataset_name)
+    # df.to_csv("./artifacts/temp.csv")
+    # df = pd.read_csv("./artifacts/temp.csv")
+    for model_name in ["mpnet", "minilm"]:
+        for test_dataset_name in ["hotpot_qa_with_q", "wiki_multihop_qa_with_q"]:
+            ddf = df
+            ddf = ddf[ddf["test_dataset_name"] == test_dataset_name]
+            ddf = ddf[ddf["model_name"] == model_name]
+            ddf = ddf.reset_index()
+            ddf = ddf[["k", "f1", "experiment"]]
+            max_df = ddf.groupby(["experiment"]).max()
+            idx_max_df = ddf.groupby(["experiment"]).idxmax()
+
+            plot_df(ddf, max_df, idx_max_df, test_dataset_name, model_name)
