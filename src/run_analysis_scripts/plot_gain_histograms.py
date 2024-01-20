@@ -77,9 +77,9 @@ def plot_df(model_name, test_dataset_name, ddf, mean_df, idx_max_df):
 
 
 if __name__ == "__main__":
-    # df = json_dir_to_df("artifacts/checkpoint_evals")
+    df = json_dir_to_df("artifacts/checkpoint_evals")
     # df.to_csv("./artifacts/gain.csv", index=False)
-    df = pd.read_csv("./artifacts/gain.csv")
+    # df = pd.read_csv("./artifacts/gain.csv")
     # print(df)
 
     for model_name in ["mpnet", "minilm"]:
