@@ -14,6 +14,7 @@ def json_dir_to_df(base_path):
     rows = []
 
     for file_name in tqdm(os.listdir(base_path)):
+        file_rows = []
         meta, data = get_meta_and_data_dicts(base_path, file_name)
 
         if meta is None:
@@ -32,7 +33,11 @@ def json_dir_to_df(base_path):
                 "k": i,
                 "f1": metrics[key],
             }
-            rows.append(row)
+            file_rows.append(row)
+
+        if len(file_rows) != 3:
+            # backward compatibility
+            rows = [*rows, *file_rows]
 
     df = pd.DataFrame(rows)
 
@@ -83,7 +88,7 @@ def plot_df(model_name, test_dataset_name, ddf, idx_max_df):
 
 if __name__ == "__main__":
     df = json_dir_to_df("artifacts/checkpoint_evals")
-    # df.to_csv("./artifacts/by_k.csv")
+    # df.to_csv("./artifacts/by_k.csv", index=False)
     # df = pd.read_csv("./artifacts/by_k.csv")
     for model_name in ["mpnet", "minilm"]:
         for test_dataset_name in ["hotpot_qa_with_q", "wiki_multihop_qa_with_q"]:
