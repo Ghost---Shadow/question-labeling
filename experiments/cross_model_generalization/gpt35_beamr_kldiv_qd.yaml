@@ -1,6 +1,6 @@
 wandb:
-  project: "question_labeling_cross_dataset"
-  name: "gpt35_beamr_kldiv"
+  project: "question_labeling_qd_ablation"
+  name: "gpt35_beamr_kldiv_qd"
   # entity: "carml"
 
 architecture:
@@ -23,7 +23,7 @@ datasets:
 training:
   strategy:
     name: 'iterative_strategy'
-  epochs: 7 # TODO: 16
+  epochs: 2 # TODO: 16
   batch_size: 32
   learning_rate: 2e-5
   weight_decay: 0.01
@@ -33,7 +33,7 @@ training:
   # seeds: [42, 43, 44, 45, 46]
   streaming:
     enabled: true
-    batch_size: 64
+    batch_size: 1
 
 eval:
   k: [1, 5, 10]
