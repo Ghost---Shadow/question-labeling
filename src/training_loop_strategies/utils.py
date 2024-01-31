@@ -345,14 +345,41 @@ def compute_cutoff_gain_histogram(
     return result
 
 
-def accumulate_gain_cutoff(gain_histogram_accumulator, cutoff_gain_histogram):
-    for gain, metrics in cutoff_gain_histogram.items():
-        assert type(gain) == int, gain  # quantized
+def compute_cutoff_score_histogram(
+    actual_picks,
+    actual_pick_prediction,
+    paraphrase_lut,
+    no_paraphrase_relevant_question_indexes,
+    resolution,
+):
+    picks_so_far = []
+
+    result = {}
+
+    for pick, prediction in zip(actual_picks, actual_pick_prediction):
+        prediction = int(prediction / resolution) * resolution
+        rounded_prediction = round(prediction / resolution)
+
+        picks_so_far.append(pick)
+
+        result[rounded_prediction] = compute_natural_search_metrics(
+            picks_so_far,
+            paraphrase_lut,
+            no_paraphrase_relevant_question_indexes,
+        )
+        result[rounded_prediction]["real_k"] = len(picks_so_far)
+
+    return result
+
+
+def accumulate_cutoff_metrics(accumulator, histogram):
+    for key, metrics in histogram.items():
+        assert type(key) == int, key  # quantized
         assert type(metrics) == dict, metrics
-        if gain in gain_histogram_accumulator:
-            gain_histogram_accumulator[gain].append(metrics)
+        if key in accumulator:
+            accumulator[key].append(metrics)
         else:
-            gain_histogram_accumulator[gain] = [metrics]
+            accumulator[key] = [metrics]
 
 
 def rerank_documents(

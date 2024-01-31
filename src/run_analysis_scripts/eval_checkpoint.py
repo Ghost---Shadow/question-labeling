@@ -8,10 +8,11 @@ from dataloaders import DATA_LOADER_LUT
 from models import MODEL_LUT
 from tqdm import tqdm
 from training_loop_strategies.utils import (
-    accumulate_gain_cutoff,
+    accumulate_cutoff_metrics,
     average_metrics,
     compute_cutoff_gain,
     compute_cutoff_gain_histogram,
+    compute_cutoff_score_histogram,
     compute_search_metrics,
     rerank_documents,
 )
@@ -28,6 +29,8 @@ def main(
 ):
     all_metrics = []
     gain_histogram_accumulator = {}
+    score_histogram_accumulator = {}
+
     with torch.no_grad():
         pbar = tqdm(validation_loader)
         for batch in pbar:
@@ -74,8 +77,20 @@ def main(
                     resolution=gain_histogram_resolution,
                 )
 
-                accumulate_gain_cutoff(
+                accumulate_cutoff_metrics(
                     gain_histogram_accumulator, cutoff_gain_histogram
+                )
+
+                cutoff_score_histogram = compute_cutoff_score_histogram(
+                    actual_picks,
+                    actual_pick_prediction,
+                    paraphrase_lut,
+                    no_paraphrase_relevant_question_indexes,
+                    resolution=gain_histogram_resolution,
+                )
+
+                accumulate_cutoff_metrics(
+                    score_histogram_accumulator, cutoff_score_histogram
                 )
 
                 all_metrics.append(
@@ -93,7 +108,7 @@ def main(
 
     avg_metrics = average_metrics(all_metrics)
 
-    return avg_metrics, gain_histogram_accumulator
+    return avg_metrics, gain_histogram_accumulator, score_histogram_accumulator
 
 
 if __name__ == "__main__":
@@ -194,7 +209,7 @@ if __name__ == "__main__":
 
     wrapped_model.model.eval()
 
-    metrics, gain_cutoff_histogram = main(
+    metrics, gain_cutoff_histogram, score_cutoff_histogram = main(
         config,
         wrapped_model,
         validation_loader,
@@ -212,6 +227,7 @@ if __name__ == "__main__":
         "enable_quality": enable_quality,
         "enable_diversity": enable_diversity,
         "gain_cutoff_histogram": gain_cutoff_histogram,
+        "score_cutoff_histogram": score_cutoff_histogram,
         "gain_histogram_resolution": gain_histogram_resolution,
     }
     hashstr = generate_md5_hash(result)
