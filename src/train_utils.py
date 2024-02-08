@@ -1,7 +1,7 @@
 import random
 import numpy as np
 import time
-from dataloaders import DATA_LOADER_LUT
+from dataloaders import DATALOADERS_LUT
 import torch
 from tqdm import tqdm
 from training_loop_strategies.iterative_strategy import average_metrics
